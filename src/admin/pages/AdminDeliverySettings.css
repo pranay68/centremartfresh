@@ -1,0 +1,170 @@
+/* Delivery Settings Page Styles */
+
+.delivery-settings-container {
+    max-width: 700px;
+    margin: 2.5rem auto;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 6px 32px rgba(102, 126, 234, 0.13);
+    padding: 2.5rem 2rem 2rem 2rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.delivery-settings-title {
+    font-size: 2.1rem;
+    font-weight: 900;
+    color: #22223b;
+    margin-bottom: 2.2rem;
+    letter-spacing: 0.5px;
+}
+
+.delivery-table {
+    width: 100%;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(102, 126, 234, 0.07);
+    margin-bottom: 1.5rem;
+    background: #f8fafc;
+}
+
+.delivery-table th,
+.delivery-table td {
+    padding: 12px 10px;
+    text-align: left;
+    font-size: 1rem;
+}
+
+.delivery-table th {
+    background: #f1f5f9;
+    font-weight: 700;
+    color: #3b3b4f;
+    border-bottom: 1.5px solid #e0e7ff;
+}
+
+.delivery-table tr:not(:last-child) td {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.delivery-table input,
+.delivery-table select {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1.5px solid #e0e7ff;
+    font-size: 1rem;
+    background: #fff;
+    transition: border 0.2s, box-shadow 0.2s;
+    margin-bottom: 2px;
+}
+
+.delivery-table input:focus,
+.delivery-table select:focus {
+    border-color: #7f53ac;
+    box-shadow: 0 0 0 2px #e0e7ff;
+    outline: none;
+}
+
+.delivery-table button {
+    padding: 7px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    background: linear-gradient(90deg, #667eea 0%, #7f53ac 100%);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+}
+
+.delivery-table button:hover {
+    background: linear-gradient(90deg, #7f53ac 0%, #667eea 100%);
+}
+
+.delivery-section-header {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #7f53ac;
+    margin-bottom: 0.7rem;
+    margin-top: 1.5rem;
+    letter-spacing: 0.2px;
+}
+
+.delivery-locations-list {
+    margin-bottom: 1.2rem;
+}
+
+.delivery-locations-list li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 7px;
+    font-size: 1rem;
+    color: #22223b;
+}
+
+.delivery-locations-list button {
+    margin-left: 10px;
+    background: #ff1744;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 6px 14px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s;
+}
+
+.delivery-locations-list button:hover {
+    background: #d50000;
+}
+
+.delivery-add-location {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 0.5rem;
+}
+
+.delivery-add-location input {
+    flex: 1;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1.5px solid #e0e7ff;
+    font-size: 1rem;
+    background: #fff;
+    transition: border 0.2s, box-shadow 0.2s;
+}
+
+.delivery-add-location input:focus {
+    border-color: #7f53ac;
+    box-shadow: 0 0 0 2px #e0e7ff;
+    outline: none;
+}
+
+.delivery-add-location button {
+    padding: 7px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    background: linear-gradient(90deg, #667eea 0%, #7f53ac 100%);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+}
+
+.delivery-add-location button:hover {
+    background: linear-gradient(90deg, #7f53ac 0%, #667eea 100%);
+}
+
+@media (max-width: 600px) {
+    .delivery-settings-container {
+        padding: 1.2rem 0.5rem;
+    }
+    .delivery-table th,
+    .delivery-table td {
+        padding: 7px 4px;
+        font-size: 0.97rem;
+    }
+}

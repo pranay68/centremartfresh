@@ -1,17 +1,19 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+// src/index.js
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+import React from "react";
+import { createRoot } from "react-dom/client";
+import TempApp from "./TempApp";
+import "./index.css"; // Optional: if you plan to use global styles
+
+// Grab the root div from public/index.html
+const container = document.getElementById("root");
+
+// Create root (React 18+ style)
+const root = createRoot(container);
+
+// Proper JSX formatting here ⬇️
 root.render(
   <React.StrictMode>
-    <App />
+    <TempApp />
   </React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();

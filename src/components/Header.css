@@ -1,0 +1,358 @@
+/* 🚀 LENNOX CENTER MART - HEADER STYLES */
+
+.header {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 5vw;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+
+/* Header Left Section */
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 120px;
+}
+
+.logo {
+    text-decoration: none;
+    color: #1e293b;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.logo-image {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.logo-text {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.search-container {
+    flex: 1;
+    max-width: 600px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+
+/* Remove old search input styles since we're using PowerSearch now */
+
+.search-input {
+    display: none;
+}
+
+.search-btn {
+    display: none;
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: #475569;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.3s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-link:hover {
+    color: #667eea;
+}
+
+
+/* Support Button Styles */
+
+.support-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    color: #475569;
+    font-weight: 500;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.support-btn:hover {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
+}
+
+.support-btn span {
+    font-size: 0.9rem;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.user-profile:hover {
+    background-color: #f1f5f9;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+}
+
+.user-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    border: 2px solid #e2e8f0;
+}
+
+.user-name {
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.cart-link {
+    position: relative;
+}
+
+.cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+}
+
+.auth-btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.login-btn {
+    background: #667eea;
+    color: white;
+}
+
+.login-btn:hover {
+    background: #5a67d8;
+    transform: translateY(-1px);
+}
+
+.signup-btn {
+    background: transparent;
+    color: #667eea;
+    border: 2px solid #667eea;
+}
+
+.signup-btn:hover {
+    background: #667eea;
+    color: white;
+}
+
+.logout-btn {
+    padding: 0.6rem 1.2rem;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+
+/* === RESPONSIVE DESIGN === */
+
+@media (max-width: 768px) {
+    .header-container {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem 3vw;
+    }
+    .search-container {
+        width: 100%;
+        max-width: none;
+        order: 2;
+    }
+    .nav-menu {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .logo-text {
+        font-size: 1.5rem;
+        white-space: nowrap;
+    }
+    .logo-image {
+        width: 35px;
+        height: 35px;
+    }
+    .user-name {
+        display: none;
+    }
+    .user-profile {
+        padding: 0.25rem;
+    }
+    .header-left {
+        min-width: 80px;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-menu {
+        gap: 0.5rem;
+    }
+    .auth-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
+    .nav-link {
+        font-size: 0.85rem;
+    }
+    .user-avatar,
+    .user-icon {
+        width: 28px;
+        height: 28px;
+    }
+    .logo-container {
+        gap: 0.5rem;
+    }
+    .logo-text {
+        font-size: 1.3rem;
+        white-space: nowrap;
+    }
+    .logo-image {
+        width: 30px;
+        height: 30px;
+    }
+    .header-left {
+        min-width: 60px;
+    }
+}
+
+
+/* Notification Bell Styles */
+
+.notification-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.notification-link:hover {
+    background-color: #f8fafc;
+    transform: translateY(-1px);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #ef4444;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}

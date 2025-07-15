@@ -1,0 +1,479 @@
+/* 🚀 PRODUCT COMPARISON - BEAUTIFUL & MODERN */
+
+.product-comparison {
+    width: 100%;
+}
+
+
+/* Comparison Widget */
+
+.product-comparison-widget,
+.comparison-widget {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 2px solid #f1f5f9;
+    transition: all 0.3s ease;
+}
+
+.comparison-widget:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.15);
+}
+
+.comparison-header,
+.widget-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.comparison-count,
+.widget-count {
+    background: #3b82f6;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.comparison-empty {
+    text-align: center;
+    color: #6b7280;
+    padding: 2rem;
+}
+
+.widget-products {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.widget-product {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 120px;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.widget-product img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.widget-product .product-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+    color: #374151;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.remove-btn {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.7rem;
+}
+
+.remove-btn:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+.widget-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+    height: 120px;
+    background: #f1f5f9;
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    color: #64748b;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+
+/* Full Comparison View */
+
+.comparison-full {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+}
+
+.comparison-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.comparison-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.product-count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.comparison-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6b7280;
+}
+
+.empty-icon {
+    color: #d1d5db;
+    margin-bottom: 1rem;
+}
+
+.comparison-empty h3 {
+    margin: 0 0 0.5rem 0;
+    color: #374151;
+    font-size: 1.3rem;
+}
+
+.comparison-empty p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+
+/* Comparison Content */
+
+.comparison-content {
+    padding: 2rem;
+}
+
+.comparison-products {
+    display: grid;
+    grid-template-columns: 200px repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 2rem;
+}
+
+.product-header {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: #374151;
+    font-size: 1.1rem;
+}
+
+.comparison-product {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    position: relative;
+}
+
+.product-image {
+    position: relative;
+    width: 100%;
+    max-width: 150px;
+}
+
+.product-image img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.remove-product {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.remove-product:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+.product-info {
+    text-align: center;
+    width: 100%;
+}
+
+.product-name {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.product-rating {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.product-rating svg {
+    color: #d1d5db;
+}
+
+.product-rating svg.filled {
+    color: #fbbf24;
+}
+
+.rating-text {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-left: 0.25rem;
+}
+
+.product-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #059669;
+    margin-bottom: 1rem;
+}
+
+.product-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+
+/* Comparison Sections */
+
+.comparison-section {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 2rem;
+}
+
+.section-header {
+    margin-bottom: 1rem;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.spec-row,
+.feature-row,
+.description-row {
+    display: grid;
+    grid-template-columns: 200px repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    align-items: center;
+}
+
+.spec-row:last-child,
+.feature-row:last-child,
+.description-row:last-child {
+    border-bottom: none;
+}
+
+.spec-name,
+.feature-name,
+.description-label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.spec-value,
+.feature-value,
+.description-value {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.feature-check {
+    color: #10b981;
+}
+
+.feature-x {
+    color: #ef4444;
+}
+
+.description-value p {
+    margin: 0;
+    line-height: 1.5;
+    text-align: left;
+}
+
+
+/* Responsive Design */
+
+@media (max-width: 1024px) {
+    .comparison-products {
+        grid-template-columns: 150px repeat(auto-fit, minmax(200px, 1fr));
+    }
+    .spec-row,
+    .feature-row,
+    .description-row {
+        grid-template-columns: 150px repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .comparison-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    .header-left {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .comparison-content {
+        padding: 1rem;
+    }
+    .comparison-products {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .spec-row,
+    .feature-row,
+    .description-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .spec-name,
+    .feature-name,
+    .description-label {
+        background: #f8fafc;
+        padding: 0.5rem;
+        border-radius: 6px;
+        text-align: center;
+    }
+    .widget-products {
+        flex-wrap: wrap;
+    }
+    .widget-product {
+        min-width: 100px;
+    }
+}
+
+@media (max-width: 480px) {
+    .comparison-header {
+        padding: 1rem;
+    }
+    .comparison-content {
+        padding: 0.5rem;
+    }
+    .comparison-product {
+        padding: 0.75rem;
+    }
+    .product-image img {
+        height: 120px;
+    }
+    .product-name {
+        font-size: 0.9rem;
+    }
+    .product-price {
+        font-size: 1rem;
+    }
+    .product-actions {
+        flex-direction: row;
+        justify-content: center;
+    }
+}

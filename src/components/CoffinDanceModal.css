@@ -1,0 +1,91 @@
+.coffin-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.coffin-modal {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    padding: 2.5rem 2rem 2rem 2rem;
+    text-align: center;
+    max-width: 350px;
+    width: 90vw;
+    position: relative;
+    animation: popIn 0.5s cubic-bezier(.68, -0.55, .27, 1.55);
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.coffin-emoji-container {
+    margin-bottom: 1.2rem;
+}
+
+.coffin-dance-emoji {
+    font-size: 3rem;
+    display: inline-block;
+    animation: dance 0.7s infinite alternate cubic-bezier(.68, -0.55, .27, 1.55);
+}
+
+@keyframes dance {
+    0% {
+        transform: translateY(0) rotate(-10deg);
+    }
+    100% {
+        transform: translateY(-18px) rotate(10deg);
+    }
+}
+
+.coffin-title {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #222;
+    margin-bottom: 0.5rem;
+}
+
+.coffin-desc {
+    color: #444;
+    margin-bottom: 1.5rem;
+}
+
+.coffin-stop-btn {
+    background: #ff1744;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.7rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 0.5rem;
+}
+
+.coffin-stop-btn:hover {
+    background: #d50000;
+}
+
+.coffin-genius {
+    color: #ff1744;
+    font-weight: 900;
+    font-size: 1.3em;
+    text-shadow: 1px 2px 8px #ffd6e0, 0 1px 0 #fff;
+    letter-spacing: 1px;
+}

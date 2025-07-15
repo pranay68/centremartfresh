@@ -1,0 +1,123 @@
+/* AdminProductPanel.css - Enhanced Styles */
+
+.all-row {
+    font-weight: bold;
+    font-size: 1.1rem;
+    background: #f8fafc;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 12px 0;
+}
+
+.category-row {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #2563eb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 8px 0 8px 32px;
+}
+
+.product-row {
+    display: grid;
+    grid-template-columns: 32px 48px 1.5fr 1fr 1fr 1fr 1fr 1fr 120px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0 6px 64px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #fff;
+    transition: background 0.2s;
+}
+
+.product-row:hover {
+    background: #f0f6ff;
+    box-shadow: 0 2px 8px 0 #e0e7ef33;
+}
+
+.product-cell {
+    padding: 0 4px;
+    font-size: 1rem;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+
+.product-row img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #f3f4f6;
+}
+
+input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: #2563eb;
+    border-radius: 4px;
+    border: 1px solid #cbd5e1;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+button,
+.admin-btn {
+    font-size: 0.95rem;
+    border-radius: 6px;
+    padding: 2px 10px;
+    margin: 0 2px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #2563eb;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+button:hover,
+.admin-btn:hover {
+    background: #2563eb;
+    color: #fff;
+}
+
+
+/* Table header styles */
+
+.product-table-header {
+    display: grid;
+    grid-template-columns: 32px 48px 1.5fr 1fr 1fr 1fr 1fr 1fr 120px;
+    background: #e0e7ef;
+    font-weight: bold;
+    color: #222;
+    padding: 8px 0 8px 64px;
+    border-bottom: 2px solid #cbd5e1;
+    font-size: 1.05rem;
+}
+
+.product-table-header,
+.product-row {
+    overflow-x: auto;
+    min-width: 900px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+    .product-row,
+    .product-table-header {
+        grid-template-columns: 32px 40px 1fr 1fr 1fr 1fr 1fr 1fr 80px;
+        font-size: 0.95rem;
+        padding-left: 24px;
+    }
+}
+
+@media (max-width: 600px) {
+    .product-row,
+    .product-table-header {
+        grid-template-columns: 24px 32px 1fr 1fr 1fr 1fr 1fr 1fr 60px;
+        font-size: 0.9rem;
+        padding-left: 8px;
+    }
+}

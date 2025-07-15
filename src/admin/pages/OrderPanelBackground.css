@@ -1,0 +1,27 @@
+/* Full admin panel background, 16:9, covers whole screen */
+
+.admin-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    aspect-ratio: 16/9;
+}
+
+.order-panel-content {
+    position: relative;
+    z-index: 1;
+}
+
+.order-panel-content .order-cell,
+.order-panel-content th,
+.order-panel-content label,
+.order-panel-content input,
+.order-panel-content select,
+.order-panel-content button {}
+
+.order-panel-content .admin-btn {}

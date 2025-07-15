@@ -1,0 +1,679 @@
+/* 🚀 LENNOX CENTER MART - PRODUCT DETAIL PANEL STYLING (DARAZ STYLE) */
+
+.product-detail-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    z-index: 1000;
+    overflow-y: auto;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.panel-header {
+    position: sticky;
+    top: 0;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    z-index: 10;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.return-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.return-btn:hover {
+    background: #e2e8f0;
+    transform: translateX(-2px);
+}
+
+.panel-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.panel-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+
+/* Main Product Section - 3 Columns: Image | Info | Delivery */
+
+.product-main-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr 350px;
+    /* 3 columns: image, info, delivery */
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+
+/* Left Column - Image Gallery */
+
+.product-gallery {
+    position: sticky;
+    top: 100px;
+}
+
+.main-image-container {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+}
+
+.main-image {
+    width: 100%;
+    height: 500px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.main-image:hover {
+    transform: scale(1.02);
+}
+
+.image-overlay {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+.wishlist-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.wishlist-btn:hover {
+    background: white;
+    transform: scale(1.1);
+}
+
+.wishlist-btn.active {
+    background: #ef4444;
+    color: white;
+}
+
+.thumbnail-images {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.thumbnail:hover {
+    border-color: #667eea;
+    transform: scale(1.05);
+}
+
+.thumbnail.active {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+
+/* Middle Column - Product Info */
+
+.product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.product-name {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.product-rating {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stars {
+    display: flex;
+    gap: 2px;
+}
+
+.stars .filled {
+    color: #fbbf24;
+}
+
+.stars .empty {
+    color: #e2e8f0;
+}
+
+.rating-text {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.product-price-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.price {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #059669;
+}
+
+.original-price {
+    font-size: 1.5rem;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.discount-badge {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+
+/* Quantity Selector */
+
+.quantity-selector {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.quantity-selector label {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.25rem;
+}
+
+.quantity-controls button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.quantity-controls button:hover:not(:disabled) {
+    background: #e2e8f0;
+}
+
+.quantity-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.quantity-controls span {
+    min-width: 40px;
+    text-align: center;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+
+/* Action Buttons */
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.btn {
+    flex: 1;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5a67d8;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 2px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+    transform: translateY(-2px);
+}
+
+.buy-now {
+    background: #059669;
+    color: white;
+    border-color: #059669;
+}
+
+.buy-now:hover {
+    background: #047857;
+    border-color: #047857;
+}
+
+
+/* Product Benefits */
+
+.product-benefits {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 16px;
+}
+
+.benefit-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.benefit-item svg {
+    font-size: 1.5rem;
+    color: #667eea;
+}
+
+.benefit-item h4 {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.benefit-item p {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+
+/* Right Column - Delivery Section */
+
+.delivery-section {
+    position: sticky;
+    top: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.delivery-card {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+}
+
+.delivery-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+}
+
+
+/* Location Selector */
+
+.location-selector {
+    margin-bottom: 1.5rem;
+}
+
+.location-selector label {
+    display: block;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.location-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    font-size: 0.9rem;
+    color: #1e293b;
+    cursor: pointer;
+}
+
+.location-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+
+/* Payment Method */
+
+.payment-method,
+.delivery-time,
+.delivery-charge {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.payment-icon,
+.time-icon,
+.charge-icon {
+    font-size: 1.2rem;
+    color: #667eea;
+    min-width: 20px;
+}
+
+.payment-info,
+.time-info,
+.charge-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.payment-label,
+.time-label,
+.charge-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.payment-value,
+.time-value,
+.charge-value {
+    font-size: 1rem;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+
+/* Fastest Delivery Highlight */
+
+.fastest-delivery {
+    margin-top: 1rem;
+}
+
+.delivery-highlight {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 8px 25px rgba(5, 150, 105, 0.3);
+}
+
+.highlight-icon {
+    font-size: 2rem;
+    min-width: 40px;
+}
+
+.highlight-content h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.highlight-content p {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+
+/* Scrolling Content Section */
+
+.product-details-section {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 2rem;
+}
+
+.product-description,
+.product-features {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.product-description h3,
+.product-features h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1rem;
+}
+
+.product-description p {
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.product-features ul {
+    list-style: none;
+    padding: 0;
+}
+
+.product-features li {
+    padding: 0.5rem 0;
+    color: #64748b;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.product-features li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #059669;
+    font-weight: bold;
+}
+
+.product-specifications {
+    background: #f8fafc;
+    padding: 2rem;
+    border-radius: 16px;
+}
+
+.product-specifications h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+}
+
+.specs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.spec-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.spec-label {
+    font-weight: 600;
+    color: #475569;
+}
+
+.spec-value {
+    color: #1e293b;
+}
+
+
+/* Responsive Design */
+
+@media (max-width: 1200px) {
+    .product-main-section {
+        grid-template-columns: 1fr 1fr 300px;
+        /* Smaller delivery column */
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 1024px) {
+    .product-main-section {
+        grid-template-columns: 1fr 1fr;
+        /* 2 columns on medium screens */
+        gap: 2rem;
+    }
+    .delivery-section {
+        grid-column: 1 / -1;
+        /* Span full width */
+        position: static;
+        order: 3;
+        /* Move to bottom */
+    }
+}
+
+@media (max-width: 768px) {
+    .panel-header {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .panel-content {
+        padding: 1rem;
+    }
+    .product-main-section {
+        grid-template-columns: 1fr;
+        /* Single column on mobile */
+        gap: 1.5rem;
+    }
+    .product-gallery {
+        position: static;
+    }
+    .delivery-section {
+        position: static;
+    }
+    .product-name {
+        font-size: 1.5rem;
+    }
+    .price {
+        font-size: 2rem;
+    }
+    .action-buttons {
+        flex-direction: column;
+    }
+    .product-benefits {
+        grid-template-columns: 1fr;
+    }
+    .specs-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .product-name {
+        font-size: 1.3rem;
+    }
+    .price {
+        font-size: 1.5rem;
+    }
+    .btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 1rem;
+    }
+    .thumbnail {
+        width: 60px;
+        height: 60px;
+    }
+}

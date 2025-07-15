@@ -1,0 +1,101 @@
+.product-card {
+    width: 200px;
+    height: 280px;
+    /* shrink height a bit */
+    padding: 0.5rem;
+    /* tighten padding */
+    border: 1px solid #eee;
+    border-radius: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    text-align: center;
+    background: #fff;
+    transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    gap: 4px;
+    /* reduce gap here */
+}
+
+.product-card {
+    gap: 2px !important;
+    /* crush that flex gap to almost nothing */
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem !important;
+    /* keep padding tight */
+}
+
+.product-title {
+    margin: 2px 0 0 0 !important;
+    /* almost hugging the image above */
+    padding: 0;
+    line-height: 1.1;
+}
+
+.product-price {
+    margin: 2px 0 6px 0 !important;
+    /* super tight under title, a bit of breathing room */
+    padding: 0;
+    font-size: 0.85rem;
+}
+
+.product-title {
+    font-size: 0.85rem;
+    /* smaller font */
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+    /* tiny margin under title */
+}
+
+.product-price {
+    font-weight: 600;
+    color: #2a9d8f;
+    font-size: 0.85rem;
+    margin: 0 0 4px 0;
+    /* space after price */
+}
+
+.buy-now-btn {
+    margin-top: auto;
+    padding: 6px 8px;
+    /* smaller padding */
+    border: none;
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s ease;
+}
+
+.buy-now-btn:hover {
+    background: linear-gradient(135deg, #0099cc, #0057cc);
+}
+
+
+/* Skeleton tweak to match compactness */
+
+.skeleton-image {
+    height: 110px;
+    /* match product image */
+    margin-bottom: 2px;
+}
+
+.skeleton-text {
+    height: 12px;
+    /* shorter text bars */
+    margin: 3px auto;
+}
+
+.skeleton-text.title {
+    width: 75%;
+}
+
+.skeleton-text.price {
+    width: 45%;
+}

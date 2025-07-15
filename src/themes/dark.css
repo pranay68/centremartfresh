@@ -1,0 +1,152 @@
+/*🌙 LENNOX CENTER MART - DARK THEME*/
+
+.theme-dark {
+    /*Color Variables*/
+    --theme-bg: #0f0f0f;
+    --theme-bg-secondary: #1a1a1a;
+    --theme-bg-tertiary: #2a2a2a;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #b0b0b0;
+    --theme-text-muted: #808080;
+    --theme-primary: #6366f1;
+    --theme-primary-hover: #4f46e5;
+    --theme-primary-text: #ffffff;
+    --theme-secondary: #374151;
+    --theme-border: #404040;
+    --theme-border-light: #2a2a2a;
+    --theme-hover: #2a2a2a;
+    --theme-shadow: rgba(0, 0, 0, 0.3);
+    --theme-shadow-light: rgba(0, 0, 0, 0.1);
+    --theme-success: #10b981;
+    --theme-warning: #f59e0b;
+    --theme-error: #ef4444;
+    --theme-info: #3b82f6;
+    /*Background*/
+    background-color: var(--theme-bg);
+    color: var(--theme-text);
+}
+
+
+/*Header*/
+
+.theme-dark .header {
+    background: var(--theme-bg-secondary);
+    border-bottom: 1px solid var(--theme-border);
+    box-shadow: 0 2px 8px var(--theme-shadow);
+}
+
+.theme-dark .logo-text {
+    color: var(--theme-text);
+}
+
+.theme-dark .nav-link {
+    color: var(--theme-text-secondary);
+}
+
+.theme-dark .nav-link:hover {
+    color: var(--theme-text);
+    background: var(--theme-hover);
+}
+
+.theme-dark .auth-btn {
+    background: var(--theme-primary);
+    color: var(--theme-primary-text);
+    border: 1px solid var(--theme-primary);
+}
+
+.theme-dark .auth-btn:hover {
+    background: var(--theme-primary-hover);
+}
+
+
+/*Cards*/
+
+.theme-dark .product-card {
+    background: var(--theme-bg-secondary);
+    border: 1px solid var(--theme-border);
+    box-shadow: 0 4px 12px var(--theme-shadow);
+}
+
+.theme-dark .product-card:hover {
+    box-shadow: 0 8px 24px var(--theme-shadow);
+    border-color: var(--theme-primary);
+}
+
+
+/*Buttons*/
+
+.theme-dark .btn {
+    background: var(--theme-primary);
+    color: var(--theme-primary-text);
+    border: 1px solid var(--theme-primary);
+}
+
+.theme-dark .btn:hover {
+    background: var(--theme-primary-hover);
+}
+
+.theme-dark .btn-secondary {
+    background: var(--theme-secondary);
+    color: var(--theme-text);
+    border: 1px solid var(--theme-border);
+}
+
+.theme-dark .btn-secondary:hover {
+    background: var(--theme-hover);
+}
+
+
+/*Inputs*/
+
+.theme-dark input,
+.theme-dark textarea,
+.theme-dark select {
+    background: var(--theme-bg-secondary);
+    color: var(--theme-text);
+    border: 1px solid var(--theme-border);
+}
+
+.theme-dark input:focus,
+.theme-dark textarea:focus,
+.theme-dark select:focus {
+    border-color: var(--theme-primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+
+/*Modals*/
+
+.theme-dark .modal-content {
+    background: var(--theme-bg-secondary);
+    border: 1px solid var(--theme-border);
+    box-shadow: 0 8px 32px var(--theme-shadow);
+}
+
+
+/*Dropdowns*/
+
+.theme-dark .dropdown-menu {
+    background: var(--theme-bg-secondary);
+    border: 1px solid var(--theme-border);
+    box-shadow: 0 4px 16px var(--theme-shadow);
+}
+
+
+/*Scrollbar*/
+
+.theme-dark ::-webkit-scrollbar {
+    width: 8px;
+}
+
+.theme-dark ::-webkit-scrollbar-track {
+    background: var(--theme-bg);
+}
+
+.theme-dark ::-webkit-scrollbar-thumb {
+    background: var(--theme-border);
+    border-radius: 4px;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-text-muted);
+}

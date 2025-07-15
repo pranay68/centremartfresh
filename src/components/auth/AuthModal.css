@@ -1,0 +1,257 @@
+/* 🚀 LENNOX CENTER MART - AUTH MODAL STYLES */
+
+.auth-modal {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+}
+
+
+/* Google Sign-In Button Styling */
+
+.google-signin-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    color: #374151;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.google-signin-btn:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.google-signin-btn:active {
+    transform: translateY(0);
+}
+
+.google-signin-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+
+/* Google Logo SVG */
+
+.google-logo {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+
+/* Loading Spinner */
+
+.google-loading {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #e5e7eb;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* Divider */
+
+.auth-divider {
+    position: relative;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.auth-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e5e7eb;
+}
+
+.auth-divider span {
+    background: white;
+    padding: 0 12px;
+    color: #6b7280;
+    font-size: 14px;
+    position: relative;
+    z-index: 1;
+}
+
+
+/* Form Styling */
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+
+/* Tab Navigation */
+
+.auth-tabs {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 12px 16px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+    background: none;
+    border: none;
+    color: #6b7280;
+}
+
+.auth-tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+
+.auth-tab:not(.active):hover {
+    color: #374151;
+}
+
+
+/* Submit Button */
+
+.auth-submit-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    margin-top: 8px;
+}
+
+.auth-submit-btn:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.auth-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+
+/* Input Label Styling */
+
+.auth-form label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+    color: #374151;
+    font-size: 14px;
+}
+
+
+/* Modal Overlay */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+
+/* Responsive Design */
+
+@media (max-width: 480px) {
+    .google-signin-btn {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+    .google-logo,
+    .google-loading {
+        width: 16px;
+        height: 16px;
+    }
+    .auth-form {
+        gap: 12px;
+    }
+    .auth-tabs {
+        margin-bottom: 16px;
+    }
+    .auth-tab {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+}

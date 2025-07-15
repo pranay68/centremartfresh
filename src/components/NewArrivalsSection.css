@@ -1,0 +1,290 @@
+/* 🚀 NEW ARRIVALS SECTION - FRESH & BEAUTIFUL */
+
+.new-arrivals-section {
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+    margin: 2rem 0;
+    border-radius: 20px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 184, 148, 0.3);
+}
+
+.new-arrivals-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="leaf" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M15 5 Q25 15 15 25 Q5 15 15 5" fill="white" opacity="0.1"/><circle cx="15" cy="15" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23leaf)"/></svg>');
+    opacity: 0.2;
+}
+
+.new-arrivals-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+.new-arrivals-title-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.new-arrivals-icon {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.leaf-icon {
+    font-size: 2rem;
+    color: #fff;
+    animation: leafGrow 4s ease-in-out infinite;
+}
+
+@keyframes leafGrow {
+    0%,
+    100% {
+        transform: scale(1) rotate(0deg);
+    }
+    25% {
+        transform: scale(1.1) rotate(5deg);
+    }
+    75% {
+        transform: scale(1.05) rotate(-5deg);
+    }
+}
+
+.new-arrivals-info {
+    color: white;
+}
+
+.new-arrivals-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(45deg, #fff, #ffeaa7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.new-arrivals-subtitle {
+    font-size: 1.1rem;
+    margin: 0.5rem 0 0 0;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+
+/* ADMIN CONTROLS */
+
+.edit-section-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.edit-section-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+
+/* NEW ARRIVALS PRODUCTS */
+
+.new-arrivals-products {
+    padding: 0;
+    margin: 0;
+    /* grid styles removed, now handled by .product-bar-grid */
+}
+
+.new-arrivals-product {
+    width: 100%;
+}
+
+.new-arrivals-product:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    border-color: #00b894;
+}
+
+
+/* NEW BADGE */
+
+.new-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, #00b894, #00a085);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 0.8rem;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    box-shadow: 0 4px 15px rgba(0, 184, 148, 0.4);
+    animation: newPulse 3s infinite;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+@keyframes newPulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.new-icon {
+    font-size: 0.7rem;
+    animation: newShine 2s infinite;
+}
+
+@keyframes newShine {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.1);
+    }
+}
+
+
+/* NO NEW ARRIVALS STATE */
+
+.no-new-arrivals {
+    text-align: center;
+    padding: 3rem;
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+}
+
+.no-arrivals-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+.add-new-arrivals-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+}
+
+.add-new-arrivals-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+
+/* NEW ARRIVALS FOOTER */
+
+.new-arrivals-footer {
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.view-all-new-arrivals-btn {
+    background: white;
+    color: #00b894;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 25px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.view-all-new-arrivals-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    background: #f8f9fa;
+}
+
+
+/* RESPONSIVE DESIGN */
+
+@media (max-width: 768px) {
+    .new-arrivals-section {
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+    .new-arrivals-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    .new-arrivals-title {
+        font-size: 2rem;
+    }
+    .new-arrivals-products {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    .new-badge {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .new-arrivals-section {
+        padding: 1rem;
+    }
+    .new-arrivals-title {
+        font-size: 1.5rem;
+    }
+    .new-arrivals-subtitle {
+        font-size: 1rem;
+    }
+    .new-arrivals-products {
+        grid-template-columns: 1fr;
+    }
+    .new-badge {
+        top: 5px;
+        right: 5px;
+        padding: 0.2rem 0.4rem;
+        font-size: 0.6rem;
+    }
+}

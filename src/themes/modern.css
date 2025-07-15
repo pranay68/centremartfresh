@@ -1,0 +1,169 @@
+/*🎨 LENNOX CENTER MART - MODERN THEME*/
+
+.theme-modern {
+    /*Color Variables*/
+    --theme-bg: #fafafa;
+    --theme-bg-secondary: #ffffff;
+    --theme-bg-tertiary: #f8f9fa;
+    --theme-text: #1a1a1a;
+    --theme-text-secondary: #6b7280;
+    --theme-text-muted: #9ca3af;
+    --theme-primary: #3b82f6;
+    --theme-primary-hover: #2563eb;
+    --theme-primary-text: #ffffff;
+    --theme-secondary: #f3f4f6;
+    --theme-border: #e5e7eb;
+    --theme-border-light: #f3f4f6;
+    --theme-hover: #f9fafb;
+    --theme-shadow: rgba(0, 0, 0, 0.05);
+    --theme-shadow-light: rgba(0, 0, 0, 0.02);
+    --theme-success: #10b981;
+    --theme-warning: #f59e0b;
+    --theme-error: #ef4444;
+    --theme-info: #3b82f6;
+    /*Background*/
+    background-color: var(--theme-bg);
+    color: var(--theme-text);
+}
+
+
+/*Header*/
+
+.theme-modern .header {
+    background: var(--theme-bg-secondary);
+    border-bottom: 1px solid var(--theme-border);
+    box-shadow: 0 1px 3px var(--theme-shadow);
+}
+
+.theme-modern .logo-text {
+    color: var(--theme-text);
+    font-weight: 700;
+}
+
+.theme-modern .nav-link {
+    color: var(--theme-text-secondary);
+    font-weight: 500;
+}
+
+.theme-modern .nav-link:hover {
+    color: var(--theme-text);
+    background: var(--theme-hover);
+}
+
+.theme-modern .auth-btn {
+    background: var(--theme-primary);
+    color: var(--theme-primary-text);
+    border: none;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+.theme-modern .auth-btn:hover {
+    background: var(--theme-primary-hover);
+    transform: translateY(-1px);
+}
+
+
+/*Cards*/
+
+.theme-modern .product-card {
+    background: var(--theme-bg-secondary);
+    border: 1px solid var(--theme-border);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px var(--theme-shadow);
+    transition: all 0.2s ease;
+}
+
+.theme-modern .product-card:hover {
+    box-shadow: 0 4px 12px var(--theme-shadow);
+    transform: translateY(-2px);
+}
+
+
+/*Buttons*/
+
+.theme-modern .btn {
+    background: var(--theme-primary);
+    color: var(--theme-primary-text);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.theme-modern .btn:hover {
+    background: var(--theme-primary-hover);
+    transform: translateY(-1px);
+}
+
+.theme-modern .btn-secondary {
+    background: var(--theme-secondary);
+    color: var(--theme-text);
+    border: 1px solid var(--theme-border);
+    border-radius: 8px;
+}
+
+.theme-modern .btn-secondary:hover {
+    background: var(--theme-hover);
+}
+
+
+/*Inputs*/
+
+.theme-modern input,
+.theme-modern textarea,
+.theme-modern select {
+    background: var(--theme-bg-secondary);
+    color: var(--theme-text);
+    border: 1px solid var(--theme-border);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.theme-modern input:focus,
+.theme-modern textarea:focus,
+.theme-modern select:focus {
+    border-color: var(--theme-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+
+/*Modals*/
+
+.theme-modern .modal-content {
+    background: var(--theme-bg-secondary);
+    border: 1px solid var(--theme-border);
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+
+/*Dropdowns*/
+
+.theme-modern .dropdown-menu {
+    background: var(--theme-bg-secondary);
+    border: 1px solid var(--theme-border);
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+
+/*Scrollbar*/
+
+.theme-modern ::-webkit-scrollbar {
+    width: 6px;
+}
+
+.theme-modern ::-webkit-scrollbar-track {
+    background: var(--theme-bg);
+}
+
+.theme-modern ::-webkit-scrollbar-thumb {
+    background: var(--theme-border);
+    border-radius: 3px;
+}
+
+.theme-modern ::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-text-muted);
+}

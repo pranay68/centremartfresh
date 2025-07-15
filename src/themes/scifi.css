@@ -1,0 +1,236 @@
+/*🚀 LENNOX CENTER MART - SCI-FI THEME*/
+
+.theme-scifi {
+    /*Color Variables*/
+    --theme-bg: #0a0a0f;
+    --theme-bg-secondary: #1a1a2e;
+    --theme-bg-tertiary: #16213e;
+    --theme-text: #00ff88;
+    --theme-text-secondary: #4ecdc4;
+    --theme-text-muted: #45b7d1;
+    --theme-primary: #ff6b6b;
+    --theme-primary-hover: #ff5252;
+    --theme-primary-text: #ffffff;
+    --theme-secondary: #4ecdc4;
+    --theme-border: #00ff88;
+    --theme-border-light: #45b7d1;
+    --theme-hover: #16213e;
+    --theme-shadow: rgba(0, 255, 136, 0.1);
+    --theme-shadow-light: rgba(0, 255, 136, 0.05);
+    --theme-success: #00ff88;
+    --theme-warning: #ffd93d;
+    --theme-error: #ff6b6b;
+    --theme-info: #4ecdc4;
+    /*Background*/
+    background-color: var(--theme-bg);
+    color: var(--theme-text);
+    background-image: radial-gradient(circle at 20% 80%, rgba(0, 255, 136, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(78, 205, 196, 0.1) 0%, transparent 50%);
+}
+
+
+/*Header*/
+
+.theme-scifi .header {
+    background: var(--theme-bg-secondary);
+    border-bottom: 2px solid var(--theme-border);
+    box-shadow: 0 0 20px var(--theme-shadow);
+    position: relative;
+}
+
+.theme-scifi .header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--theme-border), transparent);
+    animation: scan 2s linear infinite;
+}
+
+@keyframes scan {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.theme-scifi .logo-text {
+    color: var(--theme-text);
+    text-shadow: 0 0 10px var(--theme-text);
+    font-weight: 700;
+}
+
+.theme-scifi .nav-link {
+    color: var(--theme-text-secondary);
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.theme-scifi .nav-link:hover {
+    color: var(--theme-text);
+    border-color: var(--theme-border);
+    box-shadow: 0 0 10px var(--theme-shadow);
+    text-shadow: 0 0 5px var(--theme-text);
+}
+
+.theme-scifi .auth-btn {
+    background: linear-gradient(45deg, var(--theme-primary), var(--theme-secondary));
+    color: var(--theme-primary-text);
+    border: 1px solid var(--theme-border);
+    box-shadow: 0 0 10px var(--theme-shadow);
+    transition: all 0.3s ease;
+}
+
+.theme-scifi .auth-btn:hover {
+    background: linear-gradient(45deg, var(--theme-primary-hover), var(--theme-primary));
+    box-shadow: 0 0 20px var(--theme-shadow);
+    transform: translateY(-2px);
+}
+
+
+/*Cards*/
+
+.theme-scifi .product-card {
+    background: var(--theme-bg-secondary);
+    border: 1px solid var(--theme-border);
+    border-radius: 8px;
+    box-shadow: 0 0 15px var(--theme-shadow);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.theme-scifi .product-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.theme-scifi .product-card:hover::before {
+    left: 100%;
+}
+
+.theme-scifi .product-card:hover {
+    box-shadow: 0 0 25px var(--theme-shadow);
+    border-color: var(--theme-secondary);
+    transform: translateY(-5px);
+}
+
+
+/*Buttons*/
+
+.theme-scifi .btn {
+    background: linear-gradient(45deg, var(--theme-primary), var(--theme-secondary));
+    color: var(--theme-primary-text);
+    border: 1px solid var(--theme-border);
+    border-radius: 6px;
+    font-weight: 600;
+    box-shadow: 0 0 10px var(--theme-shadow);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.theme-scifi .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.theme-scifi .btn:hover::before {
+    left: 100%;
+}
+
+.theme-scifi .btn:hover {
+    box-shadow: 0 0 20px var(--theme-shadow);
+    transform: translateY(-2px);
+}
+
+.theme-scifi .btn-secondary {
+    background: var(--theme-bg-tertiary);
+    color: var(--theme-text);
+    border: 1px solid var(--theme-border-light);
+    border-radius: 6px;
+}
+
+.theme-scifi .btn-secondary:hover {
+    background: var(--theme-hover);
+    border-color: var(--theme-border);
+    box-shadow: 0 0 10px var(--theme-shadow);
+}
+
+
+/*Inputs*/
+
+.theme-scifi input,
+.theme-scifi textarea,
+.theme-scifi select {
+    background: var(--theme-bg-secondary);
+    color: var(--theme-text);
+    border: 1px solid var(--theme-border-light);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.theme-scifi input:focus,
+.theme-scifi textarea:focus,
+.theme-scifi select:focus {
+    border-color: var(--theme-border);
+    box-shadow: 0 0 15px var(--theme-shadow);
+    outline: none;
+}
+
+
+/*Modals*/
+
+.theme-scifi .modal-content {
+    background: var(--theme-bg-secondary);
+    border: 2px solid var(--theme-border);
+    border-radius: 12px;
+    box-shadow: 0 0 30px var(--theme-shadow);
+}
+
+
+/*Dropdowns*/
+
+.theme-scifi .dropdown-menu {
+    background: var(--theme-bg-secondary);
+    border: 1px solid var(--theme-border);
+    border-radius: 8px;
+    box-shadow: 0 0 20px var(--theme-shadow);
+}
+
+
+/*Scrollbar*/
+
+.theme-scifi ::-webkit-scrollbar {
+    width: 8px;
+}
+
+.theme-scifi ::-webkit-scrollbar-track {
+    background: var(--theme-bg);
+}
+
+.theme-scifi ::-webkit-scrollbar-thumb {
+    background: var(--theme-border);
+    border-radius: 4px;
+    box-shadow: 0 0 5px var(--theme-shadow);
+}
+
+.theme-scifi ::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-secondary);
+    box-shadow: 0 0 10px var(--theme-shadow);
+}

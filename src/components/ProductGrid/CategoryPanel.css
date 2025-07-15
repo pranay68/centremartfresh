@@ -1,0 +1,159 @@
+/* 🚀 LENNOX CENTER MART - CATEGORY PANEL STYLES */
+
+.category-panel {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin: 2rem 5vw;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.category-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.category-title-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.category-icon {
+    font-size: 2rem;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px;
+    color: white;
+}
+
+.category-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.category-panel-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b !important;
+    margin: 0;
+}
+
+.category-description {
+    font-size: 0.9rem;
+    color: #6b7280 !important;
+    margin: 0;
+    font-weight: 500;
+}
+
+.see-all-link {
+    color: #667eea !important;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.see-all-link:hover {
+    color: #5a67d8 !important;
+}
+
+.arrow-icon {
+    width: 16px;
+    height: 16px;
+}
+
+
+/* Remove grid styles from .category-products to avoid conflict with .product-bar-grid */
+
+.category-products {
+    padding: 0;
+    margin: 0;
+    /* grid styles removed, now handled by .product-bar-grid */
+}
+
+.product-wrapper {
+    width: 100%;
+}
+
+.category-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.view-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white !important;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.view-more-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    color: white !important;
+}
+
+
+/* === RESPONSIVE DESIGN === */
+
+@media (max-width: 768px) {
+    .category-panel {
+        margin: 1rem 5vw;
+        padding: 1.5rem;
+    }
+    .category-panel-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+    .category-panel-title {
+        font-size: 1.25rem;
+    }
+    .category-products {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .category-panel {
+        margin: 1rem 5vw;
+        padding: 1rem;
+    }
+    .category-products {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .category-panel-title {
+        color: #f9fafb !important;
+    }
+    .category-description {
+        color: #cbd5e1 !important;
+    }
+}
