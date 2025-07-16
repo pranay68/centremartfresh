@@ -3,7 +3,8 @@ import { addDoc, collection } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Modal from '../../components/ui/Modal';
 
-const csvTemplate = `name,price,category,description\nSample Product,100,Category,Description here`;
+// Updated CSV template for new format
+const csvTemplate = `name,unit,category,supplier,price,stock,description\nSample Product,PCS,Category,Supplier,100,50,Description here`;
 
 function downloadCSVTemplate() {
   const blob = new Blob([csvTemplate], { type: 'text/csv' });
@@ -46,10 +47,12 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
         // Validate
         const errors = [];
         products.forEach((p, i) => {
-          if (!p.name || !p.price || !p.category) {
-            errors.push(`Row ${p._row}: Missing required field (name, price, or category)`);
-          } else if (isNaN(Number(p.price))) {
+          if (!p.name || !p.category) {
+            errors.push(`Row ${p._row}: Missing required field (name or category)`);
+          } else if (p.price && isNaN(Number(p.price))) {
             errors.push(`Row ${p._row}: Price must be a number`);
+          } else if (p.stock && isNaN(Number(p.stock))) {
+            errors.push(`Row ${p._row}: Stock must be a number`);
           }
         });
         setCsvProducts(products);
@@ -66,11 +69,14 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
     setUploading(true);
     try {
       for (const p of csvProducts) {
-        if (!p.name || !p.price || !p.category || isNaN(Number(p.price))) continue;
+        if (!p.name || !p.category) continue;
         await addDoc(collection(db, 'products'), {
           name: p.name,
-          price: Number(p.price),
+          unit: p.unit || '',
           category: p.category,
+          supplier: p.supplier || '',
+          price: p.price ? Number(p.price) : 0,
+          stock: p.stock ? Number(p.stock) : 0,
           description: p.description || '',
           imageUrl: '',
           createdAt: new Date(),
@@ -102,13 +108,16 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
       {csvProducts.length > 0 && (
         <div style={{ maxHeight: 200, overflowY: 'auto', margin: '12px 0' }}>
           <table className="admin-table" style={{ fontSize: 13 }}>
-            <thead><tr><th>Name</th><th>Price</th><th>Category</th><th>Description</th></tr></thead>
+            <thead><tr><th>Name</th><th>Unit</th><th>Category</th><th>Supplier</th><th>Price</th><th>Stock</th><th>Description</th></tr></thead>
             <tbody>
               {csvProducts.map((p, i) => (
-                <tr key={i} style={{ background: (!p.name || !p.price || !p.category || isNaN(Number(p.price))) ? '#fff3f3' : undefined }}>
+                <tr key={i} style={{ background: (!p.name || !p.category || (p.price && isNaN(Number(p.price))) || (p.stock && isNaN(Number(p.stock)))) ? '#fff3f3' : undefined }}>
                   <td>{p.name}</td>
-                  <td>{p.price}</td>
+                  <td>{p.unit}</td>
                   <td>{p.category}</td>
+                  <td>{p.supplier}</td>
+                  <td>{p.price}</td>
+                  <td>{p.stock}</td>
                   <td>{p.description}</td>
                 </tr>
               ))}
