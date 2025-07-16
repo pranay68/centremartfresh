@@ -3,36 +3,43 @@ import { Routes, Route } from "react-router-dom";
 import AdminLogin from "./AdminLogin";
 import AdminLayout from "./AdminLayout";
 import AdminDeliverySettings from './pages/AdminDeliverySettings';
+import { useAuth } from '../context/AuthContext';
+
+const ADMIN_EMAILS = [
+  'pranaykapar1@gmail.com',
+  'centremart248@gmail.com'
+];
 
 const Admin = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem('adminLoggedIn') === 'true';
-  });
+  const { user, loading, logout } = useAuth();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      localStorage.setItem('adminLoggedIn', 'true');
+    if (!loading && user && ADMIN_EMAILS.includes(user.email)) {
+      setIsLoggedIn(true);
     } else {
-      localStorage.removeItem('adminLoggedIn');
+      setIsLoggedIn(false);
     }
-  }, [isLoggedIn]);
+  }, [user, loading]);
 
-  const handleLogin = (status) => {
-    setIsLoggedIn(status);
+  const handleLogin = () => {
+    setIsLoggedIn(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLoggedIn(false);
+    await logout();
   };
 
+  if (loading) return null;
   if (!isLoggedIn) {
     return <AdminLogin onLogin={handleLogin} />;
   }
 
   return (
-      <Routes>
-        <Route path="/*" element={<AdminLayout onLogout={handleLogout} />} />
-      </Routes>
+    <Routes>
+      <Route path="/*" element={<AdminLayout onLogout={handleLogout} />} />
+    </Routes>
   );
 };
 

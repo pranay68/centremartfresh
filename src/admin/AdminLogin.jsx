@@ -3,25 +3,31 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import "./AdminPanel.css";
+import { useAuth } from '../context/AuthContext';
+
+const ADMIN_EMAILS = [
+  'pranaykapar1@gmail.com',
+  'centremart248@gmail.com'
+];
 
 const AdminLogin = ({ onLogin }) => {
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { signInWithGoogle, user, logout } = useAuth();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     setError('');
-
-    // Local admin check only
-    if (
-      credentials.email === 'pranaykapar1@gmail.com' &&
-      credentials.password === 'im_admin@'
-    ) {
-      onLogin(true);
-    } else {
-      setError('Invalid admin credentials.');
+    try {
+      const signedInUser = await signInWithGoogle();
+      if (ADMIN_EMAILS.includes(signedInUser.email)) {
+        onLogin(true);
+      } else {
+        setError('Not authorized. Only admin emails can access.');
+        await logout();
+      }
+    } catch (err) {
+      setError('Google sign-in failed.');
     }
     setLoading(false);
   };
@@ -35,35 +41,14 @@ const AdminLogin = ({ onLogin }) => {
             <p className="text-gray-600">Admin Panel Login</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <Input
-              label="Email"
-              type="email"
-              value={credentials.email}
-              onChange={(e) => setCredentials({...credentials, email: e.target.value})}
-              placeholder="Enter your admin email"
-              required
-            />
-
-            <Input
-              label="Password"
-              type="password"
-              value={credentials.password}
-              onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-              placeholder="Enter your password"
-              required
-              error={error}
-            />
-
-            <Button 
-              type="submit" 
-              className="w-full admin-btn" 
-              size="lg"
-              loading={loading}
-            >
-              Sign In as Admin
-            </Button>
-          </form>
+          <button
+            className="w-full admin-btn"
+            style={{ marginBottom: 16 }}
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+          >
+            {loading ? 'Signing in...' : 'Sign in with Google'}
+          </button>
 
           {error && (
             <div className="mt-4 text-center text-red-500 text-sm">{error}</div>

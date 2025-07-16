@@ -387,7 +387,7 @@ const Products = () => {
     groupedProducts['Uncategorized'] = uncategorizedProducts;
   }
 
-  const csvTemplate = `name,price,category,description\nSample Product,100,Category,Description here`;
+  const csvTemplate = `itemCode,name,baseUnit,group,category,supplier,price,lastPurcMiti,lastPurcQty,salesQty\n1001,Sample Product,PCS,Group,Category,Supplier,100,2082/03/13,12,20`;
 
   function downloadCSVTemplate() {
     const blob = new Blob([csvTemplate], { type: 'text/csv' });
