@@ -5,7 +5,6 @@ import { useCart } from '../context/CartContext';
 import AuthModal from './auth/AuthModal';
 import PowerSearch from './PowerSearch';
 import ProfileDropdown from './ProfileDropdown';
-import ThemeSwitcher from './ThemeSwitcher';
 import CustomerSupportChat from './CustomerSupportChat';
 import { Bell, MessageCircle } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -65,7 +64,6 @@ const Header = ({ searchTerm, setSearchTerm, products, onSearch }) => {
       <header className="header">
         <div className="header-container">
           <div className="header-left">
-            <ThemeSwitcher />
           </div>
           
           <Link to="/" className="logo">

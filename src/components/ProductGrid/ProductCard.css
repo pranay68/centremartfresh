@@ -1061,27 +1061,63 @@ bro
         gap: 0.7rem;
     }
     .product-card {
-        min-height: 180px;
-        border-radius: 8px;
-    }
-    .product-image-container {
-        min-height: 80px;
+        min-height: 320px;
+        padding-bottom: 12px;
     }
     .product-content {
-        padding: 7px 5px 6px 5px;
-        gap: 3px;
+        padding: 10px 8px 8px 8px;
+        gap: 8px;
     }
     .product-title {
-        font-size: 0.85rem;
-        min-height: 20px;
+        font-size: 1.1rem;
+        min-height: 28px;
+        margin-bottom: 4px;
+        -webkit-line-clamp: 2;
+    }
+    .product-price-container {
+        gap: 6px;
+        margin-bottom: 6px;
     }
     .current-price {
+        font-size: 1.1rem;
+    }
+    .original-price {
         font-size: 0.95rem;
     }
+    .discount-badge {
+        font-size: 0.95rem;
+    }
+    .product-actions {
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+    }
     .btn {
-        font-size: 0.85rem;
+        font-size: 0.95rem;
+        min-height: 32px;
+        padding: 6px 0;
+        border-radius: 7px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+    }
+    .add-to-cart-btn {
+        background: #ff9900 !important;
+        color: #fff !important;
+        box-shadow: 0 1px 4px rgba(255, 153, 0, 0.10);
+        font-size: 1rem;
+        margin-bottom: 2px;
+    }
+    .buy-now-btn {
+        background: #fff !important;
+        color: #ff9900 !important;
+        border: 1.5px solid #ff9900 !important;
+        font-size: 0.95rem;
+    }
+    .btn-secondary,
+    .btn-disabled {
+        font-size: 0.95rem;
+        min-height: 28px;
         padding: 5px 0;
-        border-radius: 6px;
     }
 }
 

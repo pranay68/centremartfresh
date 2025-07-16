@@ -27,6 +27,7 @@ import './HomeNew.css';
 import { useAuth } from '../context/AuthContext';
 import RatingAndReviews from '../components/RatingAndReviews';
 import ReviewModal from '../components/ReviewModal';
+import BottomNav from '../components/ui/BottomNav';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -757,6 +758,7 @@ const Home = () => {
       <CustomerSupport />
 
       {/* ReviewModal is now global, not rendered here */}
+      <BottomNav />
     </div>
   );
 };
