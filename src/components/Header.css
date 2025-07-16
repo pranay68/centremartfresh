@@ -307,6 +307,16 @@
     }
 }
 
+@media (max-width: 600px) {
+    .nav-menu,
+    .notification-link,
+    .cart-link,
+    .wishlist-link,
+    .profile-link {
+        display: none !important;
+    }
+}
+
 
 /* Notification Bell Styles */
 
