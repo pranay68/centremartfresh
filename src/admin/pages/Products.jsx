@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -58,6 +58,12 @@ const Products = () => {
   const [csvErrors, setCsvErrors] = useState([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef();
+  const [categoriesList, setCategoriesList] = useState([]);
+  const [newInlineCategory, setNewInlineCategory] = useState('');
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [deliveryOptions, setDeliveryOptions] = useState([]);
+  const [selectedDeliveryOption, setSelectedDeliveryOption] = useState(null);
+  const [deliveryEta, setDeliveryEta] = useState('');
 
   // Fetch products from Firebase
   useEffect(() => {
@@ -96,6 +102,46 @@ const Products = () => {
       setFilteredProducts(products.filter(p => p.category === selectedCategory));
     }
   }, [selectedCategory, products]);
+
+  // Fetch categories from Firestore
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const snapshot = await getDocs(collection(db, 'categories'));
+      const cats = snapshot.docs.map(doc => doc.data().name).filter(Boolean);
+      setCategoriesList(cats);
+    };
+    fetchCategories();
+  }, [showAddModal]);
+
+  // Fetch delivery options from Firestore
+  useEffect(() => {
+    const fetchDeliveryOptions = async () => {
+      const docRef = doc(db, 'settings', 'deliveryOptions');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setDeliveryOptions(docSnap.data().options || []);
+      } else {
+        setDeliveryOptions([
+          { label: 'Fast Delivery (Today)', fee: 0, eta: 'Delivered Today' },
+          { label: 'Express Delivery (2-3 days in Janakpur)', fee: 0, eta: '2-3 days (Janakpur only)' }
+        ]);
+      }
+    };
+    fetchDeliveryOptions();
+  }, [showAddModal]);
+
+  // When delivery option changes, auto-fill fee/eta
+  useEffect(() => {
+    if (selectedDeliveryOption) {
+      setProductForm(form => ({
+        ...form,
+        deliveryFee: selectedDeliveryOption.fee
+      }));
+      setDeliveryEta(selectedDeliveryOption.eta || '');
+    } else {
+      setDeliveryEta('');
+    }
+  }, [selectedDeliveryOption]);
 
   // Add new category
   const handleAddCategory = async (e) => {
@@ -249,16 +295,18 @@ const Products = () => {
   };
 
   const handleInlineAddCategory = async () => {
-    if (!inlineNewCategory.trim()) return;
+    if (!newInlineCategory.trim()) return;
+    setAddingCategory(true);
     try {
-      await addDoc(collection(db, 'categories'), { name: inlineNewCategory.trim() });
+      await addDoc(collection(db, 'categories'), { name: newInlineCategory.trim() });
+      setCategoriesList(prev => [...prev, newInlineCategory.trim()]);
+      setProductForm(form => ({ ...form, category: newInlineCategory.trim() }));
+      setNewInlineCategory('');
       toast.success('Category added!');
-      setShowInlineAddCategory(false);
-      setNewCategory('');
-      setProductForm(prev => ({ ...prev, category: inlineNewCategory.trim() }));
-    } catch (error) {
+    } catch (err) {
       toast.error('Failed to add category');
     }
+    setAddingCategory(false);
   };
 
   // InlineEditableField for all fields (including image)
@@ -614,9 +662,51 @@ const Products = () => {
         <form onSubmit={handleAddProduct} className="space-y-4">
             <input type="text" placeholder="Name" value={productForm.name} onChange={e => setProductForm({ ...productForm, name: e.target.value })} required className="w-full border rounded p-2" />
             <input type="number" placeholder="Price" value={productForm.price} onChange={e => setProductForm({ ...productForm, price: e.target.value })} required className="w-full border rounded p-2" />
-            <input type="text" placeholder="Category" value={productForm.category} onChange={e => setProductForm({ ...productForm, category: e.target.value })} required className="w-full border rounded p-2" />
+            <div>
+              <label className="block text-sm font-medium mb-1">Category</label>
+              <div className="flex gap-2 items-center">
+                <select
+                  className="w-full border rounded p-2"
+                  value={productForm.category}
+                  onChange={e => setProductForm({ ...productForm, category: e.target.value })}
+                  required
+                >
+                  <option value="">Select Category</option>
+                  {categoriesList.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="+ New"
+                  value={newInlineCategory}
+                  onChange={e => setNewInlineCategory(e.target.value)}
+                  className="border rounded p-2 w-32"
+                  disabled={addingCategory}
+                />
+                <Button size="sm" onClick={handleInlineAddCategory} disabled={addingCategory || !newInlineCategory.trim()} type="button">Add</Button>
+              </div>
+            </div>
             <input type="text" placeholder="Description" value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })} className="w-full border rounded p-2" />
-            <input type="number" placeholder="Delivery Fee" value={productForm.deliveryFee} onChange={e => setProductForm({ ...productForm, deliveryFee: e.target.value })} className="w-full border rounded p-2" />
+            <div>
+              <label className="block text-sm font-medium mb-1">Delivery Option</label>
+              <select
+                className="w-full border rounded p-2"
+                value={selectedDeliveryOption ? selectedDeliveryOption.label : ''}
+                onChange={e => {
+                  const opt = deliveryOptions.find(o => o.label === e.target.value);
+                  setSelectedDeliveryOption(opt || null);
+                }}
+                required
+              >
+                <option value="">Select Delivery Option</option>
+                {deliveryOptions.map(opt => (
+                  <option key={opt.label} value={opt.label}>{opt.label} {opt.fee ? `(Rs. ${opt.fee})` : ''}</option>
+                ))}
+              </select>
+              {deliveryEta && <div className="text-xs text-gray-500 mt-1">ETA: {deliveryEta}</div>}
+            </div>
+            <input type="number" placeholder="Delivery Fee" value={productForm.deliveryFee} onChange={e => setProductForm({ ...productForm, deliveryFee: e.target.value })} className="w-full border rounded p-2" required />
             <input type="number" placeholder="Stock" value={productForm.stock} onChange={e => setProductForm({ ...productForm, stock: e.target.value })} className="w-full border rounded p-2" />
             <button type="submit" className="admin-btn w-full">Add Product</button>
           </form>

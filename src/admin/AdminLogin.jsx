@@ -21,8 +21,8 @@ const AdminLogin = ({ onLogin }) => {
     try {
       const signedInUser = await signInWithGoogle();
       if (ADMIN_EMAILS.includes(signedInUser.email)) {
-        onLogin(true);
-      } else {
+      onLogin(true);
+    } else {
         setError('Not authorized. Only admin emails can access.');
         await logout();
       }
@@ -42,11 +42,11 @@ const AdminLogin = ({ onLogin }) => {
           </div>
 
           <button
-            className="w-full admin-btn"
+              className="w-full admin-btn" 
             style={{ marginBottom: 16 }}
             onClick={handleGoogleSignIn}
             disabled={loading}
-          >
+            >
             {loading ? 'Signing in...' : 'Sign in with Google'}
           </button>
 

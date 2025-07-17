@@ -32,11 +32,11 @@ import '../AdminPanel.css';
 import './AdminOrderPanel.css';
 
 const statusMessages = {
-  pending: 'Your order is pending, will be processing soon!',
-  processing: 'Your order is now being processed!',
+  pending: 'Your order is pending and will be processed soon!',
+  processing: 'Your order is now being processed! We\'ll ship it soon.',
   shipped: 'Your order has been shipped! Track it in your account.',
   delivered: 'Your order has been delivered! Thank you for shopping with us.',
-  cancelled: 'Your order has been cancelled. If you have questions, contact support.'
+  cancelled: 'Your order has been cancelled. Contact support if you have questions.'
 };
 
 const OrderManagement = () => {
@@ -198,19 +198,26 @@ const OrderManagement = () => {
         updatedAt: new Date()
       });
 
-      // Fetch order to check notification opt-in and userId
+      // Fetch order to get user details
       const orderDoc = await getDoc(doc(db, 'orders', orderId));
       if (orderDoc.exists()) {
         const order = orderDoc.data();
-        if (order.notifyOnOrder && order.userId) {
+        // Only send notification if user exists and opted in
+        if (order.userId && order.notifyOnOrder) {
           await addDoc(collection(db, 'notifications'), {
             userId: order.userId,
-            orderId,
+            orderId: orderId,
             type: 'order',
             status: newStatus,
-            message: statusMessages[newStatus] || `Order status updated: ${newStatus}`,
+            title: `Order #${orderId.slice(-6)} ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
+            message: statusMessages[newStatus] || `Order status updated to ${newStatus}`,
             createdAt: new Date(),
-            read: false
+            read: false,
+            orderDetails: {
+              productName: order.productName,
+              price: order.price,
+              quantity: order.quantity
+            }
           });
         }
       }

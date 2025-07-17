@@ -173,18 +173,7 @@ const Checkout = () => {
         isGuest: !user,
         notifyOnOrder: notifyOnOrder // save opt-in
       });
-      // Send notification if opted in
-      if (notifyOnOrder && user) {
-        await addDoc(collection(db, 'notifications'), {
-          userId: user.uid,
-          orderId: orderRef.id,
-          type: 'order',
-          status: 'pending',
-          message: 'Your order is pending, will be processing soon!',
-          createdAt: serverTimestamp(),
-          read: false
-        });
-      }
+      // Remove notification logic from here (no notification on order placement)
       toast.success('Order placed successfully!');
       navigate('/order-success');
     } catch (error) {

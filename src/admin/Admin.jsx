@@ -37,9 +37,9 @@ const Admin = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/*" element={<AdminLayout onLogout={handleLogout} />} />
-    </Routes>
+      <Routes>
+        <Route path="/*" element={<AdminLayout onLogout={handleLogout} />} />
+      </Routes>
   );
 };
 
