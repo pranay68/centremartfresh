@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Card from '../../components/ui/Card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
@@ -95,45 +95,23 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30'); // days
 
-  const fetchAnalytics = useCallback(async () => {
-    try {
-      const [ordersSnapshot, productsSnapshot] = await Promise.all([
-        getDocs(collection(db, 'orders')),
-        getDocs(collection(db, 'products'))
-      ]);
-
-      const orders = ordersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
-
-      const products = productsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      const salesData = generateSalesData(orders, dateRange);
-      const categoryData = generateCategoryData(products);
-      const revenueData = generateRevenueData(orders);
-      const topProducts = getTopProducts(orders, products);
-
-      setAnalytics({
-        salesData,
-        categoryData,
-        revenueData,
-        topProducts,
-      });
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [dateRange]);
-
   useEffect(() => {
-    fetchAnalytics();
-  }, [fetchAnalytics]);
+    const unsubOrders = onSnapshot(collection(db, 'orders'), (ordersSnapshot) => {
+      const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate() }));
+      const unsubProducts = onSnapshot(collection(db, 'products'), (productsSnapshot) => {
+        const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const salesData = generateSalesData(orders, dateRange);
+        const categoryData = generateCategoryData(products);
+        const revenueData = generateRevenueData(orders);
+        const topProducts = getTopProducts(orders, products);
+        setAnalytics({ salesData, categoryData, revenueData, topProducts });
+        setLoading(false);
+      });
+      // Clean up products listener
+      return () => unsubProducts();
+    });
+    return () => unsubOrders();
+  }, [dateRange]);
 
   if (loading) {
     return (

@@ -21,7 +21,8 @@ import {
   getDocs,
   startAfter,
   where,
-  addDoc
+  addDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import './HomeNew.css';
 import { useAuth } from '../context/AuthContext';
@@ -61,6 +62,7 @@ const Home = () => {
   const [compareList, setCompareList] = useState([]);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [showQuickView, setShowQuickView] = useState(false);
+  const [showAllRecentlyViewed, setShowAllRecentlyViewed] = useState(false);
   
   const observer = useRef();
 
@@ -167,30 +169,16 @@ const Home = () => {
     setLoading(false);
   }, [loading, lastDoc]);
 
-  const fetchAllProducts = useCallback(async () => {
-    const productsRef = collection(db, 'products');
-    const snapshot = await getDocs(productsRef);
-    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setAllProducts(items);
+  // Real-time allProducts
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAllProducts(items);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const fetchPanels = useCallback(async () => {
-    // Get unique categories from products
-    const productsSnapshot = await getDocs(collection(db, 'products'));
-    const allProducts = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
-    
-    const panels = categories.map(category => {
-      const categoryProducts = allProducts.filter(p => p.category === category);
-      return {
-        title: category,
-        products: categoryProducts.slice(0, 6)
-      };
-    }).filter(panel => panel.products.length > 0);
-
-    setPanels(panels);
-  }, []);
+  // Remove fetchAllProducts and fetchPanels, and use allProducts for panels and sections.
 
   // Premium: Load user data
   useEffect(() => {
@@ -207,14 +195,11 @@ const Home = () => {
     };
 
     fetchProducts(true);
-    fetchAllProducts();
-    fetchPanels();
-    loadUserData();
     
     // Check if user is admin (simple localStorage check)
     const adminStatus = localStorage.getItem('isAdmin') === 'true';
     setIsAdmin(adminStatus);
-  }, [fetchProducts, fetchAllProducts, fetchPanels]);
+  }, [fetchProducts]);
 
   const lastProductRef = useCallback(
     node => {
@@ -453,10 +438,12 @@ const Home = () => {
               <Eye size={20} />
               <h2>Recently Viewed</h2>
             </div>
-            <button className="view-all-btn">View All</button>
+            <button className="view-all-btn" onClick={() => setShowAllRecentlyViewed(v => !v)}>
+              {showAllRecentlyViewed ? 'Show Less' : 'View All'}
+            </button>
           </div>
           <div className="products-grid product-bar-grid">
-            {recentlyViewed.slice(0, 6).map(product => (
+            {(showAllRecentlyViewed ? recentlyViewed : recentlyViewed.slice(0, 6)).map(product => (
               <ProductCard 
                 key={product.id}
                 product={product}
@@ -468,6 +455,7 @@ const Home = () => {
                 isInWishlist={wishlist.find(item => item.id === product.id)}
                 isInCompare={compareList.find(item => item.id === product.id)}
                 onAuthRequired={handleAuthRequired}
+                compact={true}
               />
             ))}
           </div>
@@ -486,6 +474,8 @@ const Home = () => {
                 products={filtered}
                 onProductClick={handleProductClick}
                 onAuthRequired={handleAuthRequired}
+                // Pass compact to CategoryPanel's ProductCard
+                compact={true}
               />
             ) : null;
           })}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { collection, query, where, orderBy, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, updateDoc, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { 
   Package, 
@@ -31,39 +31,33 @@ const Orders = () => {
 
   useEffect(() => {
     if (user) {
-      loadOrders();
-    }
-  }, [user]);
-
-  const loadOrders = async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
       const ordersQuery = query(
         collection(db, 'orders'),
         where('userId', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
-      const ordersSnapshot = await getDocs(ordersQuery);
-      const userOrders = ordersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
-      setOrders(userOrders);
-    } catch (error) {
-      console.error('Error loading orders:', error);
-    } finally {
-      setLoading(false);
+      const unsubscribe = onSnapshot(ordersQuery, (ordersSnapshot) => {
+        const userOrders = ordersSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate()
+        }));
+        setOrders(userOrders);
+        setLoading(false);
+      }, (error) => {
+        setLoading(false);
+        console.error('Error loading orders:', error);
+      });
+      return () => unsubscribe();
     }
-  };
+  }, [user]);
 
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
     setCanceling(true);
     try {
       await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled' });
-      await loadOrders();
+      // No need to call loadOrders here, as onSnapshot handles updates
       setSelectedOrder(null);
     } catch (error) {
       alert('Failed to cancel order.');

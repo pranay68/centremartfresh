@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
 import ProductCard from "../components/ProductCard";
 import ProductDetailPanel from "../components/ProductDetailPanel";
@@ -16,30 +16,22 @@ const CategoryPage = () => {
   const decodedCategory = decodeURIComponent(category);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const productsRef = collection(db, "products");
-        const snapshot = await getDocs(productsRef);
-        const allProducts = [];
-        
-        snapshot.forEach((doc) => {
-          const product = { id: doc.id, ...doc.data() };
-          if (product.category && 
-              product.category.toLowerCase().includes(decodedCategory.toLowerCase())) {
-            allProducts.push(product);
-          }
-        });
-        
-        setProducts(allProducts);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
+    const productsRef = collection(db, "products");
+    const unsubscribe = onSnapshot(productsRef, (snapshot) => {
+      const allProducts = [];
+      snapshot.forEach((doc) => {
+        const product = { id: doc.id, ...doc.data() };
+        if (product.category && product.category.toLowerCase().includes(decodedCategory.toLowerCase())) {
+          allProducts.push(product);
+        }
+      });
+      setProducts(allProducts);
+      setLoading(false);
+    }, (error) => {
+      setLoading(false);
+      console.error("Error fetching products:", error);
+    });
+    return () => unsubscribe();
   }, [decodedCategory]);
 
   const getCategoryIcon = (category) => {
@@ -111,6 +103,7 @@ const CategoryPage = () => {
                 <ProductCard 
                   product={product} 
                   onProductClick={() => setSelectedProduct(product)}
+                  compact={true}
                 />
               </div>
             ))}

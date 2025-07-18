@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -23,25 +23,21 @@ const Inventory = () => {
   ];
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, 'products'));
+    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
       const productsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         stock: doc.data().stock || 0, // Default stock to 0 if not set
       }));
       setProducts(productsData);
-    } catch (error) {
+      setLoading(false);
+    }, (error) => {
       console.error('Error fetching products:', error);
       toast.error('Failed to fetch products');
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+    return () => unsubscribe();
+  }, []);
 
   const updateStock = async () => {
     if (!selectedProduct || !stockUpdate.quantity) {
@@ -72,7 +68,7 @@ const Inventory = () => {
       setShowStockModal(false);
       setSelectedProduct(null);
       setStockUpdate({ quantity: '', operation: 'set' });
-      fetchProducts();
+      // fetchProducts(); // No longer needed as onSnapshot handles updates
     } catch (error) {
       console.error('Error updating stock:', error);
       toast.error('Failed to update stock');

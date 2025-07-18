@@ -695,6 +695,7 @@ const ProductDetail = () => {
               key={relatedProduct.id} 
               product={relatedProduct}
               onProductClick={(product) => navigate(`/product/${product.id}`)}
+              compact={true}
             />
           ))}
         </div>

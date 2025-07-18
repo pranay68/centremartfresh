@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import AdminLogin from "./AdminLogin";
 import AdminLayout from "./AdminLayout";
 import AdminDeliverySettings from './pages/AdminDeliverySettings';
+import MainPanel from './pages/MainPanel';
 import { useAuth } from '../context/AuthContext';
 
 const ADMIN_EMAILS = [
@@ -39,6 +40,7 @@ const Admin = () => {
   return (
       <Routes>
         <Route path="/*" element={<AdminLayout onLogout={handleLogout} />} />
+        <Route path="/admin/main-panel" element={<MainPanel />} />
       </Routes>
   );
 };

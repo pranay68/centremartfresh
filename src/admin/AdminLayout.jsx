@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
@@ -22,7 +22,11 @@ const AdminLayout = ({ onLogout }) => {
     <div style={{ position: 'relative', minHeight: '100vh', width: '100vw' }}>
       {/* Remove the background image div */}
       <div className="admin-layout" style={{ display: 'flex', flexDirection: 'row', position: 'relative', zIndex: 1 }}>
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)}>
+          <li>
+            <Link to="/admin/main-panel">Main Panel</Link>
+          </li>
+        </Sidebar>
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', color: '#222', textShadow: 'none' }}>
           <Header onMenuClick={() => setSidebarOpen(true)} onLogout={onLogout} />
           <Routes>

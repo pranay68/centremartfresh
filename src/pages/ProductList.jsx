@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
 import ProductCard from "../components/ProductCard";
 import ProductPanel from "../components/ProductPanel";
@@ -9,16 +9,11 @@ const ProductList = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      const querySnapshot = await getDocs(collection(db, "products"));
-      const items = [];
-      querySnapshot.forEach((doc) =>
-        items.push({ id: doc.id, ...doc.data() })
-      );
+    const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setProducts(items);
-    };
-
-    fetchProducts();
+    });
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -27,7 +22,7 @@ const ProductList = () => {
       <div style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
         {products.map((product) => (
           <div key={product.id} onClick={() => setSelectedProduct(product)} style={{ cursor: "pointer" }}>
-            <ProductCard product={product} />
+            <ProductCard product={product} compact={true} />
           </div>
         ))}
       </div>

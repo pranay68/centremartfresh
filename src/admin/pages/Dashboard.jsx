@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import StatsCard from '../components/StatsCard';
 import Card from '../../components/ui/Card';
@@ -21,24 +21,18 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      // Fetch products count
-      const productsSnapshot = await getDocs(collection(db, 'products'));
+    // Real-time products
+    const unsubProducts = onSnapshot(collection(db, 'products'), (productsSnapshot) => {
       const totalProducts = productsSnapshot.size;
-
-      // Fetch orders
-      const ordersSnapshot = await getDocs(collection(db, 'orders'));
+      setStats(prev => ({ ...prev, totalProducts }));
+    });
+    // Real-time orders
+    const unsubOrders = onSnapshot(collection(db, 'orders'), (ordersSnapshot) => {
       const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate() }));
-      
       const totalOrders = orders.length;
       const pendingOrders = orders.filter(order => order.status === 'Pending').length;
       const totalRevenue = orders.reduce((sum, order) => sum + (order.price || 0), 0);
-
-      // Fetch customers (grouped by name/phone)
+      // Customers
       const customerMap = {};
       orders.forEach(order => {
         const key = `${order.customerName}-${order.phone}`;
@@ -57,21 +51,14 @@ const Dashboard = () => {
       const customersData = Object.values(customerMap).sort((a, b) => b.lastOrder - a.lastOrder);
       const totalCustomers = customersData.length;
       const recentCustomers = customersData.slice(0, 5);
-
+      setStats(prev => ({ ...prev, totalOrders, pendingOrders, totalRevenue, totalCustomers }));
+      setRecentCustomers(recentCustomers);
       // Recent orders
-      const recentOrdersQuery = query(
-        collection(db, 'orders'),
-        orderBy('createdAt', 'desc'),
-        limit(5)
-      );
-      const recentOrdersSnapshot = await getDocs(recentOrdersQuery);
-      const recentOrdersData = recentOrdersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
-
-      // Generate real sales data (monthly revenue and order count)
+      const recentOrdersData = orders
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, 5);
+      setRecentOrders(recentOrdersData);
+      // Sales data
       const monthlyMap = {};
       orders.forEach(order => {
         if (!order.createdAt) return;
@@ -82,19 +69,11 @@ const Dashboard = () => {
         monthlyMap[month].sales += order.price || 0;
         monthlyMap[month].orders += 1;
       });
-      // Sort months chronologically
       const salesData = Object.values(monthlyMap).sort((a, b) => new Date(a.month) - new Date(b.month));
-
-      setStats({ totalProducts, totalOrders, pendingOrders, totalRevenue, totalCustomers });
-      setRecentOrders(recentOrdersData);
-      setRecentCustomers(recentCustomers);
       setSalesData(salesData);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
+    return () => { unsubProducts(); unsubOrders(); };
+  }, []);
 
   if (loading) {
     return (

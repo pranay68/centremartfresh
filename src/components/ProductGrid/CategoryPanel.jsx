@@ -50,7 +50,7 @@ const CategoryPanel = ({ title = '', products = [], onProductClick, onAuthRequir
       <div className="category-products product-bar-grid">
         {products.slice(0, 4).map(product => (
           <div key={product.id || product.name} className="product-wrapper">
-            <ProductCard product={product} onProductClick={onProductClick} onAuthRequired={onAuthRequired} />
+            <ProductCard product={product} onProductClick={onProductClick} onAuthRequired={onAuthRequired} compact={true} />
           </div>
         ))}
       </div>

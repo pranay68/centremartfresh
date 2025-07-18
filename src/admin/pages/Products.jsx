@@ -9,6 +9,8 @@ import { toast } from 'react-hot-toast';
 import './AdminProductPanel.css';
 import { Link } from 'react-router-dom';
 import Modal from '../../components/ui/Modal';
+import { FaSearch } from 'react-icons/fa';
+import { uploadToCloudinary } from '../../utils/cloudinaryUpload';
 
 const Products = () => {
   // Categories state
@@ -54,6 +56,7 @@ const Products = () => {
   const [showInlineAddCategory, setShowInlineAddCategory] = useState(false);
   const [inlineNewCategory, setInlineNewCategory] = useState('');
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [showChangeOfferModal, setShowChangeOfferModal] = useState(false);
   const [csvProducts, setCsvProducts] = useState([]);
   const [csvErrors, setCsvErrors] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -64,6 +67,32 @@ const Products = () => {
   const [deliveryOptions, setDeliveryOptions] = useState([]);
   const [selectedDeliveryOption, setSelectedDeliveryOption] = useState(null);
   const [deliveryEta, setDeliveryEta] = useState('');
+
+  // Filtering state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSupplier, setFilterSupplier] = useState('');
+  const [filterPriceMin, setFilterPriceMin] = useState('');
+  const [filterPriceMax, setFilterPriceMax] = useState('');
+  const [filterStock, setFilterStock] = useState('');
+  const [filterMarginMin, setFilterMarginMin] = useState('');
+  const [filterMarginMax, setFilterMarginMax] = useState('');
+
+  // Infinite scroll state
+  const [visibleCount, setVisibleCount] = useState(30);
+  const listRef = useRef();
+
+  // Sticky header and bulk actions bar state
+  const [isSticky, setIsSticky] = useState(false);
+  const tableWrapperRef = useRef();
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!tableWrapperRef.current) return;
+      const { top } = tableWrapperRef.current.getBoundingClientRect();
+      setIsSticky(top <= 0);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Fetch products from Firebase
   useEffect(() => {
@@ -102,6 +131,55 @@ const Products = () => {
       setFilteredProducts(products.filter(p => p.category === selectedCategory));
     }
   }, [selectedCategory, products]);
+
+  // Advanced filtering logic
+  useEffect(() => {
+    let filtered = products;
+    if (selectedCategory !== 'All Products') {
+      filtered = filtered.filter(p => p.category === selectedCategory);
+    }
+    if (filterSupplier) {
+      filtered = filtered.filter(p => (p.supplier || p['Supplier Name']) === filterSupplier);
+    }
+    if (filterPriceMin) {
+      filtered = filtered.filter(p => Number(p.price || p['SP']) >= Number(filterPriceMin));
+    }
+    if (filterPriceMax) {
+      filtered = filtered.filter(p => Number(p.price || p['SP']) <= Number(filterPriceMax));
+    }
+    if (filterStock) {
+      filtered = filtered.filter(p => Number(p.stock || p['Stock']) === Number(filterStock));
+    }
+    if (filterMarginMin) {
+      filtered = filtered.filter(p => Number(p['Margin %'] || p.marginPercent) >= Number(filterMarginMin));
+    }
+    if (filterMarginMax) {
+      filtered = filtered.filter(p => Number(p['Margin %'] || p.marginPercent) <= Number(filterMarginMax));
+    }
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(p =>
+        (p.name || p['Description'] || '').toLowerCase().includes(term) ||
+        (p.itemCode || p['Item Code'] || '').toLowerCase().includes(term) ||
+        (p.category || p['Group Name'] || '').toLowerCase().includes(term)
+      );
+    }
+    setFilteredProducts(filtered);
+  }, [products, selectedCategory, filterSupplier, filterPriceMin, filterPriceMax, filterStock, filterMarginMin, filterMarginMax, searchTerm]);
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!listRef.current) return;
+      const { scrollTop, scrollHeight, clientHeight } = listRef.current;
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        setVisibleCount(c => Math.min(filteredProducts.length, c + 30));
+      }
+    };
+    const ref = listRef.current;
+    if (ref) ref.addEventListener('scroll', handleScroll);
+    return () => { if (ref) ref.removeEventListener('scroll', handleScroll); };
+  }, [filteredProducts.length]);
 
   // Fetch categories from Firestore
   useEffect(() => {
@@ -171,27 +249,24 @@ const Products = () => {
   };
 
   // Bulk actions
-  const handleBulkAction = async (action) => {
+  const handleBulkAction = (action) => {
     if (selectedProducts.length === 0) {
       toast.error('Please select products first');
       return;
     }
-    try {
-      switch (action) {
-        case 'delete':
-          await Promise.all(selectedProducts.map(productId => deleteDoc(doc(db, 'products', productId))));
-          setSelectedProducts([]);
-          toast.success('Products deleted!');
-          break;
-        case 'changeOffer':
-          setShowOfferModal(true);
-          break;
-        case 'changeDeliveryFee':
-          // Implement as needed
-          break;
-      }
-    } catch (error) {
-      toast.error('Bulk action failed');
+    switch (action) {
+      case 'delete':
+        selectedProducts.forEach(productId => handleDeleteProduct(productId));
+        setSelectedProducts([]);
+        break;
+      case 'changeOffer':
+        setShowChangeOfferModal(true);
+        break;
+      case 'changeDeliveryFee':
+        // Implement as needed
+        break;
+      default:
+        break;
     }
   };
 
@@ -411,6 +486,45 @@ const Products = () => {
     );
   };
 
+  const [showAddImageModal, setShowAddImageModal] = useState(false);
+  const [addImageProduct, setAddImageProduct] = useState(null);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const handleOpenAddImageModal = (product) => {
+    setAddImageProduct(product);
+    setShowAddImageModal(true);
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
+  };
+  const handleCloseAddImageModal = () => {
+    setShowAddImageModal(false);
+    setAddImageProduct(null);
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
+  };
+  const handleImageFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImageFile(file);
+      setImagePreviewUrl(URL.createObjectURL(file));
+    }
+  };
+  const handleUploadImage = async () => {
+    if (!selectedImageFile || !addImageProduct) return;
+    setUploadingImage(true);
+    try {
+      const url = await uploadToCloudinary(selectedImageFile, 'image');
+      await updateDoc(doc(db, 'products', addImageProduct.id), { imageUrl: url });
+      toast.success('Image uploaded!');
+      handleCloseAddImageModal();
+    } catch (err) {
+      toast.error('Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -418,6 +532,9 @@ const Products = () => {
       </div>
     );
   }
+
+  // Get unique suppliers for filter dropdown
+  const suppliers = Array.from(new Set(products.map(p => p.supplier || p['Supplier Name']).filter(Boolean)));
 
   // Build category list from products
   const allProductCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
@@ -513,25 +630,96 @@ const Products = () => {
     setUploading(false);
   };
 
+  // Analytics calculations
+  const totalProducts = products.length;
+  const outOfStock = products.filter(p => Number(p.stock || p['Stock']) === 0).length;
+  const lowMargin = products.filter(p => Number(p['Margin %'] || p.marginPercent) < 10).length;
+  const topCategories = (() => {
+    const counts = {};
+    products.forEach(p => {
+      const cat = p.category || p['Group Name'] || 'Uncategorized';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  })();
+  const topSuppliers = (() => {
+    const counts = {};
+    products.forEach(p => {
+      const sup = p.supplier || p['Supplier Name'] || 'Unknown';
+      counts[sup] = (counts[sup] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  })();
+
   return (
-    <div className="space-y-6">
+    <div className="admin-products-panel">
+      {/* Analytics Dashboard */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+        <Card style={{ flex: 1, padding: 16 }}>
+          <div style={{ fontSize: 13, color: '#888' }}>Total Products</div>
+          <div style={{ fontSize: 24, fontWeight: 600 }}>{totalProducts}</div>
+        </Card>
+        <Card style={{ flex: 1, padding: 16 }}>
+          <div style={{ fontSize: 13, color: '#888' }}>Out of Stock</div>
+          <div style={{ fontSize: 24, fontWeight: 600 }}>{outOfStock}</div>
+        </Card>
+        <Card style={{ flex: 1, padding: 16 }}>
+          <div style={{ fontSize: 13, color: '#888' }}>Low Margin (&lt;10%)</div>
+          <div style={{ fontSize: 24, fontWeight: 600 }}>{lowMargin}</div>
+        </Card>
+        <Card style={{ flex: 1, padding: 16 }}>
+          <div style={{ fontSize: 13, color: '#888' }}>Top Categories</div>
+          <div style={{ fontSize: 15 }}>{topCategories.map(([cat, count]) => <div key={cat}>{cat}: {count}</div>)}</div>
+        </Card>
+        <Card style={{ flex: 1, padding: 16 }}>
+          <div style={{ fontSize: 13, color: '#888' }}>Top Suppliers</div>
+          <div style={{ fontSize: 15 }}>{topSuppliers.map(([sup, count]) => <div key={sup}>{sup}: {count}</div>)}</div>
+        </Card>
+      </div>
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddModal(true)}>Add Product</Button>
-          <Button variant="outline" onClick={() => setShowAddCategoryModal(true)}>Add Category</Button>
-        </div>
+      <div className="admin-products-header-row" style={{ position: isSticky ? 'sticky' : 'static', top: 0, zIndex: 10, background: '#f8fafc' }}>
+        <h1 className="text-2xl font-bold text-gray-900" style={{ margin: 0, fontSize: '1.2rem' }}>Products Management</h1>
+        <Button onClick={() => setShowBulkModal(true)} variant="primary">Bulk Upload</Button>
+        <Button onClick={() => setShowAddCategoryModal(true)} variant="secondary">Add Category</Button>
+        <Button onClick={() => setShowAddModal(true)} variant="success">Add Product</Button>
       </div>
       <div style={{ marginBottom: 24 }}>
         <Link to="/admin/delivery-settings">
           <Button variant="outline">Manage Delivery Options & Locations</Button>
         </Link>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button className="admin-btn" onClick={() => setShowBulkModal(true)}>
-          Bulk Upload
-        </button>
+
+      {/* Filter/Search Bar */}
+      <div className="admin-filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+        <Input placeholder="Search by name, code, category..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ minWidth: 200 }} />
+        <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
+          <option value="All Products">All Categories</option>
+          {categoriesList.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+        </select>
+        <select value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
+          <option value="">All Suppliers</option>
+          {suppliers.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <Input placeholder="Min Price" type="number" value={filterPriceMin} onChange={e => setFilterPriceMin(e.target.value)} style={{ width: 90 }} />
+        <Input placeholder="Max Price" type="number" value={filterPriceMax} onChange={e => setFilterPriceMax(e.target.value)} style={{ width: 90 }} />
+        <Input placeholder="Stock" type="number" value={filterStock} onChange={e => setFilterStock(e.target.value)} style={{ width: 80 }} />
+        <Input placeholder="Min Margin %" type="number" value={filterMarginMin} onChange={e => setFilterMarginMin(e.target.value)} style={{ width: 90 }} />
+        <Input placeholder="Max Margin %" type="number" value={filterMarginMax} onChange={e => setFilterMarginMax(e.target.value)} style={{ width: 90 }} />
+        <Button onClick={() => {
+          setSearchTerm(''); setFilterSupplier(''); setFilterPriceMin(''); setFilterPriceMax(''); setFilterStock(''); setFilterMarginMin(''); setFilterMarginMax(''); setSelectedCategory('All Products');
+        }}>Clear</Button>
+      </div>
+      {/* Bulk Actions Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+        <input type="checkbox" checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0} onChange={handleSelectAll} />
+        <span style={{ fontSize: 14 }}>{selectedProducts.length} selected</span>
+        <select onChange={e => handleBulkAction(e.target.value)} defaultValue="">
+          <option value="">Bulk Actions</option>
+          <option value="delete">Delete</option>
+          <option value="changeOffer">Change Offer</option>
+          <option value="changeCategory">Change Category</option>
+          <option value="changeSupplier">Change Supplier</option>
+        </select>
       </div>
 
       {/* Category Selection */}
@@ -560,7 +748,7 @@ const Products = () => {
       {/* Bulk Selection */}
       <Card>
             <Card.Content className="p-4">
-          <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex flex-wrap gap-3 items-center overflow-x-auto">
             <span className="text-sm font-medium text-gray-700">Quick Select:</span>
             <Button size="sm" variant="outline" onClick={() => handleCategorySelection('All Products')}>All Products</Button>
             {categories.filter(cat => cat !== 'All Products').map(category => (
@@ -572,41 +760,35 @@ const Products = () => {
 
       {/* Bulk Actions */}
       {selectedProducts.length > 0 && (
-        <Card>
-          <Card.Content className="p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{selectedProducts.length} products selected</span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="danger" onClick={() => handleBulkAction('delete')}>Delete Selected</Button>
-                <Button size="sm" variant="outline" onClick={() => handleBulkAction('changeOffer')}>Change Offer</Button>
-                <Button size="sm" variant="outline" onClick={() => handleBulkAction('changeDeliveryFee')}>Change Delivery Fee</Button>
-              </div>
-            </div>
-          </Card.Content>
-          </Card>
+        <div className="sticky-bulk-actions-bar" style={{ position: isSticky ? 'fixed' : 'static', top: 0, left: 0, right: 0, zIndex: 30, background: '#f8fafc', boxShadow: isSticky ? '0 2px 8px #e0e7ef33' : 'none', padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="text-sm text-gray-600">{selectedProducts.length} products selected</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="danger" onClick={() => handleBulkAction('delete')}>Delete Selected</Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkAction('changeOffer')}>Change Offer</Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkAction('changeDeliveryFee')}>Change Delivery Fee</Button>
+          </div>
+        </div>
       )}
 
       {/* Products List */}
       <Card>
         <Card.Content className="p-0">
-          <div className="admin-table-scroll-wrapper">
+          <div className="admin-table-scroll-wrapper" ref={tableWrapperRef}>
             <table className="w-full text-xs" style={{ minWidth: '1200px' }}>
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-20">
                 <tr>
-                  <th className="px-2 py-2 text-left" colSpan={9}>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
-                        onChange={handleSelectAll}
-                        className="rounded border-gray-300"
-                      />
-                      <span className="font-semibold">All Products</span>
-                    </div>
-                  </th>
+                  <th className="px-2 py-2 text-left"><input type="checkbox" checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0} onChange={handleSelectAll} className="rounded border-gray-300" /></th>
+                  <th className="px-2 py-2 text-left">Image</th>
+                  <th className="px-2 py-2 text-left">Name</th>
+                  <th className="px-2 py-2 text-left">SP</th>
+                  <th className="px-2 py-2 text-left">Offer</th>
+                  <th className="px-2 py-2 text-left">Delivery Fee</th>
+                  <th className="px-2 py-2 text-left">Category</th>
+                  <th className="px-2 py-2 text-left">Stock</th>
+                  <th className="px-2 py-2 text-left">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200" ref={listRef}>
                 {Object.entries(groupedProducts).map(([category, productsInCat]) => (
                   <React.Fragment key={category}>
                     {/* Category Row */}
@@ -631,10 +813,18 @@ const Products = () => {
                       </td>
                     </tr>
                     {/* Products in Category */}
-                    {productsInCat.map(product => (
+                    {productsInCat.slice(0, visibleCount).map(product => (
                       <tr key={product.id} className="product-row">
                         <td className="product-cell"><input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => handleProductSelection(product.id)} className="rounded border-gray-300" /></td>
-                        <td className="product-cell"><InlineEditableField product={product} field="imageUrl" /></td>
+                        <td className="product-cell">
+                          {product.imageUrl ? (
+                            <img src={product.imageUrl} alt={product.name} className="w-10 h-10 object-cover rounded border" />
+                          ) : (
+                            <Button size="xs" variant="outline" onClick={() => handleOpenAddImageModal(product)}>
+                              Add Image
+                            </Button>
+                          )}
+                        </td>
                         <td className="product-cell"><InlineEditableField product={product} field="name" /></td>
                         <td className="product-cell"><InlineEditableField product={product} field="price" type="number" /></td>
                         <td className="product-cell"><InlineEditableField product={product} field="offer" /></td>
@@ -648,7 +838,7 @@ const Products = () => {
                 ))}
               </tbody>
             </table>
-      </div>
+          </div>
         </Card.Content>
       </Card>
 
@@ -738,13 +928,84 @@ const Products = () => {
       />
 
       {/* Bulk Upload Modal */}
-      <BulkProductUpload
-        isOpen={showBulkModal}
-        onClose={() => setShowBulkModal(false)}
-        onSuccess={() => {/* Optionally reload products here */}}
-      />
+      {showBulkModal && (
+        <BulkProductUpload
+          isOpen={showBulkModal}
+          onClose={() => setShowBulkModal(false)}
+          onSuccess={() => {/* Optionally reload products here */}}
+          style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000 }}
+        />
+      )}
+      {showChangeOfferModal && (
+        <Modal isOpen={showChangeOfferModal} onClose={() => setShowChangeOfferModal(false)} title="Change Offer for Selected Products">
+          <ChangeOfferForm selectedProducts={selectedProducts} onClose={() => setShowChangeOfferModal(false)} />
+        </Modal>
+      )}
+
+      {showAddImageModal && (
+        <Modal isOpen={showAddImageModal} onClose={handleCloseAddImageModal} title="Add Product Image">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <label className="font-medium">Choose Image</label>
+              <Input type="file" accept="image/*" onChange={handleImageFileChange} />
+              <Input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} id="cameraInput" onChange={handleImageFileChange} />
+              <Button size="sm" variant="outline" onClick={() => document.getElementById('cameraInput').click()}>
+                Use Camera
+              </Button>
+            </div>
+            {imagePreviewUrl && (
+              <div className="flex flex-col items-center gap-2">
+                <img src={imagePreviewUrl} alt="Preview" className="w-32 h-32 object-cover rounded border" />
+              </div>
+            )}
+            <div className="flex gap-2 justify-end">
+              <Button size="sm" variant="secondary" onClick={handleCloseAddImageModal}>Cancel</Button>
+              <Button size="sm" variant="primary" onClick={handleUploadImage} disabled={!selectedImageFile || uploadingImage} loading={uploadingImage}>
+                Upload
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
 
 export default Products;
+
+const ChangeOfferForm = ({ selectedProducts, onClose }) => {
+  const [offer, setOffer] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [loading, setLoading] = useState(false);
+  const handleApplyOffer = async () => {
+    setLoading(true);
+    try {
+      await Promise.all(selectedProducts.map(productId => updateDoc(doc(db, 'products', productId), { offer, offerStartDate: startDate, offerEndDate: endDate })));
+      toast.success('Offer updated for selected products!');
+      onClose();
+    } catch (err) {
+      toast.error('Failed to update offer');
+    }
+    setLoading(false);
+  };
+  return (
+    <div className="space-y-4">
+      <Input label="Offer" value={offer} onChange={e => setOffer(e.target.value)} placeholder="Enter offer (e.g. 10% OFF)" />
+      <div className="flex gap-2">
+        <div className="flex flex-col">
+          <label className="text-xs font-medium mb-1">Start Date</label>
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="border rounded p-2" />
+        </div>
+        <div className="flex flex-col">
+          <label className="text-xs font-medium mb-1">End Date</label>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="border rounded p-2" />
+        </div>
+      </div>
+      <div className="flex gap-2 justify-end">
+        <Button size="sm" variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button size="sm" variant="primary" onClick={handleApplyOffer} loading={loading} disabled={!offer || !startDate || !endDate}>Apply</Button>
+      </div>
+    </div>
+  );
+};
