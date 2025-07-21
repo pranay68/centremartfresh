@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { FaCrown, FaStar, FaChartLine, FaFire } from 'react-icons/fa';
 import ProductCard from './ProductGrid/ProductCard';
 import './TopSaleSection.css';
@@ -65,9 +66,9 @@ const TopSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit
 
       {displayProducts.length > 4 && (
         <div className="top-sale-footer">
-          <button className="view-all-top-sale-btn">
+          <Link to="/top-sellers" className="view-all-top-sale-btn">
             View All Top Sellers
-          </button>
+          </Link>
         </div>
       )}
     </section>

@@ -6,6 +6,11 @@ import './CategoryPanel.css';
 const CategoryPanel = ({ title = '', products = [], onProductClick, onAuthRequired }) => {
   if (!Array.isArray(products) || products.length === 0) return null;
 
+  // Filter out invalid products
+  const validProducts = products.filter(product => product && product.id && product.name);
+
+  if (validProducts.length === 0) return null;
+
   // Get category icon based on title
   const getCategoryIcon = (category) => {
     const categoryLower = category.toLowerCase();
@@ -47,21 +52,21 @@ const CategoryPanel = ({ title = '', products = [], onProductClick, onAuthRequir
         </Link>
       </div>
 
-      <div className="category-products product-bar-grid">
-        {products.slice(0, 4).map(product => (
+      <div className="products-grid">
+        {validProducts.slice(0, 4).map(product => (
           <div key={product.id || product.name} className="product-wrapper">
             <ProductCard product={product} onProductClick={onProductClick} onAuthRequired={onAuthRequired} compact={true} />
           </div>
         ))}
       </div>
 
-      {products.length > 4 && (
+      {validProducts.length > 4 && (
         <div className="category-footer">
           <Link 
             to={`/category/${encodeURIComponent(title.toLowerCase())}`} 
             className="view-more-btn"
           >
-            View All {products.length} {title} Products
+            View All
           </Link>
         </div>
       )}

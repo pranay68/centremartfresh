@@ -3,6 +3,7 @@ import { db } from '../../firebase/config';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocs } from 'firebase/firestore';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import notificationSystem from '../../utils/notificationSystem';
 import './Notifications.css';
 
 const Notifications = () => {
@@ -121,6 +122,14 @@ const Notifications = () => {
         </form>
         <div className="notification-list-section">
           <h3 className="notification-list-title">Recent Notifications</h3>
+          <div className="notification-test-section">
+            <Button 
+              onClick={() => notificationSystem.testNotification()}
+              className="test-notification-btn"
+            >
+              🎵 Test Coffin Dance Notification
+            </Button>
+          </div>
           {notifications.length === 0 && <div className="notification-empty">No notifications yet.</div>}
           {notifications.map(n => (
             <div key={n.id} className={`notification-item${n.read ? ' read' : ''}`}>

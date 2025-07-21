@@ -11,7 +11,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './Header.css';
 
-const Header = ({ searchTerm, setSearchTerm, products, onSearch }) => {
+const Header = ({ searchTerm, setSearchTerm = () => {}, products, onSearch }) => {
   const { user, logout } = useAuth();
   const { getTotalItems } = useCart();
   const [showAuthModal, setShowAuthModal] = useState(false);

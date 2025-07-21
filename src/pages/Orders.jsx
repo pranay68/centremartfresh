@@ -19,6 +19,7 @@ import OrderList from '../components/OrderList';
 import OrderDetailModal from '../components/OrderDetailModal';
 import OrderSearchBar from '../components/OrderSearchBar';
 import '../components/OrdersPage.css';
+import notificationSystem from '../utils/notificationSystem';
 
 const Orders = () => {
   const { user } = useAuth();
@@ -57,7 +58,12 @@ const Orders = () => {
     setCanceling(true);
     try {
       await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled' });
-      // No need to call loadOrders here, as onSnapshot handles updates
+      // Notify admins
+      await notificationSystem.sendAdminNotification(
+        'Order Cancelled',
+        `Order #${orderId} was cancelled by the user.`,
+        'order_cancelled'
+      );
       setSelectedOrder(null);
     } catch (error) {
       alert('Failed to cancel order.');

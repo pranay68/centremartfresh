@@ -27,6 +27,12 @@ import Orders from "./pages/Orders";
 import Admin from "./admin/Admin";
 import ReviewModal from './components/ReviewModal';
 import CategoryPage from "./pages/CategoryPage";
+import SearchResults from "./pages/SearchResults";
+import ProductDetail from "./pages/ProductDetail";
+import NewArrivals from "./pages/NewArrivals";
+import TopSellers from "./pages/TopSellers";
+import FlashSale from "./pages/FlashSale";
+import ProductList from "./pages/ProductList";
 
 // TempApp main component
 const TempApp = () => {
@@ -49,6 +55,13 @@ const TempApp = () => {
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/admin/*" element={<Admin />} />
                   <Route path="/category/:category" element={<CategoryPage />} />
+                  <Route path="/search" element={<SearchResults />} />
+                  <Route path="/product/:id" element={<ProductDetail />} />
+                  <Route path="/new-arrivals" element={<NewArrivals />} />
+                  <Route path="/top-sellers" element={<TopSellers />} />
+                  <Route path="/flash-sale" element={<FlashSale />} />
+                  <Route path="/products" element={<ProductList />} />
+                  <Route path="*" element={<div className="not-found">404 - Page Not Found</div>} />
                 </Routes>
                 <ReviewModal />
                 {/* Toast notifications */}

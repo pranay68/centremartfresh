@@ -947,11 +947,14 @@ const Products = () => {
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
               <label className="font-medium">Choose Image</label>
-              <Input type="file" accept="image/*" onChange={handleImageFileChange} />
-              <Input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} id="cameraInput" onChange={handleImageFileChange} />
-              <Button size="sm" variant="outline" onClick={() => document.getElementById('cameraInput').click()}>
-                Use Camera
-              </Button>
+              <label htmlFor="galleryInput" className="upload-label">
+                <Input id="galleryInput" type="file" accept="image/*" onChange={handleImageFileChange} style={{ display: 'none' }} />
+                <span role="img" aria-label="gallery" className="upload-icon">🖼️</span> Choose from Gallery
+              </label>
+              <label htmlFor="cameraInput" className="upload-label">
+                <Input id="cameraInput" type="file" accept="image/*" capture="environment" onChange={handleImageFileChange} style={{ display: 'none' }} />
+                <span role="img" aria-label="camera" className="upload-icon">📷</span> Take Photo (Camera)
+              </label>
             </div>
             {imagePreviewUrl && (
               <div className="flex flex-col items-center gap-2">

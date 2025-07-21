@@ -18,6 +18,7 @@ import {
   SortDesc
 } from 'lucide-react';
 import './AdvancedSearch.css';
+import { useNavigate } from 'react-router-dom';
 
 const AdvancedSearch = ({ 
   onSearch, 
@@ -39,6 +40,7 @@ const AdvancedSearch = ({
     availability: true,
     features: true
   });
+  const navigate = useNavigate();
 
   const [localFilters, setLocalFilters] = useState({
     priceRange: [0, 10000],
@@ -74,8 +76,8 @@ const AdvancedSearch = ({
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (onSearch) {
-      onSearch(searchQuery, localFilters);
+    if (searchQuery.trim()) {
+      navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
     }
   };
 

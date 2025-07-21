@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import ProductCard from '../components/ProductGrid/ProductCard';
 import CategoryPanel from '../components/ProductGrid/CategoryPanel';
 import FlashSaleSection from '../components/FlashSaleSection';
@@ -6,47 +6,44 @@ import TopSaleSection from '../components/TopSaleSection';
 import NewArrivalsSection from '../components/NewArrivalsSection';
 import AdminPanelControl from '../components/AdminPanelControl';
 import Header from '../components/Header';
-import SearchAnalytics from '../components/SearchAnalytics';
 import ProductDetailPanel from '../components/ProductDetailPanel';
 import CustomerSupport from '../components/CustomerSupport';
 import AuthModal from '../components/auth/AuthModal';
+import AIChat from '../components/AISystem/AIChat';
+import AIDashboard from '../components/AISystem/AIDashboard';
 import { Filter, SortAsc, Eye, Heart, ShoppingCart, Star, TrendingUp, Clock, Zap, Search, Grid3X3, List } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { db } from '../firebase/config';
 import {
   collection,
   query,
-  orderBy,
-  limit,
-  getDocs,
-  startAfter,
   where,
   addDoc,
-  onSnapshot
+  onSnapshot,
+  getDocs,
+  deleteDoc,
+  doc
 } from 'firebase/firestore';
-import './HomeNew.css';
+import './HomeMobile.css';
 import { useAuth } from '../context/AuthContext';
-import RatingAndReviews from '../components/RatingAndReviews';
-import ReviewModal from '../components/ReviewModal';
 import BottomNav from '../components/ui/BottomNav';
+import { Routes, Route } from 'react-router-dom';
 
 const Home = () => {
+  // Core State
   const [products, setProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]);
-  const [lastDoc, setLastDoc] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [panels, setPanels] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // Auth Modal State
+  // Auth State
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState('login');
   
-  // Premium Features State
+  // UI State
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('featured');
   const [filters, setFilters] = useState({
     category: '',
@@ -56,6 +53,8 @@ const Home = () => {
     inStock: false,
     onSale: false
   });
+  
+  // User Data State
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [cart, setCart] = useState([]);
@@ -64,36 +63,32 @@ const Home = () => {
   const [showQuickView, setShowQuickView] = useState(false);
   const [showAllRecentlyViewed, setShowAllRecentlyViewed] = useState(false);
   
-  const observer = useRef();
+  // Review State
+  const [userOrders, setUserOrders] = useState([]);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewingOrder, setReviewingOrder] = useState(null);
 
-  const normalize = str =>
-    str
+  const { user } = useAuth();
+
+  // Utility Functions
+  const normalize = useCallback((str) => {
+    if (!str) return '';
+    return str
       .toLowerCase()
       .replace(/[^a-z0-9]/gi, '')
       .replace(/moblie|mobl|mobliee/g, 'mobile')
       .replace(/sho|sneekar|snkar/g, 'shoe')
       .replace(/laptap|labtop/g, 'laptop')
       .replace(/tv|teevee|tvee/g, 'television');
+  }, []);
 
-  const filterProducts = list => {
-    if (!searchTerm) return list;
-    const cleaned = normalize(searchTerm);
-    return list.filter(product => {
-      const name = normalize(product.name || '');
-      const desc = normalize(product.description || '');
-      const cat = normalize(product.category || '');
-      return name.includes(cleaned) || desc.includes(cleaned) || cat.includes(cleaned);
-    });
-  };
-
-  // Premium: Apply filters and sorting
+  // Advanced filtering and sorting
   const applyFiltersAndSort = useCallback((products) => {
-    let filtered = [...products];
+    // Filter out invalid products first
+    let filtered = products.filter(product => product && product.id && product.name);
 
     // Apply search filter
-    if (searchTerm) {
-      filtered = filterProducts(filtered);
-    }
+    // This logic is now handled by SearchResults component
 
     // Apply category filter
     if (filters.category) {
@@ -146,100 +141,109 @@ const Home = () => {
     }
 
     return filtered;
-  }, [searchTerm, filters, sortBy]);
+  }, [searchTerm, filters, sortBy]); // Removed filterProducts from dependencies
 
-  // Set compact mode by default for search results
-  const [viewMode, setViewMode] = useState(searchTerm ? 'compact' : 'grid');
-
-  const fetchProducts = useCallback(async (initial = false) => {
-    if (loading) return;
-    setLoading(true);
-
-    const productsRef = collection(db, 'products');
-    const q = initial || !lastDoc
-      ? query(productsRef, orderBy('name'), limit(12))
-      : query(productsRef, orderBy('name'), startAfter(lastDoc), limit(12));
-
-    const snapshot = await getDocs(q);
-    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    setProducts(prev => (initial ? items : [...prev, ...items]));
-    setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-    setHasMore(snapshot.docs.length === 12);
-    setLoading(false);
-  }, [loading, lastDoc]);
-
-  // Real-time allProducts
+  // Real-time product loading
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAllProducts(items);
+      const items = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(item => {
+          // Simple filtering - just remove obviously corrupted data
+          if (!item || !item.id) return false;
+          if (!item.name || item.name === 'undefined' || item.name === 'null') return false;
+          if (item.name.includes('RAHUL ACCOUNT COPY')) return false;
+          return true;
+        });
+      setProducts(items);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching products:', error);
+      setLoading(false);
     });
+
     return () => unsubscribe();
   }, []);
 
-  // Remove fetchAllProducts and fetchPanels, and use allProducts for panels and sections.
-
-  // Premium: Load user data
+  // Load user data
   useEffect(() => {
     const loadUserData = () => {
-      const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
-      const wishlistData = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      const cartData = JSON.parse(localStorage.getItem('cart') || '[]');
-      const compareData = JSON.parse(localStorage.getItem('compareList') || '[]');
-      
-      setRecentlyViewed(viewed);
-      setWishlist(wishlistData);
-      setCart(cartData);
-      setCompareList(compareData);
+      try {
+        const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        const wishlistData = JSON.parse(localStorage.getItem('wishlist') || '[]');
+        const cartData = JSON.parse(localStorage.getItem('cart') || '[]');
+        const compareData = JSON.parse(localStorage.getItem('compareList') || '[]');
+        
+        setRecentlyViewed(viewed);
+        setWishlist(wishlistData);
+        setCart(cartData);
+        setCompareList(compareData);
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
     };
 
-    fetchProducts(true);
+    loadUserData();
     
-    // Check if user is admin (simple localStorage check)
+    // Check admin status
     const adminStatus = localStorage.getItem('isAdmin') === 'true';
     setIsAdmin(adminStatus);
-  }, [fetchProducts]);
-
-  const lastProductRef = useCallback(
-    node => {
-      if (loading || !hasMore) return;
-      if (observer.current) observer.current.disconnect();
-
-      observer.current = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting) {
-          fetchProducts();
-        }
-      });
-
-      if (node) observer.current.observe(node);
-    },
-    [loading, hasMore, fetchProducts]
-  );
-
-  const handleSearch = useCallback((term, filteredProducts = null) => {
-    setSearchTerm(term);
-    if (filteredProducts) {
-      setProducts(filteredProducts);
-    }
   }, []);
 
-  // Premium: Handle product interactions
-  const handleProductClick = (product) => {
+  // Computed values
+  const displayProducts = useMemo(() => applyFiltersAndSort(products), [products, applyFiltersAndSort]);
+  const categories = useMemo(() => [...new Set(products.map(p => p.category).filter(Boolean))], [products]);
+  
+  const panels = useMemo(() => {
+    if (products.length === 0) return [];
+    
+    const categoryGroups = categories.map(category => {
+      const categoryProducts = products.filter(p => p.category === category);
+      return {
+        title: category,
+        products: categoryProducts.slice(0, 6)
+      };
+    }).filter(panel => panel.products.length > 0);
+
+    return categoryGroups;
+  }, [products, categories]);
+
+  const PRODUCTS_PER_PAGE = 20;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(displayProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    return displayProducts.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [displayProducts, currentPage]);
+
+  // Event Handlers
+  // Remove filterProducts and applyFiltersAndSort searchTerm logic
+  // Only setSearchTerm and route to /search?query=...
+  const handleSearch = useCallback((term) => {
+    setSearchTerm(term);
+    // Route to search results page
+    window.location.href = `/search?query=${encodeURIComponent(term)}`;
+  }, []);
+
+  const handleProductClick = useCallback((product) => {
     setSelectedProduct(product);
     
     // Add to recently viewed
     const newViewed = [product, ...recentlyViewed.filter(p => p.id !== product.id)].slice(0, 10);
     setRecentlyViewed(newViewed);
     localStorage.setItem('recentlyViewed', JSON.stringify(newViewed));
-  };
+  }, [recentlyViewed]);
 
-  const handleCloseProductDetail = () => {
+  const handleCloseProductDetail = useCallback(() => {
     setSelectedProduct(null);
-  };
+  }, []);
 
-  // Premium: Quick add to cart
-  const handleQuickAddToCart = (product) => {
+  const handleQuickAddToCart = useCallback((product) => {
+    if (!user) {
+      handleAuthRequired();
+      return;
+    }
+
     const existingItem = cart.find(item => item.id === product.id);
     const newCart = existingItem 
       ? cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item)
@@ -247,13 +251,15 @@ const Home = () => {
     
     setCart(newCart);
     localStorage.setItem('cart', JSON.stringify(newCart));
-    
-    // Show success toast
     toast.success(`${product.name} added to cart!`);
-  };
+  }, [cart, user]);
 
-  // Premium: Add to wishlist
-  const handleAddToWishlist = (product) => {
+  const handleAddToWishlist = useCallback((product) => {
+    if (!user) {
+      handleAuthRequired();
+      return;
+    }
+
     const isInWishlist = wishlist.find(item => item.id === product.id);
     const newWishlist = isInWishlist 
       ? wishlist.filter(item => item.id !== product.id)
@@ -261,12 +267,15 @@ const Home = () => {
     
     setWishlist(newWishlist);
     localStorage.setItem('wishlist', JSON.stringify(newWishlist));
-    
     toast.success(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist!');
-  };
+  }, [wishlist, user]);
 
-  // Premium: Add to compare
-  const handleAddToCompare = (product) => {
+  const handleAddToCompare = useCallback((product) => {
+    if (!user) {
+      handleAuthRequired();
+      return;
+    }
+
     const isInCompare = compareList.find(item => item.id === product.id);
     const newCompare = isInCompare 
       ? compareList.filter(item => item.id !== product.id)
@@ -280,91 +289,90 @@ const Home = () => {
     } else {
       toast.success(isInCompare ? 'Removed from compare' : 'Added to compare!');
     }
-  };
+  }, [compareList, user]);
 
-  // Premium: Quick view
-  const handleQuickView = (product) => {
+  const handleQuickView = useCallback((product) => {
+    if (!user) {
+      handleAuthRequired();
+      return;
+    }
     setQuickViewProduct(product);
     setShowQuickView(true);
-  };
+  }, [user]);
 
-  const handleSectionEdit = (sectionType) => {
-    console.log(`Editing section: ${sectionType}`);
-    // Simple alert for now - we'll build admin panel later
-    alert(`Edit ${sectionType} section - Admin panel coming soon!`);
-  };
-
-  const handleAdminSave = (sections) => {
-    console.log('Saving sections:', sections);
-    // Save to localStorage for now
-    localStorage.setItem('adminSections', JSON.stringify(sections));
-    alert('Sections saved successfully!');
-  };
-
-  const handleAdminDelete = (sectionId) => {
-    console.log('Deleting section:', sectionId);
-    alert(`Section ${sectionId} deleted!`);
-  };
-
-  // Auth Required Handler
-  const handleAuthRequired = () => {
+  const handleAuthRequired = useCallback(() => {
     setAuthTab('login');
     setShowAuthModal(true);
-  };
+  }, []);
 
-  const { user } = useAuth();
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [userOrders, setUserOrders] = useState([]);
-  const [reviewingOrder, setReviewingOrder] = useState(null);
+  const handleSectionEdit = useCallback((sectionType) => {
+    console.log(`Editing section: ${sectionType}`);
+    alert(`Edit ${sectionType} section - Admin panel coming soon!`);
+  }, []);
 
-  const handleOpenReviews = async () => {
+  const handleAdminSave = useCallback((sections) => {
+    console.log('Saving sections:', sections);
+    localStorage.setItem('adminSections', JSON.stringify(sections));
+    alert('Sections saved successfully!');
+  }, []);
+
+  const handleAdminDelete = useCallback((sectionId) => {
+    console.log('Deleting section:', sectionId);
+    alert(`Section ${sectionId} deleted!`);
+  }, []);
+
+  const handleOpenReviews = useCallback(async () => {
     if (!user) {
       alert('Please sign in to view your reviews.');
       return;
     }
-    // Fetch all orders for this user
-    const q = query(
-      collection(db, 'orders'),
-      where('userId', '==', user.uid)
-    );
-    const snap = await getDocs(q);
-    setUserOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    setShowReviewModal(true);
-  };
+    
+    try {
+      const q = query(collection(db, 'orders'), where('userId', '==', user.uid));
+      const snap = await getDocs(q);
+      setUserOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setShowReviewModal(true);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load orders');
+    }
+  }, [user]);
 
-  // Review submission handler
-  const handleSubmitReview = async (order, review) => {
-    await addDoc(collection(db, 'productReviews'), {
-      productId: order.productId,
-      userId: user.uid,
-      userName: user.displayName || user.email || 'Anonymous',
-      rating: review.rating,
-      text: review.text,
-      createdAt: new Date(),
-      verified: true
-    });
-    toast.success('Review submitted!');
-    setReviewingOrder(null);
-    setShowReviewModal(false);
-  };
+  const handleSubmitReview = useCallback(async (order, review) => {
+    try {
+      await addDoc(collection(db, 'productReviews'), {
+        productId: order.productId,
+        userId: user.uid,
+        userName: user.displayName || user.email || 'Anonymous',
+        rating: review.rating,
+        text: review.text,
+        createdAt: new Date(),
+        verified: true
+      });
+      toast.success('Review submitted!');
+      setReviewingOrder(null);
+      setShowReviewModal(false);
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      toast.error('Failed to submit review');
+    }
+  }, [user]);
 
+  // Review modal event listener
   useEffect(() => {
     const openReviewsListener = () => handleOpenReviews();
     window.addEventListener('open-reviews-modal', openReviewsListener);
     return () => window.removeEventListener('open-reviews-modal', openReviewsListener);
-  }, [user]);
-
-  // Get filtered and sorted products
-  const displayProducts = applyFiltersAndSort(products);
-  const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
+  }, [handleOpenReviews]);
 
   return (
     <div className="home-page">
       <Header 
         searchTerm={searchTerm} 
         setSearchTerm={setSearchTerm} 
-        products={allProducts}
+        products={products}
         onSearch={handleSearch}
+        className="mobile-sticky-header"
       />
 
       {/* Admin Panel Control */}
@@ -377,7 +385,7 @@ const Home = () => {
 
       {/* Hero Section */}
       {!searchTerm && (
-        <section className="hero-section">
+        <section className="hero-section mobile-hero-section">
           <div className="hero-content">
             <div className="hero-logo">
               <img 
@@ -400,7 +408,7 @@ const Home = () => {
       {/* Flash Sale Section */}
       {!searchTerm && (
         <FlashSaleSection 
-          products={allProducts}
+          products={products}
           onProductClick={handleProductClick}
           isAdmin={isAdmin}
           onEdit={handleSectionEdit}
@@ -411,7 +419,7 @@ const Home = () => {
       {/* Top Sale Section */}
       {!searchTerm && (
         <TopSaleSection 
-          products={allProducts}
+          products={products}
           onProductClick={handleProductClick}
           isAdmin={isAdmin}
           onEdit={handleSectionEdit}
@@ -422,7 +430,7 @@ const Home = () => {
       {/* New Arrivals Section */}
       {!searchTerm && (
         <NewArrivalsSection 
-          products={allProducts}
+          products={products}
           onProductClick={handleProductClick}
           isAdmin={isAdmin}
           onEdit={handleSectionEdit}
@@ -442,7 +450,7 @@ const Home = () => {
               {showAllRecentlyViewed ? 'Show Less' : 'View All'}
             </button>
           </div>
-          <div className="products-grid product-bar-grid">
+          <div className="product-grid">
             {(showAllRecentlyViewed ? recentlyViewed : recentlyViewed.slice(0, 6)).map(product => (
               <ProductCard 
                 key={product.id}
@@ -456,6 +464,7 @@ const Home = () => {
                 isInCompare={compareList.find(item => item.id === product.id)}
                 onAuthRequired={handleAuthRequired}
                 compact={true}
+                className="mobile-product-card"
               />
             ))}
           </div>
@@ -466,7 +475,7 @@ const Home = () => {
       {panels.length > 0 && !searchTerm && (
         <>
           {panels.map((panel, i) => {
-            const filtered = filterProducts(panel.products);
+            const filtered = applyFiltersAndSort(panel.products); // Use applyFiltersAndSort directly
             return filtered.length > 0 ? (
               <CategoryPanel
                 key={i}
@@ -474,15 +483,15 @@ const Home = () => {
                 products={filtered}
                 onProductClick={handleProductClick}
                 onAuthRequired={handleAuthRequired}
-                // Pass compact to CategoryPanel's ProductCard
                 compact={true}
+                className="mobile-category-panel"
               />
             ) : null;
           })}
         </>
       )}
 
-      {/* Premium: Filters and Sorting Bar */}
+      {/* Filters and Sorting Bar */}
       {(panels.length === 0 || searchTerm) && (
         <section className="filters-sorting-bar">
           <div className="filters-container">
@@ -539,10 +548,9 @@ const Home = () => {
                   onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
                 >
                   <option value="">All Categories</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Books">Books</option>
-                  <option value="Home">Home & Garden</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
                 </select>
               </div>
               
@@ -618,13 +626,13 @@ const Home = () => {
             </div>
           </div>
 
-          <div className={`products-grid ${viewMode === 'compact' ? 'compact-view' : ''}`}>
-          {!products.length && !searchTerm &&
-            Array(12).fill(null).map((_, i) => (
-              <ProductCard key={i} loading={true} />
-            ))}
+          <div className={`product-grid ${viewMode === 'compact' ? 'compact-view' : ''}`}>
+            {loading && !products.length && !searchTerm &&
+              Array(12).fill(null).map((_, i) => (
+                <ProductCard key={i} loading={true} />
+              ))}
 
-          {displayProducts.length === 0 && searchTerm && (
+            {displayProducts.length === 0 && searchTerm && !loading && (
               <div className="no-results">
                 <div className="no-results-content">
                   <Search size={48} />
@@ -648,26 +656,54 @@ const Home = () => {
                   </button>
                 </div>
               </div>
-          )}
+            )}
 
-          {displayProducts.map((product, i, arr) => {
-            const isLast = i === arr.length - 1 && !searchTerm;
-            return (
+            {(() => {
+  const cards = paginatedProducts.map((product) => (
               <div
                 key={product.id}
-                ref={isLast ? lastProductRef : null}
                 className={viewMode === 'compact' ? 'compact-product-wrapper' : ''}
               >
-                  <ProductCard 
-                    product={product} 
-                    onProductClick={handleProductClick}
-                    compact={viewMode === 'compact'}
-                    onAuthRequired={handleAuthRequired}
-                  />
+                <ProductCard 
+                  product={product} 
+                  onProductClick={handleProductClick}
+                  onQuickAdd={handleQuickAddToCart}
+                  onWishlist={handleAddToWishlist}
+                  onCompare={handleAddToCompare}
+                  onQuickView={handleQuickView}
+                  isInWishlist={wishlist.find(item => item.id === product.id)}
+                  isInCompare={compareList.find(item => item.id === product.id)}
+                  compact={viewMode === 'compact'}
+                  onAuthRequired={handleAuthRequired}
+                  className="mobile-product-card"
+                />
               </div>
-            );
-          })}
+  ));
+  // Pad with empty divs if less than 4
+  const minPerRow = 4;
+  const remainder = cards.length % minPerRow;
+  if (remainder !== 0 && cards.length > 0) {
+    for (let i = 0; i < minPerRow - remainder; i++) {
+      cards.push(<div key={`empty-${i}`} className="product-card empty-card" />);
+    }
+  }
+  return cards;
+})()}
           </div>
+          {/* Pagination Buttons */}
+          {totalPages > 1 && (
+            <div className="pagination-bar">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i + 1}
+                  className={`pagination-btn${currentPage === i + 1 ? ' active' : ''}`}
+                  onClick={() => setCurrentPage(i + 1)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -690,7 +726,14 @@ const Home = () => {
           <div className="quick-view-modal" onClick={(e) => e.stopPropagation()}>
             <div className="quick-view-content">
               <div className="quick-view-image">
-                <img src={quickViewProduct.image} alt={quickViewProduct.name} />
+                <img 
+                  src={quickViewProduct.imageUrl || quickViewProduct.image || 'https://via.placeholder.com/300x200?text=Product+Image'} 
+                  alt={quickViewProduct.name}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/300x200?text=Product+Image';
+                    e.target.onerror = null;
+                  }}
+                />
               </div>
               <div className="quick-view-details">
                 <h3>{quickViewProduct.name}</h3>
@@ -747,8 +790,12 @@ const Home = () => {
       {/* Customer Support Chat */}
       <CustomerSupport />
 
-      {/* ReviewModal is now global, not rendered here */}
-      <BottomNav />
+      {/* AI System */}
+      <AIChat />
+      <AIDashboard />
+
+      {/* Bottom Navigation */}
+      <BottomNav className="mobile-bottom-nav" />
     </div>
   );
 };

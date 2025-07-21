@@ -25,7 +25,7 @@ import {
   Phone,
   Mail
 } from 'lucide-react';
-import ProductCard from '../components/ProductCard';
+import ProductCard from '../components/ProductGrid/ProductCard';
 import ReviewCard from '../components/ReviewCard';
 import './ProductDetail.css';
 import { db } from '../firebase/config';

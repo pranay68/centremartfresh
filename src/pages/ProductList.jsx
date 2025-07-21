@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
-import ProductCard from "../components/ProductCard";
-import ProductPanel from "../components/ProductPanel";
+import ProductCard from "../components/ProductGrid/ProductCard";
+import ProductDetailPanel from "../components/ProductDetailPanel";
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
@@ -10,7 +10,9 @@ const ProductList = () => {
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const items = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(item => item && item.id && item.name); // Filter out invalid products
       setProducts(items);
     });
     return () => unsubscribe();
@@ -28,7 +30,7 @@ const ProductList = () => {
       </div>
 
       {selectedProduct && (
-        <ProductPanel
+        <ProductDetailPanel
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
         />

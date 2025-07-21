@@ -1,47 +1,66 @@
-import React, { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
-import AdminLogin from "./AdminLogin";
-import AdminLayout from "./AdminLayout";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import AdminLayout from './AdminLayout';
+import AdminLogin from './AdminLogin';
+import AIDashboard from '../components/AISystem/AIDashboard';
 import AdminDeliverySettings from './pages/AdminDeliverySettings';
 import MainPanel from './pages/MainPanel';
+import notificationSystem from '../utils/notificationSystem';
 import { useAuth } from '../context/AuthContext';
+import './AdminPanel.css';
 
 const ADMIN_EMAILS = [
-  'pranaykapar1@gmail.com',
-  'centremart248@gmail.com'
+  'admin@centremart.com',
+  'manager@centremart.com',
+  'support@centremart.com'
 ];
 
 const Admin = () => {
-  const { user, loading, logout } = useAuth();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    if (!loading && user && ADMIN_EMAILS.includes(user.email)) {
-      setIsLoggedIn(true);
+    // Check if user is admin
+    if (user && ADMIN_EMAILS.includes(user.email)) {
+      setIsAdmin(true);
+      localStorage.setItem('isAdmin', 'true');
     } else {
-      setIsLoggedIn(false);
+      setIsAdmin(false);
+      localStorage.setItem('isAdmin', 'false');
     }
-  }, [user, loading]);
+  }, [user]);
 
-  const handleLogin = () => {
-    setIsLoggedIn(true);
+  useEffect(() => {
+    // Start notification listeners for admin
+    if (isAdmin) {
+      const orderListener = notificationSystem.startOrderListener();
+      const statusListener = notificationSystem.startOrderStatusListener();
+      
+      return () => {
+        orderListener();
+        statusListener();
+      };
+    }
+  }, [isAdmin]);
+
+  const handleLogout = () => {
+    setIsAdmin(false);
+    localStorage.setItem('isAdmin', 'false');
   };
 
-  const handleLogout = async () => {
-    setIsLoggedIn(false);
-    await logout();
-  };
-
-  if (loading) return null;
-  if (!isLoggedIn) {
-    return <AdminLogin onLogin={handleLogin} />;
+  if (!isAdmin) {
+    return <AdminLogin onLogin={() => setIsAdmin(true)} />;
   }
 
   return (
+    <Router>
       <Routes>
         <Route path="/*" element={<AdminLayout onLogout={handleLogout} />} />
         <Route path="/admin/main-panel" element={<MainPanel />} />
+        <Route path="/admin/ai-dashboard" element={<AIDashboard />} />
+        <Route path="/admin/delivery-settings" element={<AdminDeliverySettings />} />
       </Routes>
+    </Router>
   );
 };
 

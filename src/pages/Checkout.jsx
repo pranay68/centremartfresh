@@ -1,122 +1,118 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { addDoc, collection, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
+import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/config';
-import Card from '../components/ui/Card';
+import { collection, addDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Card from '../components/ui/Card';
+import notificationSystem from '../utils/notificationSystem';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
-import '../components/CheckoutForm.css';
+import './Checkout.css';
 
 const Checkout = () => {
-  const location = useLocation();
+  const { productId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [deliveryOptions, setDeliveryOptions] = useState([]);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
-  const [addressSaved, setAddressSaved] = useState(false);
+  const [deliveryLocations, setDeliveryLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState('');
   const [editAddress, setEditAddress] = useState(false);
+  const [addressSaved, setAddressSaved] = useState(false);
+  const [notifyOnOrder, setNotifyOnOrder] = useState(true);
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     addressType: 'home',
     address: '',
     additionalInfo: '',
-    invoiceEmail: '',
+    invoiceEmail: ''
   });
-  const [deliveryLocations, setDeliveryLocations] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState('');
-  const [notifyOnOrder, setNotifyOnOrder] = useState(true); // sneaky opt-in, default true
 
   useEffect(() => {
-    if (location.state && location.state.product) {
-      setProduct(location.state.product);
-    } else {
-      setProduct(null);
-    }
-  }, [location.state]);
+    const fetchProduct = async () => {
+      if (!productId) return;
+      try {
+        const productDoc = await getDoc(doc(db, 'products', productId));
+        if (productDoc.exists()) {
+          setProduct({ id: productDoc.id, ...productDoc.data() });
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+      }
+    };
 
-  // Fetch delivery options from Firestore
-  useEffect(() => {
     const fetchDeliveryOptions = async () => {
       try {
-        const docRef = doc(db, 'settings', 'deliveryOptions');
-        const docSnap = await getDoc(docRef);
-        let options = [];
-        if (docSnap.exists()) {
-          options = docSnap.data().options || [];
-        }
-        // Always include these two options, using admin panel values if present
-        const fast = options.find(opt => opt.label?.toLowerCase().includes('fast')) || { label: 'Fast Delivery (Today)', fee: 0, eta: 'Delivered Today' };
-        const express = options.find(opt => opt.label?.toLowerCase().includes('express')) || { label: 'Express Delivery (2-3 days in Janakpur)', fee: 0, eta: '2-3 days (Janakpur only)' };
-        setDeliveryOptions([fast, express]);
-        setSelectedDelivery(fast);
-      } catch (err) {
-        toast.error('Failed to load delivery options');
-        // Fallback to defaults
-        setDeliveryOptions([
-          { label: 'Fast Delivery (Today)', fee: 0, eta: 'Delivered Today' },
-          { label: 'Express Delivery (2-3 days in Janakpur)', fee: 0, eta: '2-3 days (Janakpur only)' }
-        ]);
-        setSelectedDelivery({ label: 'Fast Delivery (Today)', fee: 0, eta: 'Delivered Today' });
+        const options = [
+          { label: 'Standard Delivery', fee: 50, eta: '3-5 business days' },
+          { label: 'Express Delivery', fee: 100, eta: '1-2 business days' },
+          { label: 'Same Day Delivery', fee: 200, eta: 'Same day (if ordered before 2 PM)' }
+        ];
+        setDeliveryOptions(options);
+        setSelectedDelivery(options[0]);
+      } catch (error) {
+        console.error('Error fetching delivery options:', error);
       }
     };
-    fetchDeliveryOptions();
-  }, []);
 
-  // Fetch delivery locations from Firestore
-  useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const locSnap = await getDoc(doc(db, 'settings', 'deliveryLocations'));
-        const locs = locSnap.exists() ? locSnap.data().locations || [] : [];
-        setDeliveryLocations(locs);
-        if (locs.length > 0) setSelectedLocation(locs[0]);
-      } catch (err) {
-        setDeliveryLocations([]);
+        const locations = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad'];
+        setDeliveryLocations(locations);
+        setSelectedLocation(locations[0]);
+      } catch (error) {
+        console.error('Error fetching locations:', error);
       }
     };
-    fetchLocations();
-  }, []);
 
-  // Fetch saved address if user is signed in
-  useEffect(() => {
-    if (user) {
-      const fetchAddress = async () => {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().address) {
-            setFormData(prev => ({ ...prev, ...userDoc.data().address }));
-            setAddressSaved(true);
-            setEditAddress(false);
-          } else {
-            setEditAddress(true);
-          }
-        } catch (err) {
-          setEditAddress(true);
+    const fetchAddress = async () => {
+      if (!user) return;
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data().address) {
+          const address = userDoc.data().address;
+          setFormData(prev => ({
+            ...prev,
+            name: address.name || '',
+            phone: address.phone || '',
+            addressType: address.addressType || 'home',
+            address: address.address || '',
+            additionalInfo: address.additionalInfo || ''
+          }));
+          setAddressSaved(true);
         }
-      };
-      fetchAddress();
-    } else {
-      setEditAddress(true);
-    }
-  }, [user]);
+      } catch (error) {
+        console.error('Error fetching address:', error);
+      }
+    };
+
+    fetchProduct();
+    fetchDeliveryOptions();
+    fetchLocations();
+    fetchAddress();
+  }, [productId, user]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
   const handleAddressTypeChange = (type) => {
     setFormData({ ...formData, addressType: type });
   };
+
   const handleDeliveryChange = (option) => {
     setSelectedDelivery(option);
   };
+
   const handleLocationChange = (e) => {
     setSelectedLocation(e.target.value);
   };
+
   const handleSaveAddress = async () => {
     if (!user) return;
     try {
@@ -136,6 +132,7 @@ const Checkout = () => {
       toast.error('Failed to save address');
     }
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.address) {
@@ -166,14 +163,23 @@ const Checkout = () => {
         deliveryOption: selectedDelivery.label,
         deliveryFee: selectedDelivery.fee,
         deliveryLocation: selectedLocation || '',
-        status: 'Pending',
+        status: 'pending',
+        totalAmount: product.price + selectedDelivery.fee,
         createdAt: serverTimestamp(),
         userId: user ? user.uid : null,
         userEmail: user ? user.email : null,
         isGuest: !user,
-        notifyOnOrder: notifyOnOrder // save opt-in
+        notifyOnOrder: notifyOnOrder
       });
-      // Remove notification logic from here (no notification on order placement)
+
+      // Send notification to admin
+      await notificationSystem.sendOrderNotification({
+        orderId: orderRef.id,
+        productName: product.name,
+        totalAmount: product.price + selectedDelivery.fee,
+        userId: user ? user.uid : 'guest'
+      });
+
       toast.success('Order placed successfully!');
       navigate('/order-success');
     } catch (error) {

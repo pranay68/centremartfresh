@@ -5,6 +5,10 @@ import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import CategoryPage from './pages/CategoryPage';
 import Orders from './pages/Orders';
+import NewArrivals from './pages/NewArrivals';
+import TopSellers from './pages/TopSellers';
+import FlashSale from './pages/FlashSale';
+import SearchResults from './pages/SearchResults';
 import { CartProvider } from './context/CartContext';
 import './App.css';
 import ReviewModal from './components/ReviewModal';
@@ -13,7 +17,8 @@ function App() {
     return ( <
         div className = "App"
         style = {
-            { backgroundColor: 'white', minHeight: '100vh' } } >
+            { backgroundColor: 'white', minHeight: '100vh' }
+        } >
         <
         CartProvider >
         <
@@ -38,12 +43,23 @@ function App() {
         Route path = "/orders"
         element = { < Orders / > }
         /> <
-        /Routes> <
+        Route path = "/new-arrivals"
+        element = { < NewArrivals / > }
+        /> <
+        Route path = "/top-sellers"
+        element = { < TopSellers / > }
+        /> <
+        Route path = "/flash-sale"
+        element = { < FlashSale / > }
+        /> <
+        Route path = "/search"
+        element = { < SearchResults / > }
+        /> < /
+        Routes > <
         ReviewModal / >
         <
-        /> <
-        /Router> <
-        /CartProvider> <
+        /Router> < /
+        CartProvider > <
         /div>
     );
 }

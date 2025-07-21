@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { FaLeaf, FaNewspaper } from 'react-icons/fa';
 import ProductCard from './ProductGrid/ProductCard';
 import './NewArrivalsSection.css';
@@ -64,9 +65,9 @@ const NewArrivalsSection = ({ products = [], onProductClick, isAdmin = false, on
 
       {displayProducts.length > 6 && (
         <div className="new-arrivals-footer">
-          <button className="view-all-new-arrivals-btn">
+          <Link to="/new-arrivals" className="view-all-new-arrivals-btn">
             View All New Arrivals
-          </button>
+          </Link>
         </div>
       )}
     </section>

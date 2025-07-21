@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
-import ProductCard from "../components/ProductCard";
+import ProductCard from "../components/ProductGrid/ProductCard";
 import ProductDetailPanel from "../components/ProductDetailPanel";
 import Header from "../components/Header";
 import "./CategoryPage.css";
@@ -49,6 +49,14 @@ const CategoryPage = () => {
     return '🛍️';
   };
 
+  const PRODUCTS_PER_PAGE = 20;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    return products.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [products, currentPage]);
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
@@ -80,9 +88,57 @@ const CategoryPage = () => {
               </p>
             </div>
           </div>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', background: 'var(--primary-color)', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 500 }}>
-            ← Back to Home
-          </Link>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Link 
+              to="/" 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '12px 20px', 
+                background: 'var(--bg-primary)', 
+                color: 'var(--text-primary)', 
+                textDecoration: 'none', 
+                borderRadius: '8px', 
+                fontWeight: 500,
+                border: '2px solid var(--border-color)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'var(--primary-color)';
+                e.target.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'var(--bg-primary)';
+                e.target.style.color = 'var(--text-primary)';
+              }}
+            >
+              ← Go Back
+            </Link>
+            <Link 
+              to="/" 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '12px 20px', 
+                background: 'var(--primary-color)', 
+                color: 'white', 
+                textDecoration: 'none', 
+                borderRadius: '8px', 
+                fontWeight: 500,
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'var(--secondary-color)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'var(--primary-color)';
+              }}
+            >
+              🏠 Home
+            </Link>
+          </div>
         </div>
 
         {products.length === 0 ? (
@@ -97,8 +153,8 @@ const CategoryPage = () => {
             </Link>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
-            {products.map((product) => (
+          <div className="products-grid">
+            {paginatedProducts.map((product) => (
               <div key={product.id} style={{ transition: 'transform 0.3s ease' }}>
                 <ProductCard 
                   product={product} 
@@ -106,6 +162,20 @@ const CategoryPage = () => {
                   compact={true}
                 />
               </div>
+            ))}
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="pagination-bar" style={{ marginTop: 24, textAlign: 'center' }}>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i + 1}
+                className={`pagination-btn${currentPage === i + 1 ? ' active' : ''}`}
+                style={{ margin: '0 4px', padding: '8px 16px', borderRadius: 6, border: '1px solid #e5e7eb', background: currentPage === i + 1 ? '#667eea' : '#fff', color: currentPage === i + 1 ? '#fff' : '#232f3e', fontWeight: 600, cursor: 'pointer' }}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </button>
             ))}
           </div>
         )}

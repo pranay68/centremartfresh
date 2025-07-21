@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { FaFire, FaClock } from 'react-icons/fa';
 import ProductCard from './ProductGrid/ProductCard';
 import './FlashSaleSection.css';
@@ -110,9 +111,9 @@ const FlashSaleSection = ({ products = [], onProductClick, isAdmin = false, onEd
 
       {flashSaleProducts.length > 4 && (
         <div className="flash-sale-footer">
-          <button className="view-all-flash-sale-btn">
+          <Link to="/flash-sale" className="view-all-flash-sale-btn">
             View All Flash Sale Products
-          </button>
+          </Link>
         </div>
       )}
     </section>
