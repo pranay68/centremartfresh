@@ -66,34 +66,11 @@ const Home = () => {
   
   const observer = useRef();
 
-  const normalize = str =>
-    str
-      .toLowerCase()
-      .replace(/[^a-z0-9]/gi, '')
-      .replace(/moblie|mobl|mobliee/g, 'mobile')
-      .replace(/sho|sneekar|snkar/g, 'shoe')
-      .replace(/laptap|labtop/g, 'laptop')
-      .replace(/tv|teevee|tvee/g, 'television');
-
-  const filterProducts = list => {
-    if (!searchTerm) return list;
-    const cleaned = normalize(searchTerm);
-    return list.filter(product => {
-      const name = normalize(product.name || '');
-      const desc = normalize(product.description || '');
-      const cat = normalize(product.category || '');
-      return name.includes(cleaned) || desc.includes(cleaned) || cat.includes(cleaned);
-    });
-  };
+  // Remove the normalize and filterProducts functions
 
   // Premium: Apply filters and sorting
   const applyFiltersAndSort = useCallback((products) => {
     let filtered = [...products];
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filterProducts(filtered);
-    }
 
     // Apply category filter
     if (filters.category) {
@@ -146,7 +123,7 @@ const Home = () => {
     }
 
     return filtered;
-  }, [searchTerm, filters, sortBy]);
+  }, [filters, sortBy]);
 
   // Set compact mode by default for search results
   const [viewMode, setViewMode] = useState(searchTerm ? 'compact' : 'grid');
@@ -419,15 +396,36 @@ const Home = () => {
         />
       )}
 
-      {/* New Arrivals Section */}
+      {/* For You (Personalized) Section - placeholder for now */}
       {!searchTerm && (
-        <NewArrivalsSection 
-          products={allProducts}
-          onProductClick={handleProductClick}
-          isAdmin={isAdmin}
-          onEdit={handleSectionEdit}
-          onAuthRequired={handleAuthRequired}
-        />
+        <section className="for-you-section">
+          <div className="products-header">
+            <h2 className="products-title">For You</h2>
+            <div className="results-info">
+              <span>Personalized recommendations coming soon</span>
+            </div>
+          </div>
+          {/* TODO: Add personalized logic here */}
+        </section>
+      )}
+
+      {/* Category Panels - show each category and its products */}
+      {!searchTerm && (
+        <>
+          {categories.map((cat, i) => {
+            const catProducts = allProducts.filter(p => p.category === cat);
+            return catProducts.length > 0 ? (
+              <CategoryPanel
+                key={cat}
+                title={cat}
+                products={catProducts}
+                onProductClick={handleProductClick}
+                onAuthRequired={handleAuthRequired}
+                compact={true}
+              />
+            ) : null;
+          })}
+        </>
       )}
 
       {/* Recently Viewed Section */}
@@ -460,26 +458,6 @@ const Home = () => {
             ))}
           </div>
         </section>
-      )}
-
-      {/* Category Panels */}
-      {panels.length > 0 && !searchTerm && (
-        <>
-          {panels.map((panel, i) => {
-            const filtered = filterProducts(panel.products);
-            return filtered.length > 0 ? (
-              <CategoryPanel
-                key={i}
-                title={panel.title}
-                products={filtered}
-                onProductClick={handleProductClick}
-                onAuthRequired={handleAuthRequired}
-                // Pass compact to CategoryPanel's ProductCard
-                compact={true}
-              />
-            ) : null;
-          })}
-        </>
       )}
 
       {/* Premium: Filters and Sorting Bar */}
@@ -601,13 +579,11 @@ const Home = () => {
         </section>
       )}
 
-      {/* Search Results */}
-      {(panels.length === 0 || searchTerm) && (
+      {/* Search Results Section - only show if searching */}
+      {searchTerm && (
         <section className="product-section" id="products">
           <div className="products-header">
-            <h2 className="products-title">
-              {searchTerm ? `Search Results for "${searchTerm}"` : 'All Products'}
-            </h2>
+            <h2 className="products-title">{`Search Results for "${searchTerm}"`}</h2>
             <div className="results-info">
               <span>{displayProducts.length} products found</span>
               {compareList.length > 0 && (
@@ -617,14 +593,8 @@ const Home = () => {
               )}
             </div>
           </div>
-
           <div className={`products-grid ${viewMode === 'compact' ? 'compact-view' : ''}`}>
-          {!products.length && !searchTerm &&
-            Array(12).fill(null).map((_, i) => (
-              <ProductCard key={i} loading={true} />
-            ))}
-
-          {displayProducts.length === 0 && searchTerm && (
+            {displayProducts.length === 0 && (
               <div className="no-results">
                 <div className="no-results-content">
                   <Search size={48} />
@@ -649,9 +619,8 @@ const Home = () => {
                 </div>
               </div>
           )}
-
           {displayProducts.map((product, i, arr) => {
-            const isLast = i === arr.length - 1 && !searchTerm;
+              const isLast = i === arr.length - 1 && searchTerm;
             return (
               <div
                 key={product.id}

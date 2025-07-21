@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
-import ProductCard from "../components/ProductCard";
+import ProductCard from '../components/ProductGrid/ProductCard';
 import ProductDetailPanel from "../components/ProductDetailPanel";
 import Header from "../components/Header";
 import "./CategoryPage.css";

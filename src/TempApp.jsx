@@ -27,6 +27,7 @@ import Orders from "./pages/Orders";
 import Admin from "./admin/Admin";
 import ReviewModal from './components/ReviewModal';
 import CategoryPage from "./pages/CategoryPage";
+import SearchResults from "./pages/SearchResults";
 
 // TempApp main component
 const TempApp = () => {
@@ -49,6 +50,7 @@ const TempApp = () => {
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/admin/*" element={<Admin />} />
                   <Route path="/category/:category" element={<CategoryPage />} />
+                  <Route path="/search" element={<SearchResults />} />
                 </Routes>
                 <ReviewModal />
                 {/* Toast notifications */}

@@ -13,7 +13,8 @@ function App() {
     return ( <
         div className = "App"
         style = {
-            { backgroundColor: 'white', minHeight: '100vh' } } >
+            { backgroundColor: 'white', minHeight: '100vh' }
+        } >
         <
         CartProvider >
         <
@@ -37,14 +38,14 @@ function App() {
         /> <
         Route path = "/orders"
         element = { < Orders / > }
-        /> <
-        /Routes> <
+        /> < /
+        Routes > <
         ReviewModal / >
         <
-        /> <
-        /Router> <
-        /CartProvider> <
-        /div>
+        /> < /
+        Router > <
+        /CartProvider> < /
+        div >
     );
 }
 
