@@ -9,6 +9,21 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import '../components/CheckoutForm.css';
 
+// Helper to remove undefined and productImageURL fields
+function cleanUndefined(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(cleanUndefined);
+  } else if (obj && typeof obj === 'object') {
+    return Object.entries(obj).reduce((acc, [key, value]) => {
+      if (value !== undefined && key !== 'productImageURL') {
+        acc[key] = cleanUndefined(value);
+      }
+      return acc;
+    }, {});
+  }
+  return obj;
+}
+
 const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -152,10 +167,10 @@ const Checkout = () => {
     }
     setLoading(true);
     try {
-      const orderRef = await addDoc(collection(db, 'orders'), {
+      const orderRef = await addDoc(collection(db, 'orders'), cleanUndefined({
         productId: product.id,
         productName: product.name,
-        productImageURL: product.imageUrl,
+        productImageURL: product.imageUrl || product.productImageURL || product.image || '',
         price: product.price,
         customerName: formData.name,
         phone: formData.phone,
@@ -172,7 +187,7 @@ const Checkout = () => {
         userEmail: user ? user.email : null,
         isGuest: !user,
         notifyOnOrder: notifyOnOrder // save opt-in
-      });
+      }));
       // Remove notification logic from here (no notification on order placement)
       toast.success('Order placed successfully!');
       navigate('/order-success');

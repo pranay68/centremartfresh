@@ -105,7 +105,7 @@ const SearchResults = () => {
         )}
         {paginatedResults.map((product, index) => (
           <div key={product.id || index} className="result-item">
-            <ProductCard product={product} compact={true} />
+            <ProductCard product={product} compact={true} onProductClick={setSelectedProduct} />
           </div>
         ))}
       </div>
