@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Heart, ShoppingCart, Bell, User, Home, MessageCircle } from 'lucide-react';
+import { useMediaQuery } from 'react-responsive';
 import './HomeMobile.css';
 import { collection, query, orderBy, limit, startAfter, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -10,6 +11,9 @@ const BUFFER_SIZE = 30; // Maximum products to keep in memory
 const SCROLL_THRESHOLD = 0.8; // Load more when 80% scrolled
 
 const HomeMobile = () => {
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const navigate = useNavigate();
+  
   // Product management states
   const [products, setProducts] = useState([]);
   const [lastDoc, setLastDoc] = useState(null);
@@ -17,6 +21,7 @@ const HomeMobile = () => {
   const [hasMore, setHasMore] = useState(true);
   const [productPositions, setProductPositions] = useState({}); // Track scroll positions
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: BUFFER_SIZE });
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Refs
   const scrollRef = useRef(null);
@@ -67,6 +72,14 @@ const HomeMobile = () => {
       loadingRef.current = false;
     }
   }, [loading, hasMore, productPositions]);
+
+  // Handle search
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   // Initialize scroll observer
   useEffect(() => {
@@ -164,36 +177,88 @@ const HomeMobile = () => {
   // Get visible products
   const visibleProducts = products.slice(visibleRange.start, visibleRange.end);
 
+  if (!isMobile) {
+    return null; // Don't render on non-mobile devices
+  }
+
   return (
     <div className="mobile-view">
       <div className="mobile-container" ref={scrollRef}>
-        {/* Header and other static content */}
+        {/* Header with search */}
         <header className="mobile-header">
-          {/* ... header content ... */}
+          <div className="mobile-logo-section">
+            <Link to="/">
+              <img 
+                src="/image.png" 
+                alt="Centre Mart Logo" 
+                className="mobile-logo"
+                width={40}
+                height={40}
+              />
+            </Link>
+            <h1>Centre Mart</h1>
+          </div>
+          
+          <form onSubmit={handleSearch} className="mobile-search-form">
+            <div className="mobile-search-input-wrapper">
+              <Search size={18} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products..."
+                className="mobile-search-input"
+              />
+            </div>
+            <button type="submit" className="mobile-search-button">
+              Search
+            </button>
+          </form>
         </header>
 
         {/* Product grid */}
         <div className="mobile-product-grid">
-          {visibleProducts.map((product, index) => (
-            <div 
+          {visibleProducts.map((product) => (
+            <Link 
+              to={`/product/${product.id}`}
               key={product.id}
               className="mobile-product-card"
               style={{
                 transform: `translateY(${productPositions[product.id] * 100}%)`
               }}
             >
-              {/* Product card content */}
-              <img 
-                src={product.image} 
-                alt={product.name}
-                loading="lazy"
-                className="mobile-product-image"
-              />
+              <div className="mobile-product-image-wrapper">
+                <img 
+                  src={product.image || '/placeholder-product.jpg'} 
+                  alt={product.name}
+                  loading="lazy"
+                  className="mobile-product-image"
+                />
+                {product.discount && (
+                  <span className="mobile-product-discount">
+                    -{product.discount}%
+                  </span>
+                )}
+              </div>
               <div className="mobile-product-info">
                 <h3>{product.name}</h3>
-                <p>${product.price}</p>
+                <div className="mobile-product-price">
+                  <span className="current-price">
+                    ${product.price.toFixed(2)}
+                  </span>
+                  {product.originalPrice && (
+                    <span className="original-price">
+                      ${product.originalPrice.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+                {product.rating && (
+                  <div className="mobile-product-rating">
+                    ⭐ {product.rating} ({product.reviews || 0})
+                  </div>
+                )}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -206,7 +271,26 @@ const HomeMobile = () => {
 
         {/* Bottom Navigation */}
         <nav className="mobile-nav">
-          {/* ... navigation content ... */}
+          <Link to="/" className="mobile-nav-item active">
+            <Home size={24} />
+            <span>Home</span>
+          </Link>
+          <Link to="/cart" className="mobile-nav-item">
+            <ShoppingCart size={24} />
+            <span>Cart</span>
+          </Link>
+          <Link to="/wishlist" className="mobile-nav-item">
+            <Heart size={24} />
+            <span>Wishlist</span>
+          </Link>
+          <Link to="/notifications" className="mobile-nav-item">
+            <Bell size={24} />
+            <span>Alerts</span>
+          </Link>
+          <Link to="/account" className="mobile-nav-item">
+            <User size={24} />
+            <span>Account</span>
+          </Link>
         </nav>
       </div>
     </div>
