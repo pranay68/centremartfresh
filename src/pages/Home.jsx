@@ -10,7 +10,7 @@ import SearchAnalytics from '../components/SearchAnalytics';
 import ProductDetailPanel from '../components/ProductDetailPanel';
 import CustomerSupport from '../components/CustomerSupport';
 import AuthModal from '../components/auth/AuthModal';
-import { Filter, SortAsc, Eye, Heart, ShoppingCart, Star, TrendingUp, Clock, Zap, Search, Grid3X3, List } from 'lucide-react';
+import { Filter, SortAsc, Eye, Heart, ShoppingCart, Star, TrendingUp, Clock, Zap, Search, Grid3X3, List, Home as HomeIcon, User, Bell, ShoppingBag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { db } from '../firebase/config';
 import {
@@ -29,6 +29,7 @@ import { useAuth } from '../context/AuthContext';
 import RatingAndReviews from '../components/RatingAndReviews';
 import ReviewModal from '../components/ReviewModal';
 import BottomNav from '../components/ui/BottomNav';
+import PowerSearch from '../components/PowerSearch';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -37,6 +38,7 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [panels, setPanels] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -65,6 +67,15 @@ const Home = () => {
   const [showAllRecentlyViewed, setShowAllRecentlyViewed] = useState(false);
   
   const observer = useRef();
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Remove the normalize and filterProducts functions
 
@@ -196,6 +207,7 @@ const Home = () => {
 
   const handleSearch = useCallback((term, filteredProducts = null) => {
     setSearchTerm(term);
+    setInputValue(term);
     if (filteredProducts) {
       setProducts(filteredProducts);
     }
@@ -335,389 +347,495 @@ const Home = () => {
   const displayProducts = applyFiltersAndSort(products);
   const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
 
-  return (
-    <div className="home-page">
-      <Header 
-        searchTerm={searchTerm} 
-        setSearchTerm={setSearchTerm} 
-        products={allProducts}
-        onSearch={handleSearch}
-      />
+  const renderMobileHome = () => {
+    return (
+      <div className="mobile-home">
+        {/* Search Bar */}
+        <div className="mobile-search-bar">
+          <PowerSearch 
+            products={allProducts}
+            onSearch={handleSearch}
+            searchTerm={inputValue}
+            setSearchTerm={setInputValue}
+          />
+        </div>
 
-      {/* Admin Panel Control */}
-      <AdminPanelControl 
-        isVisible={isAdmin}
-        onSave={handleAdminSave}
-        onDelete={handleAdminDelete}
-        onEdit={handleSectionEdit}
-      />
-
-      {/* Hero Section */}
-      {!searchTerm && (
-        <section className="hero-section">
-          <div className="hero-content">
-            <div className="hero-logo">
-              <img 
-                src="/image.png" 
-                alt="Centre Mart Logo" 
-                className="hero-logo-image"
-              />
-              <h1 className="hero-title">Centre Mart</h1>
-            </div>
-            <p className="hero-subtitle">
-              Discover amazing products at unbeatable prices. Shop smart, live better.
-            </p>
-            <a href="#products" className="hero-cta">
-              🛍️ Shop Now
-            </a>
-          </div>
-        </section>
-      )}
-
-      {/* Flash Sale Section */}
-      {!searchTerm && (
-        <FlashSaleSection 
-          products={allProducts}
-          onProductClick={handleProductClick}
-          isAdmin={isAdmin}
-          onEdit={handleSectionEdit}
-          onAuthRequired={handleAuthRequired}
-        />
-      )}
-
-      {/* Top Sale Section */}
-      {!searchTerm && (
-        <TopSaleSection 
-          products={allProducts}
-          onProductClick={handleProductClick}
-          isAdmin={isAdmin}
-          onEdit={handleSectionEdit}
-          onAuthRequired={handleAuthRequired}
-        />
-      )}
-
-      {/* For You (Personalized) Section - placeholder for now */}
-      {!searchTerm && (
-        <section className="for-you-section">
-          <div className="products-header">
-            <h2 className="products-title">For You</h2>
-            <div className="results-info">
-              <span>Personalized recommendations coming soon</span>
-            </div>
-          </div>
-          {/* TODO: Add personalized logic here */}
-        </section>
-      )}
-
-      {/* Category Panels - show each category and its products */}
-      {!searchTerm && (
-        <>
-          {categories.map((cat, i) => {
-            const catProducts = allProducts.filter(p => p.category === cat);
-            return catProducts.length > 0 ? (
-              <CategoryPanel
-                key={cat}
-                title={cat}
-                products={catProducts}
-                onProductClick={handleProductClick}
-                onAuthRequired={handleAuthRequired}
-                compact={true}
-              />
-            ) : null;
-          })}
-        </>
-      )}
-
-      {/* Recently Viewed Section */}
-      {recentlyViewed.length > 0 && !searchTerm && (
-        <section className="recently-viewed-section">
-          <div className="section-header">
-            <div className="section-title">
-              <Eye size={20} />
-              <h2>Recently Viewed</h2>
-            </div>
-            <button className="view-all-btn" onClick={() => setShowAllRecentlyViewed(v => !v)}>
-              {showAllRecentlyViewed ? 'Show Less' : 'View All'}
-            </button>
-          </div>
-          <div className="products-grid product-bar-grid">
-            {(showAllRecentlyViewed ? recentlyViewed : recentlyViewed.slice(0, 6)).map(product => (
-              <ProductCard 
-                key={product.id}
-                product={product}
-                onProductClick={handleProductClick}
-                onQuickAdd={handleQuickAddToCart}
-                onWishlist={handleAddToWishlist}
-                onCompare={handleAddToCompare}
-                onQuickView={handleQuickView}
-                isInWishlist={wishlist.find(item => item.id === product.id)}
-                isInCompare={compareList.find(item => item.id === product.id)}
-                onAuthRequired={handleAuthRequired}
-                compact={true}
-              />
+        {/* Popular Products Section */}
+        <section className="mobile-section">
+          <h2 className="section-title">Popular</h2>
+          <div className="products-scroll-container">
+            {allProducts.slice(0, 8).map(product => (
+              <div key={product.id} className="product-card-mobile" onClick={() => handleProductClick(product)}>
+                <img src={product.image || '/placeholder-product.jpg'} alt={product.name} />
+                <div className="product-info">
+                  <h3>{product.name}</h3>
+                  <div className="rating">
+                    {Array(5).fill().map((_, i) => (
+                      <Star key={i} size={12} fill={i < (product.rating || 0) ? "#FFD700" : "none"} />
+                    ))}
+                  </div>
+                  <p className="price">${product.price}</p>
+                  <button className="add-to-cart-btn" onClick={(e) => {
+                    e.stopPropagation();
+                    handleQuickAddToCart(product);
+                  }}>Add to Cart</button>
+                </div>
+              </div>
             ))}
           </div>
         </section>
-      )}
 
-      {/* Premium: Filters and Sorting Bar */}
-      {(panels.length === 0 || searchTerm) && (
-        <section className="filters-sorting-bar">
-          <div className="filters-container">
-            <button 
-              className={`filter-toggle ${showFilters ? 'active' : ''}`}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter size={16} />
-              Filters
-            </button>
-            
-            <div className="sort-container">
-              <SortAsc size={16} />
-              <select 
-                value={sortBy} 
-                onChange={(e) => setSortBy(e.target.value)}
-                className="sort-select"
-              >
-                <option value="featured">Featured</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
-                <option value="newest">Newest First</option>
-                <option value="popular">Most Popular</option>
-              </select>
-            </div>
-
-            {/* View Mode Toggle */}
-            <div className="view-mode-container">
-              <button 
-                className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                onClick={() => setViewMode('grid')}
-                title="Grid View"
-              >
-                <Grid3X3 size={16} />
-              </button>
-              <button 
-                className={`view-mode-btn ${viewMode === 'compact' ? 'active' : ''}`}
-                onClick={() => setViewMode('compact')}
-                title="Compact View"
-              >
-                <List size={16} />
-              </button>
-            </div>
+        {/* Promotions Section */}
+        <section className="mobile-section">
+          <h2 className="section-title">Promotions</h2>
+          <div className="promotions-grid">
+            {[
+              { name: 'Beats Solo', image: '/placeholder-product.jpg', price: 199.99 },
+              { name: 'Power Bank', image: '/placeholder-product.jpg', price: 49.99 },
+              { name: 'Flash Drive', image: '/placeholder-product.jpg', price: 29.99 },
+              { name: 'RAM', image: '/placeholder-product.jpg', price: 89.99 }
+            ].map((item, index) => (
+              <div key={index} className="promotion-card">
+                <img src={item.image} alt={item.name} />
+                <h3>{item.name}</h3>
+                <p>${item.price}</p>
+                <button className="add-to-cart-btn">Add to Cart</button>
+              </div>
+            ))}
           </div>
-
-          {/* Advanced Filters */}
-          {showFilters && (
-            <div className="advanced-filters">
-              <div className="filter-group">
-                <label>Category:</label>
-                <select 
-                  value={filters.category} 
-                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                >
-                  <option value="">All Categories</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Books">Books</option>
-                  <option value="Home">Home & Garden</option>
-                </select>
-              </div>
-              
-              <div className="filter-group">
-                <label>Price Range:</label>
-                <input 
-                  type="number" 
-                  placeholder="Min" 
-                  value={filters.minPrice}
-                  onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value }))}
-                />
-                <input 
-                  type="number" 
-                  placeholder="Max" 
-                  value={filters.maxPrice}
-                  onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
-                />
-              </div>
-              
-              <div className="filter-group">
-                <label>Rating:</label>
-                <select 
-                  value={filters.rating} 
-                  onChange={(e) => setFilters(prev => ({ ...prev, rating: e.target.value }))}
-                >
-                  <option value="">Any Rating</option>
-                  <option value="4">4+ Stars</option>
-                  <option value="3">3+ Stars</option>
-                  <option value="2">2+ Stars</option>
-                </select>
-              </div>
-              
-              <div className="filter-group">
-                <label>
-                  <input 
-                    type="checkbox" 
-                    checked={filters.inStock}
-                    onChange={(e) => setFilters(prev => ({ ...prev, inStock: e.target.checked }))}
-                  />
-                  In Stock Only
-                </label>
-              </div>
-              
-              <div className="filter-group">
-                <label>
-                  <input 
-                    type="checkbox" 
-                    checked={filters.onSale}
-                    onChange={(e) => setFilters(prev => ({ ...prev, onSale: e.target.checked }))}
-                  />
-                  On Sale Only
-                </label>
-              </div>
-            </div>
-          )}
         </section>
-      )}
 
-      {/* Search Results Section - only show if searching */}
-      {searchTerm && (
-        <section className="product-section" id="products">
-          <div className="products-header">
-            <h2 className="products-title">{`Search Results for "${searchTerm}"`}</h2>
-            <div className="results-info">
-              <span>{displayProducts.length} products found</span>
-              {compareList.length > 0 && (
-                <button className="compare-btn">
-                  Compare ({compareList.length})
-                </button>
-              )}
+        {/* Recently Viewed Section */}
+        {recentlyViewed.length > 0 && (
+          <section className="mobile-section">
+            <h2 className="section-title">Recently Viewed</h2>
+            <div className="products-scroll-container">
+              {recentlyViewed.map(product => (
+                <div key={product.id} className="product-card-mobile" onClick={() => handleProductClick(product)}>
+                  <img src={product.image || '/placeholder-product.jpg'} alt={product.name} />
+                  <div className="product-info">
+                    <h3>{product.name}</h3>
+                    <p className="price">${product.price}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-          <div className={`products-grid ${viewMode === 'compact' ? 'compact-view' : ''}`}>
-            {displayProducts.length === 0 && (
-              <div className="no-results">
-                <div className="no-results-content">
-                  <Search size={48} />
-                  <h3>No products found</h3>
-                  <p>Try adjusting your search terms or filters</p>
-                  <button 
-                    onClick={() => {
-                      setSearchTerm('');
-                      setFilters({
-                        category: '',
-                        minPrice: '',
-                        maxPrice: '',
-                        rating: '',
-                        inStock: false,
-                        onSale: false
-                      });
-                    }}
-                    className="clear-filters-btn"
+          </section>
+        )}
+
+        {/* Bottom Navigation */}
+        <nav className="bottom-nav">
+          <button className="nav-item active">
+            <HomeIcon size={24} />
+            <span>Home</span>
+          </button>
+          <button className="nav-item">
+            <ShoppingBag size={24} />
+            <span>Orders</span>
+          </button>
+          <button className="nav-item">
+            <Bell size={24} />
+            <span>Notifications</span>
+          </button>
+          <button className="nav-item">
+            <User size={24} />
+            <span>Profile</span>
+          </button>
+        </nav>
+      </div>
+    );
+  };
+
+  return (
+    <div className="home-page">
+      {isMobile ? renderMobileHome() : (
+        <>
+          <Header 
+            searchTerm={inputValue}
+            setSearchTerm={setInputValue}
+            products={allProducts}
+            onSearch={(term, filteredProducts) => {
+              handleSearch(term, filteredProducts);
+            }}
+          />
+
+          {/* Admin Panel Control */}
+          <AdminPanelControl 
+            isVisible={isAdmin}
+            onSave={handleAdminSave}
+            onDelete={handleAdminDelete}
+            onEdit={handleSectionEdit}
+          />
+
+          {/* Hero Section */}
+          {!searchTerm && (
+            <section className="hero-section">
+              <div className="hero-content">
+                <div className="hero-logo">
+                  <img 
+                    src="/image.png" 
+                    alt="Centre Mart Logo" 
+                    className="hero-logo-image"
+                  />
+                  <h1 className="hero-title">Centre Mart</h1>
+                </div>
+                <p className="hero-subtitle">
+                  Discover amazing products at unbeatable prices. Shop smart, live better.
+                </p>
+                <a href="#products" className="hero-cta">
+                  🛍️ Shop Now
+                </a>
+              </div>
+            </section>
+          )}
+
+          {/* Flash Sale Section */}
+          {!searchTerm && (
+            <FlashSaleSection 
+              products={allProducts}
+              onProductClick={handleProductClick}
+              isAdmin={isAdmin}
+              onEdit={handleSectionEdit}
+              onAuthRequired={handleAuthRequired}
+            />
+          )}
+
+          {/* Top Sale Section */}
+          {!searchTerm && (
+            <TopSaleSection 
+              products={allProducts}
+              onProductClick={handleProductClick}
+              isAdmin={isAdmin}
+              onEdit={handleSectionEdit}
+              onAuthRequired={handleAuthRequired}
+            />
+          )}
+
+          {/* For You (Personalized) Section - placeholder for now */}
+          {!searchTerm && (
+            <section className="for-you-section">
+              <div className="products-header">
+                <h2 className="products-title">For You</h2>
+                <div className="results-info">
+                  <span>Personalized recommendations coming soon</span>
+                </div>
+              </div>
+              {/* TODO: Add personalized logic here */}
+            </section>
+          )}
+
+          {/* Category Panels - show each category and its products */}
+          {!searchTerm && (
+            <>
+              {categories.map((cat, i) => {
+                const catProducts = allProducts.filter(p => p.category === cat);
+                return catProducts.length > 0 ? (
+                  <CategoryPanel
+                    key={cat}
+                    title={cat}
+                    products={catProducts}
+                    onProductClick={handleProductClick}
+                    onAuthRequired={handleAuthRequired}
+                    compact={true}
+                  />
+                ) : null;
+              })}
+            </>
+          )}
+
+          {/* Recently Viewed Section */}
+          {recentlyViewed.length > 0 && !searchTerm && (
+            <section className="recently-viewed-section">
+              <div className="section-header">
+                <div className="section-title">
+                  <Eye size={20} />
+                  <h2>Recently Viewed</h2>
+                </div>
+                <button className="view-all-btn" onClick={() => setShowAllRecentlyViewed(v => !v)}>
+                  {showAllRecentlyViewed ? 'Show Less' : 'View All'}
+                </button>
+              </div>
+              <div className="products-grid product-bar-grid">
+                {(showAllRecentlyViewed ? recentlyViewed : recentlyViewed.slice(0, 6)).map(product => (
+                  <ProductCard 
+                    key={product.id}
+                    product={product}
+                    onProductClick={handleProductClick}
+                    onQuickAdd={handleQuickAddToCart}
+                    onWishlist={handleAddToWishlist}
+                    onCompare={handleAddToCompare}
+                    onQuickView={handleQuickView}
+                    isInWishlist={wishlist.find(item => item.id === product.id)}
+                    isInCompare={compareList.find(item => item.id === product.id)}
+                    onAuthRequired={handleAuthRequired}
+                    compact={true}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Premium: Filters and Sorting Bar */}
+          {(panels.length === 0 || searchTerm) && (
+            <section className="filters-sorting-bar">
+              <div className="filters-container">
+                <button 
+                  className={`filter-toggle ${showFilters ? 'active' : ''}`}
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter size={16} />
+                  Filters
+                </button>
+                
+                <div className="sort-container">
+                  <SortAsc size={16} />
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="sort-select"
                   >
-                    Clear All Filters
+                    <option value="featured">Featured</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="newest">Newest First</option>
+                    <option value="popular">Most Popular</option>
+                  </select>
+                </div>
+
+                {/* View Mode Toggle */}
+                <div className="view-mode-container">
+                  <button 
+                    className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                    onClick={() => setViewMode('grid')}
+                    title="Grid View"
+                  >
+                    <Grid3X3 size={16} />
+                  </button>
+                  <button 
+                    className={`view-mode-btn ${viewMode === 'compact' ? 'active' : ''}`}
+                    onClick={() => setViewMode('compact')}
+                    title="Compact View"
+                  >
+                    <List size={16} />
                   </button>
                 </div>
               </div>
+
+              {/* Advanced Filters */}
+              {showFilters && (
+                <div className="advanced-filters">
+                  <div className="filter-group">
+                    <label>Category:</label>
+                    <select 
+                      value={filters.category} 
+                      onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                    >
+                      <option value="">All Categories</option>
+                      <option value="Electronics">Electronics</option>
+                      <option value="Clothing">Clothing</option>
+                      <option value="Books">Books</option>
+                      <option value="Home">Home & Garden</option>
+                    </select>
+                  </div>
+                  
+                  <div className="filter-group">
+                    <label>Price Range:</label>
+                    <input 
+                      type="number" 
+                      placeholder="Min" 
+                      value={filters.minPrice}
+                      onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value }))}
+                    />
+                    <input 
+                      type="number" 
+                      placeholder="Max" 
+                      value={filters.maxPrice}
+                      onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="filter-group">
+                    <label>Rating:</label>
+                    <select 
+                      value={filters.rating} 
+                      onChange={(e) => setFilters(prev => ({ ...prev, rating: e.target.value }))}
+                    >
+                      <option value="">Any Rating</option>
+                      <option value="4">4+ Stars</option>
+                      <option value="3">3+ Stars</option>
+                      <option value="2">2+ Stars</option>
+                    </select>
+                  </div>
+                  
+                  <div className="filter-group">
+                    <label>
+                      <input 
+                        type="checkbox" 
+                        checked={filters.inStock}
+                        onChange={(e) => setFilters(prev => ({ ...prev, inStock: e.target.checked }))}
+                      />
+                      In Stock Only
+                    </label>
+                  </div>
+                  
+                  <div className="filter-group">
+                    <label>
+                      <input 
+                        type="checkbox" 
+                        checked={filters.onSale}
+                        onChange={(e) => setFilters(prev => ({ ...prev, onSale: e.target.checked }))}
+                      />
+                      On Sale Only
+                    </label>
+                  </div>
+                </div>
+              )}
+            </section>
           )}
-          {displayProducts.map((product, i, arr) => {
-              const isLast = i === arr.length - 1 && searchTerm;
-            return (
-              <div
-                key={product.id}
-                ref={isLast ? lastProductRef : null}
-                className={viewMode === 'compact' ? 'compact-product-wrapper' : ''}
-              >
-                  <ProductCard 
-                    product={product} 
-                    onProductClick={handleProductClick}
-                    compact={viewMode === 'compact'}
-                    onAuthRequired={handleAuthRequired}
-                  />
-              </div>
-            );
-          })}
-          </div>
-        </section>
-      )}
 
-      {/* Product Detail Panel */}
-      {selectedProduct && (
-        <ProductDetailPanel 
-          product={selectedProduct}
-          onClose={handleCloseProductDetail}
-          onQuickAdd={handleQuickAddToCart}
-          onWishlist={handleAddToWishlist}
-          onCompare={handleAddToCompare}
-          isInWishlist={wishlist.find(item => item.id === selectedProduct.id)}
-          isInCompare={compareList.find(item => item.id === selectedProduct.id)}
-        />
-      )}
-
-      {/* Quick View Modal */}
-      {showQuickView && quickViewProduct && (
-        <div className="quick-view-overlay" onClick={() => setShowQuickView(false)}>
-          <div className="quick-view-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="quick-view-content">
-              <div className="quick-view-image">
-                <img src={quickViewProduct.image} alt={quickViewProduct.name} />
-              </div>
-              <div className="quick-view-details">
-                <h3>{quickViewProduct.name}</h3>
-                <div className="quick-view-price">
-                  <span className="current-price">${quickViewProduct.price}</span>
-                  {quickViewProduct.originalPrice && (
-                    <span className="original-price">${quickViewProduct.originalPrice}</span>
+          {/* Search Results Section - only show if searching */}
+          {searchTerm && (
+            <section className="product-section" id="products">
+              <div className="products-header">
+                <h2 className="products-title">{`Search Results for "${searchTerm}"`}</h2>
+                <div className="results-info">
+                  <span>{displayProducts.length} products found</span>
+                  {compareList.length > 0 && (
+                    <button className="compare-btn">
+                      Compare ({compareList.length})
+                    </button>
                   )}
                 </div>
-                <div className="quick-view-rating">
-                  <Star size={16} />
-                  <span>{quickViewProduct.rating || 0} ({quickViewProduct.reviewCount || 0} reviews)</span>
-                </div>
-                <p className="quick-view-description">{quickViewProduct.description}</p>
-                <div className="quick-view-actions">
-                  <button 
-                    className="add-to-cart-btn"
-                    onClick={() => {
-                      handleQuickAddToCart(quickViewProduct);
-                      setShowQuickView(false);
-                    }}
+              </div>
+              <div className={`products-grid ${viewMode === 'compact' ? 'compact-view' : ''}`}>
+                {displayProducts.length === 0 && (
+                  <div className="no-results">
+                    <div className="no-results-content">
+                      <Search size={48} />
+                      <h3>No products found</h3>
+                      <p>Try adjusting your search terms or filters</p>
+                      <button 
+                        onClick={() => {
+                          setSearchTerm('');
+                          setInputValue(''); // Clear inputValue as well
+                          setFilters({
+                            category: '',
+                            minPrice: '',
+                            maxPrice: '',
+                            rating: '',
+                            inStock: false,
+                            onSale: false
+                          });
+                        }}
+                        className="clear-filters-btn"
+                      >
+                        Clear All Filters
+                      </button>
+                    </div>
+                  </div>
+              )}
+              {displayProducts.map((product, i, arr) => {
+                  const isLast = i === arr.length - 1 && searchTerm;
+                return (
+                  <div
+                    key={product.id}
+                    ref={isLast ? lastProductRef : null}
+                    className={viewMode === 'compact' ? 'compact-product-wrapper' : ''}
                   >
-                    <ShoppingCart size={16} />
-                    Add to Cart
-                  </button>
-                  <button 
-                    className={`wishlist-btn ${wishlist.find(item => item.id === quickViewProduct.id) ? 'active' : ''}`}
-                    onClick={() => handleAddToWishlist(quickViewProduct)}
-                  >
-                    <Heart size={16} />
-                  </button>
-                  <button 
-                    className={`compare-btn ${compareList.find(item => item.id === quickViewProduct.id) ? 'active' : ''}`}
-                    onClick={() => handleAddToCompare(quickViewProduct)}
-                  >
-                    <TrendingUp size={16} />
-                  </button>
+                      <ProductCard 
+                        product={product} 
+                        onProductClick={handleProductClick}
+                        compact={viewMode === 'compact'}
+                        onAuthRequired={handleAuthRequired}
+                      />
+                  </div>
+                );
+              })}
+              </div>
+            </section>
+          )}
+
+          {/* Product Detail Panel */}
+          {selectedProduct && (
+            <ProductDetailPanel 
+              product={selectedProduct}
+              onClose={handleCloseProductDetail}
+              onQuickAdd={handleQuickAddToCart}
+              onWishlist={handleAddToWishlist}
+              onCompare={handleAddToCompare}
+              isInWishlist={wishlist.find(item => item.id === selectedProduct.id)}
+              isInCompare={compareList.find(item => item.id === selectedProduct.id)}
+            />
+          )}
+
+          {/* Quick View Modal */}
+          {showQuickView && quickViewProduct && (
+            <div className="quick-view-overlay" onClick={() => setShowQuickView(false)}>
+              <div className="quick-view-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="quick-view-content">
+                  <div className="quick-view-image">
+                    <img src={quickViewProduct.image} alt={quickViewProduct.name} />
+                  </div>
+                  <div className="quick-view-details">
+                    <h3>{quickViewProduct.name}</h3>
+                    <div className="quick-view-price">
+                      <span className="current-price">${quickViewProduct.price}</span>
+                      {quickViewProduct.originalPrice && (
+                        <span className="original-price">${quickViewProduct.originalPrice}</span>
+                      )}
+                    </div>
+                    <div className="quick-view-rating">
+                      <Star size={16} />
+                      <span>{quickViewProduct.rating || 0} ({quickViewProduct.reviewCount || 0} reviews)</span>
+                    </div>
+                    <p className="quick-view-description">{quickViewProduct.description}</p>
+                    <div className="quick-view-actions">
+                      <button 
+                        className="add-to-cart-btn"
+                        onClick={() => {
+                          handleQuickAddToCart(quickViewProduct);
+                          setShowQuickView(false);
+                        }}
+                      >
+                        <ShoppingCart size={16} />
+                        Add to Cart
+                      </button>
+                      <button 
+                        className={`wishlist-btn ${wishlist.find(item => item.id === quickViewProduct.id) ? 'active' : ''}`}
+                        onClick={() => handleAddToWishlist(quickViewProduct)}
+                      >
+                        <Heart size={16} />
+                      </button>
+                      <button 
+                        className={`compare-btn ${compareList.find(item => item.id === quickViewProduct.id) ? 'active' : ''}`}
+                        onClick={() => handleAddToCompare(quickViewProduct)}
+                      >
+                        <TrendingUp size={16} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
+
+          {/* Auth Modal */}
+          {showAuthModal && (
+            <AuthModal 
+              isOpen={showAuthModal} 
+              onClose={() => setShowAuthModal(false)} 
+              defaultTab={authTab}
+            />
+          )}
+
+          {/* Customer Support Chat */}
+          <CustomerSupport />
+
+          {/* ReviewModal is now global, not rendered here */}
+          <BottomNav />
+        </>
       )}
-
-      {/* Auth Modal */}
-      {showAuthModal && (
-        <AuthModal 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
-          defaultTab={authTab}
-        />
-      )}
-
-      {/* Customer Support Chat */}
-      <CustomerSupport />
-
-      {/* ReviewModal is now global, not rendered here */}
-      <BottomNav />
     </div>
   );
 };

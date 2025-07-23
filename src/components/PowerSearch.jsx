@@ -166,7 +166,7 @@ const PowerSearch = ({ products, onSearch, searchTerm, setSearchTerm }) => {
             className="power-search-input"
             placeholder="Search for products, categories, or anything... (Ctrl+K for shortcuts)"
             value={searchTerm}
-            onChange={(e) => handleInputChange(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             style={{ flex: 1, border: 'none', outline: 'none', padding: '16px 8px', fontSize: 16, background: 'transparent', color: '#1f2937' }}
           />
           {searchTerm && (
@@ -195,7 +195,7 @@ const PowerSearch = ({ products, onSearch, searchTerm, setSearchTerm }) => {
             <Filter size={18} />
           </button>
         </div>
-        <button className="search-submit-btn" onClick={() => handleSearch(searchTerm)} style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white', border: 'none', padding: '16px 24px', borderRadius: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 4px 12px rgba(59,130,246,0.3)' }}>
+        <button className="search-submit-btn" onClick={() => onSearch(searchTerm)} style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white', border: 'none', padding: '16px 24px', borderRadius: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 4px 12px rgba(59,130,246,0.3)' }}>
           {loading ? 'Searching...' : 'Search'}
         </button>
       </div>

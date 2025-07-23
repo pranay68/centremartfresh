@@ -49,7 +49,6 @@ const Header = ({ searchTerm, setSearchTerm, products, onSearch }) => {
   };
 
   const handleSearch = (term, filteredProducts = null) => {
-    setSearchTerm(term);
     if (onSearch) {
       onSearch(term, filteredProducts);
     }

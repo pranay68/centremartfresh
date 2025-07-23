@@ -1,0 +1,196 @@
+.checkout-mobile {
+    min-height: 100vh;
+    background: #f5f5f5;
+    padding-bottom: 80px;
+    /* Space for footer */
+}
+
+.checkout-header {
+    background: #232f3e;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.checkout-header h1 {
+    color: white;
+    font-size: 20px;
+    margin: 0;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: white;
+    padding: 0;
+    cursor: pointer;
+}
+
+.checkout-content {
+    padding: 15px;
+}
+
+.checkout-section {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.section-header h2 {
+    font-size: 18px;
+    margin: 0;
+    color: #232f3e;
+}
+
+.address-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.address-form input {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.form-row input {
+    flex: 1;
+}
+
+.order-items {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.order-item {
+    display: flex;
+    gap: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.order-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.order-item img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.item-details {
+    flex: 1;
+}
+
+.item-details h3 {
+    font-size: 16px;
+    margin: 0 0 5px;
+    color: #232f3e;
+}
+
+.item-price {
+    font-size: 18px;
+    font-weight: 600;
+    color: #B12704;
+    margin: 5px 0;
+}
+
+.item-quantity {
+    color: #666;
+    font-size: 14px;
+}
+
+.payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.payment-option {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.payment-option input[type="radio"] {
+    margin-right: 12px;
+}
+
+.payment-option span {
+    flex: 1;
+    font-size: 16px;
+    color: #232f3e;
+}
+
+.checkout-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 15px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.order-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 18px;
+}
+
+.total-amount {
+    font-weight: 600;
+    color: #B12704;
+}
+
+.place-order-btn {
+    background: #FFD814;
+    border: none;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.place-order-btn:hover {
+    background: #F7CA00;
+}
+
+.place-order-btn:disabled {
+    background: #f7f7f7;
+    color: #999;
+    cursor: not-allowed;
+}
