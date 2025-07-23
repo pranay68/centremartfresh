@@ -278,6 +278,8 @@
     .flash-sale-section {
         padding: 1.5rem;
         margin: 1rem 0;
+        border-radius: 15px;
+        /* Slightly smaller radius for tablets */
     }
     .flash-sale-header {
         flex-direction: column;
@@ -305,7 +307,25 @@
 
 @media (max-width: 480px) {
     .flash-sale-section {
-        padding: 1rem;
+        padding: 1rem 0;
+        /* Remove horizontal padding */
+        margin: 0;
+        /* Remove vertical margin */
+        border-radius: 0;
+        /* Full width, no radius */
+        width: 100vw;
+        /* Force to viewport width */
+        box-sizing: border-box;
+        /* Include padding in the width calculation */
+    }
+    .flash-sale-header {
+        padding: 0 1rem;
+        /* Add padding to the content inside */
+    }
+    .flash-sale-products {
+        padding: 0 1rem;
+        /* Add padding to the product grid */
+        box-sizing: border-box;
     }
     .flash-sale-title {
         font-size: 1.5rem;

@@ -21,6 +21,20 @@ body {
     overflow-x: hidden;
 }
 
+html,
+body {
+    overflow-x: hidden;
+    width: 100%;
+}
+
+.home-page,
+.home-mobile {
+    width: 100%;
+    overflow-x: hidden;
+    max-width: 100vw;
+    /* Ensure it never exceeds the viewport width */
+}
+
 
 /* Premium Home Page Layout */
 
