@@ -241,7 +241,6 @@ const ProductCard = ({
                 className="add-to-cart-btn"
                 onClick={handleAddToCart}
               >
-                <ShoppingCart size={16} />
                 Add to Cart
               </button>
               <button 

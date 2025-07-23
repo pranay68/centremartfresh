@@ -2,19 +2,35 @@ bro
 /* 🚀 LENNOX CENTER MART - PRODUCT CARD STYLING */
 
 .product-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    overflow: hidden;
-    transition: all 0.3s ease;
-    position: relative;
-    cursor: pointer;
-    height: 320px;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    background: #fff;
+    padding: 1rem;
+    margin: 0.5rem 0.5rem 1rem 0;
     display: flex;
     flex-direction: column;
-    border: 1px solid #f1f5f9;
-    padding-bottom: 16px;
-    min-height: 370px;
+    align-items: center;
+    min-width: 140px;
+    max-width: 180px;
+}
+
+.add-to-cart-btn {
+    background: #FFA41C !important;
+    color: #fff !important;
+    border: none;
+    border-radius: 8px;
+    padding: 0.7rem 1.2rem;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-top: 0.7rem;
+    box-shadow: 0 2px 8px rgba(255, 164, 28, 0.12);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.add-to-cart-btn:active,
+.add-to-cart-btn:focus {
+    background: #FF9900 !important;
+    color: #fff !important;
 }
 
 
