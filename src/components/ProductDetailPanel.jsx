@@ -87,16 +87,17 @@ const ProductDetailPanel = ({ product, onClose }) => {
   };
 
   return (
-    <div className="product-detail-panel mobile-fullscreen">
-      <div className="panel-header mobile-sticky-header">
+    <div className="product-detail-panel">
+      <div className="panel-header">
         <button className="return-btn" onClick={onClose}>
           <FaArrowLeft />
-          Back
+          Back to Products
         </button>
         <div className="panel-title">Product Details</div>
       </div>
+
       <div className="panel-content">
-        {/* Main Product Section - single column on mobile */}
+        {/* Main Product Section - 3 Columns: Image | Info | Delivery */}
         <div className="product-main-section">
           {/* Left Column - Image Gallery */}
           <div className="product-gallery">

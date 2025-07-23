@@ -10,7 +10,6 @@ import { Bell, MessageCircle } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './Header.css';
-import { FaShoppingCart } from 'react-icons/fa';
 
 const Header = ({ searchTerm, setSearchTerm, products, onSearch }) => {
   const { user, logout } = useAuth();
@@ -61,22 +60,81 @@ const Header = ({ searchTerm, setSearchTerm, products, onSearch }) => {
 
   return (
     <>
-      <header className="amazon-header">
-        <div className="header-content">
-          <Link to="/" className="logo-link">
-            <img 
-              src="/image.png" 
-              alt="Logo" 
-              className="header-logo"
-            />
-          </Link>
+      <header className="header">
+        <div className="header-container">
+          <div className="header-left">
+          </div>
           
-          <Link to="/cart" className="cart-link">
-            <div className="cart-icon-container">
-              <FaShoppingCart className="cart-icon" />
-              <span className="cart-count">{getTotalItems()}</span>
+          <Link to="/" className="logo">
+            <div className="logo-container">
+              <img 
+                src="/image.png" 
+                alt="Mart Logo" 
+                className="logo-image"
+              />
+              <h1 className="logo-text">Centre Mart</h1>
             </div>
-          </Link>
+        </Link>
+        
+          <div className="search-container">
+            <PowerSearch
+              products={products}
+              onSearch={handleSearch}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+          />
+          </div>
+          
+          <nav className="nav-menu">
+            {user ? (
+              <>
+                {/* Reviews Button */}
+                <button className="nav-link" onClick={() => window.dispatchEvent(new CustomEvent('open-reviews-modal'))}>
+                  Reviews
+                </button>
+                <ProfileDropdown />
+                
+                {/* Notification Bell */}
+                <Link to="/notifications" className="nav-link notification-link">
+                  <Bell size={20} />
+                  {unreadNotifications > 0 && (
+                    <span className="notification-badge">
+                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                    </span>
+                  )}
+                </Link>
+                
+                <Link to="/wishlist" className="nav-link">
+                  ❤️ Wishlist                      
+                </Link>
+                <Link to="/cart" className="nav-link cart-link">
+                  🛒 Cart
+                  {getTotalItems() > 0 && (
+                    <span className="cart-badge">
+                      {getTotalItems()}
+                    </span>
+                  )}
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/cart" className="nav-link cart-link">
+                  🛒 Cart
+                  {getTotalItems() > 0 && (
+                    <span className="cart-badge">
+                      {getTotalItems()}
+                    </span>
+                  )}
+                </Link>
+                <button className="auth-btn login-btn" onClick={() => handleAuthClick('login')}>
+                  Login
+                </button>
+                <button className="auth-btn signup-btn" onClick={() => handleAuthClick('signup')}>
+                  Sign Up
+                </button>
+              </>
+            )}
+          </nav>
         </div>
       </header>
 

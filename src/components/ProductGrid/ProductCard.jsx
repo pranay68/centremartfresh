@@ -238,9 +238,10 @@ const ProductCard = ({
           {!isOutOfStock ? (
             <>
               <button 
-                className="add-to-cart-btn"
+                className="btn btn-primary add-to-cart-btn"
                 onClick={handleAddToCart}
               >
+                <ShoppingCart size={16} />
                 Add to Cart
               </button>
               <button 

@@ -213,8 +213,8 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8 mobile-checkout-wrapper">
-      <form className="checkout-grid mobile-checkout-grid" onSubmit={handleSubmit}>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
+      <form className="checkout-grid" onSubmit={handleSubmit}>
         {/* Left: Delivery Info */}
         <div className="checkout-main">
           {/* Address Section */}
