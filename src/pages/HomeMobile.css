@@ -22,25 +22,25 @@
     top: 0;
     z-index: 100;
     background: var(--theme-bg-primary);
-    padding: 8px 12px;
+    padding: 6px 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .mobile-logo-section {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 6px;
+    margin-bottom: 6px;
 }
 
 .mobile-logo {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     object-fit: contain;
 }
 
 .mobile-logo-section h1 {
-    font-size: 1.2rem;
+    font-size: 1rem;
     margin: 0;
     color: var(--theme-text-primary);
 }
@@ -50,7 +50,7 @@
 
 .mobile-search-form {
     display: flex;
-    gap: 8px;
+    gap: 6px;
 }
 
 .mobile-search-input-wrapper {
@@ -58,18 +58,20 @@
     display: flex;
     align-items: center;
     background: var(--theme-bg-secondary);
-    border-radius: 8px;
-    padding: 0 12px;
+    border-radius: 6px;
+    padding: 0 8px;
     border: 1px solid var(--theme-border);
+    height: 36px;
 }
 
 .mobile-search-input {
     flex: 1;
     border: none;
-    padding: 8px;
+    padding: 0 6px;
     background: transparent;
     color: var(--theme-text-primary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    min-width: 0;
 }
 
 .mobile-search-input::placeholder {
@@ -77,12 +79,15 @@
 }
 
 .mobile-search-button {
-    padding: 8px 16px;
+    padding: 0 12px;
     background: var(--theme-primary);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     font-weight: 500;
+    height: 36px;
+    font-size: 0.85rem;
+    white-space: nowrap;
 }
 
 
@@ -91,8 +96,8 @@
 .mobile-product-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 12px;
+    gap: 8px;
+    padding: 8px;
     position: relative;
     min-height: 200px;
 }
@@ -106,6 +111,8 @@
     color: var(--theme-text-primary);
     transition: transform 0.3s ease;
     will-change: transform;
+    display: flex;
+    flex-direction: column;
 }
 
 .mobile-product-image-wrapper {
@@ -125,23 +132,26 @@
 
 .mobile-product-discount {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 6px;
+    right: 6px;
     background: var(--theme-error);
     color: white;
-    padding: 4px 8px;
+    padding: 2px 6px;
     border-radius: 4px;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 500;
 }
 
 .mobile-product-info {
-    padding: 8px;
+    padding: 6px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .mobile-product-info h3 {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     line-height: 1.2;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -153,23 +163,24 @@
     margin-top: 4px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .current-price {
     font-weight: 600;
     color: var(--theme-primary);
+    font-size: 0.85rem;
 }
 
 .original-price {
     text-decoration: line-through;
     color: var(--theme-text-secondary);
-    font-size: 0.8rem;
+    font-size: 0.7rem;
 }
 
 .mobile-product-rating {
-    margin-top: 4px;
-    font-size: 0.8rem;
+    margin-top: 2px;
+    font-size: 0.7rem;
     color: var(--theme-text-secondary);
 }
 
@@ -177,17 +188,17 @@
 /* Loading States */
 
 .loading-trigger {
-    height: 50px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 20px 0;
+    margin: 16px 0;
 }
 
 .loading-spinner {
-    width: 30px;
-    height: 30px;
-    border: 3px solid var(--theme-bg-tertiary);
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--theme-bg-tertiary);
     border-top-color: var(--theme-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -210,7 +221,7 @@
     background: var(--theme-bg-primary);
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    padding: 8px 0;
+    padding: 4px 0;
     box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
     z-index: 100;
 }
@@ -219,10 +230,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
     text-decoration: none;
     color: var(--theme-text-secondary);
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     padding: 4px 0;
 }
 
