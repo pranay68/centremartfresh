@@ -1101,9 +1101,9 @@ bro
         letter-spacing: 0.01em;
     }
     .add-to-cart-btn {
-        background: #ff9900 !important;
+        background: #FFA41C !important;
         color: #fff !important;
-        box-shadow: 0 1px 4px rgba(255, 153, 0, 0.10);
+        box-shadow: 0 1px 4px rgba(255, 164, 28, 0.12);
         font-size: 1rem;
         margin-bottom: 2px;
     }

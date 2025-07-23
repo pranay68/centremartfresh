@@ -1,43 +1,22 @@
+.amazon-blue-bg {
+    background: #1A3150 !important;
+}
+
 .bottom-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 60px;
-    background: #fff;
-    border-top: 1px solid #e5e7eb;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    z-index: 1000;
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+    background: #1A3150;
 }
 
 .nav-btn {
-    background: none;
-    border: none;
-    outline: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #1e293b;
-    font-size: 1.2rem;
-    font-weight: 500;
-    flex: 1;
-    height: 100%;
-    cursor: pointer;
-    transition: color 0.2s;
+    color: #fff !important;
 }
 
 .nav-btn:active,
 .nav-btn:focus {
-    color: #f59e0b;
+    color: #FFA41C !important;
 }
 
 .nav-btn span {
-    font-size: 0.75rem;
-    margin-top: 2px;
+    color: #fff !important;
 }
 
 @media (min-width: 601px) {

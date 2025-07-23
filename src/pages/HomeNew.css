@@ -871,3 +871,89 @@ body {
         color: #f9fafb;
     }
 }
+
+.safe-area-view {
+    min-height: 100vh;
+    background: #fff;
+    position: relative;
+    padding-bottom: 60px;
+    /* Space for bottom nav */
+}
+
+.main-scroll-container {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 20px;
+}
+
+
+/* Top Sellers Section */
+
+.top-sellers-section {
+    margin-top: 16px;
+    padding: 0 16px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #000;
+}
+
+.horizontal-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 4px 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+.horizontal-scroll::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Opera */
+}
+
+
+/* Category Sections */
+
+.category-section {
+    margin-top: 20px;
+    padding: 0 16px;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 8px 0;
+}
+
+
+/* Product Cards in Grid */
+
+.products-grid .product-card {
+    width: 100%;
+    margin: 0;
+}
+
+
+/* Ensure bottom nav doesn't cover content */
+
+@media (max-width: 768px) {
+    .safe-area-view {
+        padding-bottom: 60px;
+    }
+    .products-grid {
+        grid-template-columns: repeat(2, calc(50% - 8px));
+    }
+    .horizontal-scroll .product-card {
+        min-width: 150px;
+        max-width: 150px;
+    }
+}
