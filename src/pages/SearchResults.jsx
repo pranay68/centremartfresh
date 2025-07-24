@@ -1,4 +1,6 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import Fuse from 'fuse.js';
+import { sortByStock } from '../utils/sortProducts';
 import ProductCard from '../components/ProductGrid/ProductCard';
 import ProductDetailPanel from '../components/ProductDetailPanel';
 import PowerSearch from '../components/PowerSearch';
@@ -22,28 +24,38 @@ const SearchResults = () => {
   const [searchTerm, setSearchTerm] = useState(queryParam);
   const [allProducts, setAllProducts] = useState([]);
 
-  // Search products when query changes
+  // Fuse.js options to match PowerSearch configuration
+  const fuseOptions = {
+    keys: [
+      { name: 'name', weight: 0.7 },
+      { name: 'description', weight: 0.3 },
+      { name: 'category', weight: 0.5 },
+    ],
+    threshold: 0.3,
+    includeScore: false,
+  };
+
+  // Run initial search when queryParam or allProducts change
   useEffect(() => {
-    if (!queryParam.trim()) {
-      setResults([]);
-      return;
+    if (!queryParam.trim() || allProducts.length === 0) return;
+
+    const fuse = new Fuse(allProducts, fuseOptions);
+    let filtered = fuse.search(queryParam).map(r => r.item);
+
+    // Fallback to simple keyword includes if no fuzzy matches
+    if (filtered.length === 0) {
+      const q = queryParam.toLowerCase();
+      filtered = allProducts.filter(p =>
+        p.name?.toLowerCase().includes(q) ||
+        p.description?.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q)
+      );
     }
-    const doSearch = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // In PowerSearch, set products to all products (from Firestore or context), and update results in onSearch
-        // For now, we'll just set the search term and let PowerSearch handle the search
-        setSearchTerm(queryParam);
-      } catch (error) {
-        setError('Failed to search products. Please try again.');
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    doSearch();
-  }, [queryParam]);
+
+    setResults(sortByStock(filtered));
+    setCurrentPage(1);
+    setHasMore(filtered.length > ITEMS_PER_PAGE);
+  }, [queryParam, allProducts]);
 
   // Fetch all products from Firestore
   useEffect(() => {

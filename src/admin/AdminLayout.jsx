@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import AdminDeliverySettings from './pages/AdminDeliverySettings';
 import Notifications from './pages/Notifications';
 import Support from './pages/Support';
+import StockManagement from './pages/StockManagement';
 import "./AdminPanel.css";
 import './pages/OrderPanelBackground.css';
 
@@ -41,6 +42,7 @@ const AdminLayout = ({ onLogout }) => {
             <Route path="delivery-settings" element={<AdminDeliverySettings />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="support" element={<Support />} />
+            <Route path="/stock" element={<StockManagement />} />
             <Route path="*" element={<Navigate to="dashboard" />} />
           </Routes>
         </main>

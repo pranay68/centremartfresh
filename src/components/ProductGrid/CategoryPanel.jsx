@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from './ProductCard';
+import { sortByStock } from '../../utils/sortProducts';
 import './CategoryPanel.css';
 
 const CategoryPanel = ({ title = '', products = [], onProductClick, onAuthRequired }) => {
@@ -48,7 +49,7 @@ const CategoryPanel = ({ title = '', products = [], onProductClick, onAuthRequir
       </div>
 
       <div className="category-products product-bar-grid">
-        {products.slice(0, 4).map(product => (
+        {sortByStock(products).slice(0, 4).map(product => (
           <div key={product.id || product.name} className="product-wrapper">
             <ProductCard product={product} onProductClick={onProductClick} onAuthRequired={onAuthRequired} compact={true} />
           </div>

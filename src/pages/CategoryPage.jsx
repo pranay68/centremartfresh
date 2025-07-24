@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
 import ProductCard from '../components/ProductGrid/ProductCard';
+import { sortByStock } from '../utils/sortProducts';
 import ProductDetailPanel from "../components/ProductDetailPanel";
 import Header from "../components/Header";
 import "./CategoryPage.css";
@@ -98,7 +99,7 @@ const CategoryPage = () => {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
-            {products.map((product) => (
+            {sortByStock(products).map((product) => (
               <div key={product.id} style={{ transition: 'transform 0.3s ease' }}>
                 <ProductCard 
                   product={product} 

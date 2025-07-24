@@ -21,6 +21,7 @@ import toast from 'react-hot-toast';
 import './ProductCard.css';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { getStockStatus } from '../../utils/sortProducts';
 
 const ProductCard = ({ 
   product, 
@@ -185,10 +186,11 @@ const ProductCard = ({
   const isOutOfStock = product.stock === 0;
   const hasFreeShipping = product.freeShipping || product.price > 1000;
   const isPrime = product.prime || product.fastDelivery;
+  const stockStatus = getStockStatus(product.stock);
 
   return (
     <div 
-      className={`product-card ${isOnSale ? 'on-sale' : ''} ${isOutOfStock ? 'out-of-stock' : ''} ${isPrime ? 'prime' : ''}`}
+      className={`product-card ${isOnSale ? 'on-sale' : ''} ${isOutOfStock ? 'out-of-stock' : ''} ${isPrime ? 'prime' : ''} ${stockStatus}`}
       style={{ '--theme-bg': theme.bg, '--theme-text': theme.text }}
       onClick={handleProductClick}
       onMouseEnter={() => setIsHovered(true)}

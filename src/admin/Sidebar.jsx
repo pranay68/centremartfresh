@@ -1,4 +1,5 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, NavLink } from 'react-router-dom';
+import { Package } from 'lucide-react';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -15,6 +16,10 @@ const Sidebar = () => {
       <button className={`sidebar-btn${isActive('/admin/delivery-settings') ? ' active' : ''}`} onClick={() => navigate('/admin/delivery-settings')}>Delivery Settings</button>
       <button className={`sidebar-btn${isActive('/admin/notifications') ? ' active' : ''}`} onClick={() => navigate('/admin/notifications')}>Notifications</button>
       <button className={`sidebar-btn${isActive('/admin/support') ? ' active' : ''}`} onClick={() => navigate('/admin/support')}>Customer Support</button>
+      <NavLink to="/admin/stock" className="sidebar-link">
+        <Package size={20} />
+        <span>Stock Management</span>
+      </NavLink>
     </div>
   );
 };
