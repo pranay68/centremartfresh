@@ -1,0 +1,20 @@
+{
+    "short_name": "Centre Mart",
+    "name": "Centre Mart - The Future of Shopping",
+    "description": "Discover amazing products at unbeatable prices. Shop smart, live better with Centre Mart.",
+    "icons": [{
+            "src": "image.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "image.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#667eea",
+    "background_color": "#f8fafc"
+}

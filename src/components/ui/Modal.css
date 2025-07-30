@@ -1,0 +1,178 @@
+/* 🚀 LENNOX CENTER MART - MODAL STYLES */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+}
+
+.modal-container {
+    position: relative;
+    z-index: 10000;
+    width: 100%;
+    max-width: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close-btn:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.modal-close-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.modal-content {
+    padding: 24px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.modal-body {
+    padding: 0;
+}
+
+
+/* Modal Sizes */
+
+.modal-sm {
+    max-width: 400px;
+}
+
+.modal-md {
+    max-width: 500px;
+}
+
+.modal-lg {
+    max-width: 700px;
+}
+
+.modal-xl {
+    max-width: 900px;
+}
+
+.modal-full {
+    max-width: 95vw;
+}
+
+
+/* Responsive Design */
+
+@media (max-width: 640px) {
+    .modal-overlay {
+        padding: 10px;
+    }
+    .modal-container {
+        max-width: 100%;
+        margin: 0;
+    }
+    .modal-header {
+        padding: 16px 20px;
+    }
+    .modal-content {
+        padding: 20px;
+        max-height: 80vh;
+    }
+    .modal-title {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-overlay {
+        padding: 5px;
+    }
+    .modal-header {
+        padding: 12px 16px;
+    }
+    .modal-content {
+        padding: 16px;
+    }
+}
+
+
+/* Prevent body scroll when modal is open */
+
+body.modal-open {
+    overflow: hidden;
+}
+
+
+/* Ensure modal is always on top */
+
+.modal-overlay,
+.modal-container {
+    z-index: 9999 !important;
+}
+
+
+/* Fix for any potential z-index conflicts */
+
+.modal-overlay * {
+    z-index: inherit;
+}
