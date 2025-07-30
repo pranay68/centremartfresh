@@ -158,4 +158,9 @@ const CategoryPage = () => {
   );
 };
 
-export default CategoryPage; 
+export default CategoryPage;
+{
+  "scripts": {
+    "vercel-build": "npm install && npm run build"
+  }
+}
