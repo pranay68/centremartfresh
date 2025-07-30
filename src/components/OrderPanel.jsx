@@ -47,7 +47,7 @@ const OrderPanel = ({ product, onClose }) => {
       await addDoc(collection(db, 'orders'), {
         productId: product.id,
         productName: product.name,
-        productImageURL: product.imageUrl,
+        productImageURL: product.imageUrl || '',
         price: product.price,
         deliveryCharge: 0,
         customerName: name.trim(),

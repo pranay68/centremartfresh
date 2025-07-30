@@ -3,7 +3,8 @@ import React from "react";
 import "./TempApp.css";
 
 // React Router
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
 // Context Providers (UNCOMMENT ONE AT A TIME IF DEBUGGING)
 import { AuthProvider } from "./context/AuthContext";
@@ -34,45 +35,55 @@ import TopSellers from "./pages/TopSellers";
 import FlashSale from "./pages/FlashSale";
 import ProductList from "./pages/ProductList";
 
-// TempApp main component
-const TempApp = () => {
+const AppContent = () => {
+  const location = useLocation();
+  useEffect(() => {
+    if (!location.pathname.startsWith("/search")) {
+      localStorage.removeItem("searchResults");
+      localStorage.removeItem("searchTerm");
+    }
+  }, [location.pathname]);
+
   return (
+    <>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/account" element={<Account />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/returns" element={<Returns />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/admin/*" element={<Admin />} />
+        <Route path="/category/:category" element={<CategoryPage />} />
+        <Route path="/search" element={<SearchResults />} />
+        <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/new-arrivals" element={<NewArrivals />} />
+        <Route path="/top-sellers" element={<TopSellers />} />
+        <Route path="/flash-sale" element={<FlashSale />} />
+        <Route path="/products" element={<ProductList />} />
+        <Route path="*" element={<div className="not-found">404 - Page Not Found</div>} />
+      </Routes>
+      <ReviewModal />
+      <Toaster position="top-right" />
+    </>
+  );
+};
+
+const TempApp = () => (
+  <Router>
     <ThemeProvider>
       <AuthProvider>
         <CartProvider>
           <WishlistProvider>
-            <Router>
-              <>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/wishlist" element={<Wishlist />} />
-                  <Route path="/account" element={<Account />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/returns" element={<Returns />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/order-success" element={<OrderSuccess />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/admin/*" element={<Admin />} />
-                  <Route path="/category/:category" element={<CategoryPage />} />
-                  <Route path="/search" element={<SearchResults />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/new-arrivals" element={<NewArrivals />} />
-                  <Route path="/top-sellers" element={<TopSellers />} />
-                  <Route path="/flash-sale" element={<FlashSale />} />
-                  <Route path="/products" element={<ProductList />} />
-                  <Route path="*" element={<div className="not-found">404 - Page Not Found</div>} />
-                </Routes>
-                <ReviewModal />
-                {/* Toast notifications */}
-                <Toaster position="top-right" />
-              </>
-            </Router>
+            <AppContent />
           </WishlistProvider>
         </CartProvider>
       </AuthProvider>
     </ThemeProvider>
-  );
-};
+  </Router>
+);
 
 export default TempApp;

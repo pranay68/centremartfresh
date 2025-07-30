@@ -107,10 +107,10 @@ const PowerSearch = ({ products, onSearch, searchTerm, setSearchTerm }) => {
     navigate(`/search?query=${encodeURIComponent(term)}`);
   }, [setSearchTerm, navigate]);
 
-  // Remove all suggestion/fuzzy search logic and dropdown
-  // Only update input value on change
+  // Only update input value on change, do NOT trigger search
   const handleInputChange = useCallback((value) => {
     setSearchTerm(value);
+    // DO NOT call onSearch or trigger search here!
   }, [setSearchTerm]);
 
   const handleVoiceSearch = useCallback(() => {

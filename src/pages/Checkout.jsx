@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/config';
 import { collection, addDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext'; // Using CartContext for cart items
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
@@ -10,124 +11,252 @@ import notificationSystem from '../utils/notificationSystem';
 import toast from 'react-hot-toast';
 import './Checkout.css';
 
+// --- Sub-components for better organization ---
+
+const AddressSection = ({ user, addressData, onAddressChange, onSave, isSaved, isEditing, setEditing }) => {
+  const handleInputChange = (e) => {
+    onAddressChange({ ...addressData, [e.target.name]: e.target.value });
+  };
+  
+  const handleAddressTypeChange = (type) => {
+    onAddressChange({ ...addressData, addressType: type });
+  };
+
+  return (
+    <div className="checkout-address-section">
+      <div className="checkout-address-header">
+        <h2 className="text-lg font-semibold">Shipping Address</h2>
+        {isSaved && !isEditing && user && (
+          <button type="button" className="checkout-edit-btn" onClick={() => setEditing(true)}>
+            Edit
+          </button>
+        )}
+      </div>
+      
+      {!isEditing && isSaved && user ? (
+        <div className="space-y-1 p-4 border rounded-md bg-gray-50">
+          <div className="flex gap-2 mb-1 items-center">
+            <span className="checkout-address-type-btn selected">
+              {addressData.addressType?.toUpperCase() || 'HOME'}
+            </span>
+            <span className="font-medium">{addressData.name || 'Name not set'}</span>
+            <span className="text-gray-500">{addressData.phone || 'Phone not set'}</span>
+          </div>
+          <div className="text-gray-700 text-sm">{addressData.address || 'Address not set'}</div>
+          {addressData.additionalInfo && (
+            <div className="text-gray-500 text-xs">{addressData.additionalInfo}</div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex gap-2 mb-2">
+            {['home', 'office', 'other'].map(type => (
+              <button
+                key={type}
+                type="button"
+                className={`checkout-address-type-btn${addressData.addressType === type ? ' selected' : ''}`}
+                onClick={() => handleAddressTypeChange(type)}
+              >
+                {type.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <Input label="Full Name *" name="name" value={addressData.name} onChange={handleInputChange} required />
+          <Input label="Phone Number *" name="phone" type="tel" value={addressData.phone} onChange={handleInputChange} required />
+          <Input label="Address *" name="address" value={addressData.address} onChange={handleInputChange} required />
+          <Input label="Additional Location Details" name="additionalInfo" value={addressData.additionalInfo} onChange={handleInputChange} placeholder="Landmark, instructions, etc." />
+          
+          {user && (
+            <button type="button" className="save-address-btn" onClick={onSave}>
+              Save Address
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DeliverySection = ({ selected, onSelect, options, selectedLocation, onLocationChange, locations }) => (
+  <div className="checkout-delivery-section">
+    <h2 className="text-lg font-semibold mb-2">Delivery Option</h2>
+    <div className="flex flex-col gap-3">
+      {options.map(option => (
+        <label key={option.label} className={`delivery-option-row${selected?.label === option.label ? ' selected' : ''}`}>
+          <input
+            type="radio"
+            name="deliveryOption"
+            checked={selected?.label === option.label}
+            onChange={() => onSelect(option)}
+            className="mr-3"
+          />
+          <div className="flex-1">
+            <div className="delivery-option-label">{option.label}</div>
+            <div className="delivery-option-eta">{option.eta}</div>
+          </div>
+        </label>
+      ))}
+    </div>
+    
+    {locations.length > 0 && (
+      <div className="mt-4">
+        <label className="block text-sm font-medium mb-1">Delivery Location</label>
+        <select className="w-full p-2 border rounded" value={selectedLocation} onChange={onLocationChange} required>
+          {locations.map((loc, idx) => <option key={idx} value={loc}>{loc}</option>)}
+        </select>
+      </div>
+    )}
+  </div>
+);
+
+const OrderSummary = ({ items, deliveryFee, user, loading }) => {
+  const subtotal = useMemo(() => items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0), [items]);
+  const total = subtotal + deliveryFee;
+
+  return (
+    <div className="checkout-summary">
+      <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
+      <div className="space-y-2">
+        {items.map(item => (
+          <div key={item.id} className="flex justify-between items-center text-sm">
+            <span>{item.name} x {item.quantity || 1}</span>
+            <span>Rs. {item.price * (item.quantity || 1)}</span>
+          </div>
+        ))}
+        <hr className="my-2" />
+        <div className="flex justify-between items-center">
+          <span>Subtotal</span>
+          <span>Rs. {subtotal.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span>Delivery Fee</span>
+          <span>Rs. {deliveryFee.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between items-center font-bold text-lg">
+          <span>Total</span>
+          <span>Rs. {total.toFixed(2)}</span>
+        </div>
+      </div>
+      
+      {!user && (
+        <div className="mt-6 p-3 bg-yellow-100 border border-yellow-300 rounded-md text-center">
+          <p className="text-yellow-800 font-semibold">Please log in to place an order.</p>
+        </div>
+      )}
+      
+      <Button type="submit" className="w-full mt-6" disabled={loading || !user}>
+        {loading ? 'Placing Order...' : 'Place Order'}
+      </Button>
+    </div>
+  );
+};
+
+// --- Main Checkout Component ---
+
+// Helper to remove undefined and productImageURL fields
+function cleanUndefined(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(cleanUndefined);
+  } else if (obj && typeof obj === 'object') {
+    return Object.entries(obj).reduce((acc, [key, value]) => {
+      if (value !== undefined && key !== 'productImageURL') {
+        acc[key] = cleanUndefined(value);
+      }
+      return acc;
+    }, {});
+  }
+  return obj;
+}
+
 const Checkout = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [product, setProduct] = useState(null);
+  const { cartItems, clearCart } = useCart();
+  
+  const [checkoutItems, setCheckoutItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  
   const [deliveryOptions, setDeliveryOptions] = useState([]);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [deliveryLocations, setDeliveryLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('');
-  const [editAddress, setEditAddress] = useState(false);
-  const [addressSaved, setAddressSaved] = useState(false);
-  const [notifyOnOrder, setNotifyOnOrder] = useState(true);
-
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    addressType: 'home',
-    address: '',
-    additionalInfo: '',
-    invoiceEmail: ''
+  
+  const [isEditingAddress, setEditingAddress] = useState(true);
+  const [isAddressSaved, setAddressSaved] = useState(false);
+  const [addressData, setAddressData] = useState({
+    name: '', phone: '', addressType: 'home', address: '', additionalInfo: ''
   });
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      if (!productId) return;
-      try {
-        const productDoc = await getDoc(doc(db, 'products', productId));
-        if (productDoc.exists()) {
-          setProduct({ id: productDoc.id, ...productDoc.data() });
+    // Determine items for checkout: from cart or single product
+    const loadCheckoutItems = async () => {
+      if (productId) {
+        // "Buy Now" mode
+        try {
+          const productDoc = await getDoc(doc(db, 'products', productId));
+          if (productDoc.exists()) {
+            setCheckoutItems([{ id: productDoc.id, ...productDoc.data(), quantity: 1 }]);
+          } else {
+            toast.error("Product not found.");
+            navigate('/');
+          }
+        } catch (error) {
+          console.error("Error fetching product:", error);
+          toast.error("Could not load product details.");
         }
-      } catch (error) {
-        console.error('Error fetching product:', error);
+      } else if (cartItems.length > 0) {
+        // Cart checkout mode
+        setCheckoutItems(cartItems);
+      } else {
+        toast.error("Your cart is empty.");
+        navigate('/cart');
       }
     };
 
-    const fetchDeliveryOptions = async () => {
-      try {
-        const options = [
-          { label: 'Standard Delivery', fee: 50, eta: '3-5 business days' },
-          { label: 'Express Delivery', fee: 100, eta: '1-2 business days' },
-          { label: 'Same Day Delivery', fee: 200, eta: 'Same day (if ordered before 2 PM)' }
-        ];
-        setDeliveryOptions(options);
-        setSelectedDelivery(options[0]);
-      } catch (error) {
-        console.error('Error fetching delivery options:', error);
-      }
-    };
+    // --- Fetch initial data ---
+    const fetchInitialData = async () => {
+      // Fetch delivery options (can be from Firestore or hardcoded)
+      const options = [
+        { label: 'Standard Delivery', fee: 50, eta: '3-5 business days' },
+        { label: 'Express Delivery', fee: 100, eta: '1-2 business days' },
+        { label: 'Same Day Delivery', fee: 200, eta: 'Same day (if ordered before 2 PM)' }
+      ];
+      setDeliveryOptions(options);
+      setSelectedDelivery(options[0]);
 
-    const fetchLocations = async () => {
-      try {
-        const locations = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad'];
-        setDeliveryLocations(locations);
-        setSelectedLocation(locations[0]);
-      } catch (error) {
-        console.error('Error fetching locations:', error);
-      }
-    };
+      // Fetch delivery locations
+      const locations = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad'];
+      setDeliveryLocations(locations);
+      setSelectedLocation(locations[0]);
 
-    const fetchAddress = async () => {
-      if (!user) return;
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().address) {
-          const address = userDoc.data().address;
-          setFormData(prev => ({
-            ...prev,
-            name: address.name || '',
-            phone: address.phone || '',
-            addressType: address.addressType || 'home',
-            address: address.address || '',
-            additionalInfo: address.additionalInfo || ''
-          }));
-          setAddressSaved(true);
+      // Fetch user's saved address
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists() && userDoc.data().address) {
+            const savedAddress = userDoc.data().address;
+            setAddressData(savedAddress);
+            setAddressSaved(true);
+            setEditingAddress(false);
+          }
+        } catch (error) {
+          console.error("Error fetching address:", error);
         }
-      } catch (error) {
-        console.error('Error fetching address:', error);
       }
     };
 
-    fetchProduct();
-    fetchDeliveryOptions();
-    fetchLocations();
-    fetchAddress();
-  }, [productId, user]);
-
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleAddressTypeChange = (type) => {
-    setFormData({ ...formData, addressType: type });
-  };
-
-  const handleDeliveryChange = (option) => {
-    setSelectedDelivery(option);
-  };
-
-  const handleLocationChange = (e) => {
-    setSelectedLocation(e.target.value);
-  };
+    loadCheckoutItems();
+    fetchInitialData();
+  }, [productId, user, cartItems, navigate]);
 
   const handleSaveAddress = async () => {
     if (!user) return;
     try {
-      await setDoc(doc(db, 'users', user.uid), {
-        address: {
-          name: formData.name,
-          phone: formData.phone,
-          addressType: formData.addressType,
-          address: formData.address,
-          additionalInfo: formData.additionalInfo,
-        }
-      }, { merge: true });
+      await setDoc(doc(db, 'users', user.uid), { address: addressData }, { merge: true });
       toast.success('Address saved!');
       setAddressSaved(true);
-      setEditAddress(false);
+      setEditingAddress(false);
     } catch (err) {
       toast.error('Failed to save address');
     }
@@ -135,53 +264,60 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.address) {
-      toast.error('Please fill in all required fields');
+    if (!user) {
+      toast.error('You must be logged in to place an order.');
       return;
     }
-    if (!product) {
-      toast.error('No product selected');
+    if (!addressData.name || !addressData.phone || !addressData.address) {
+      toast.error('Please fill in and save your shipping address.');
       return;
     }
-    if (!selectedDelivery) {
-      toast.error('Please select a delivery option');
+    if (checkoutItems.length === 0 || !selectedDelivery) {
+      toast.error('Something went wrong. Please try again.');
       return;
     }
+    
     setLoading(true);
     try {
-      const orderRef = await addDoc(collection(db, 'orders'), {
-        productId: product.id,
-        productName: product.name,
-        productImageURL: product.imageUrl,
-        price: product.price,
-        customerName: formData.name,
-        phone: formData.phone,
-        addressType: formData.addressType,
-        address: formData.address,
-        additionalInfo: formData.additionalInfo,
-        invoiceEmail: formData.invoiceEmail,
-        deliveryOption: selectedDelivery.label,
-        deliveryFee: selectedDelivery.fee,
-        deliveryLocation: selectedLocation || '',
+      const totalAmount = checkoutItems.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0) + selectedDelivery.fee;
+      
+      const orderPayload = {
+        userId: user.uid,
+        userEmail: user.email,
+        items: checkoutItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity || 1,
+          imageUrl: item.imageUrl || item.productImageURL || item.image || ''
+        })),
+        shippingAddress: addressData,
+        deliveryOption: selectedDelivery,
+        deliveryLocation: selectedLocation,
+        totalAmount,
         status: 'pending',
-        totalAmount: product.price + selectedDelivery.fee,
         createdAt: serverTimestamp(),
-        userId: user ? user.uid : null,
-        userEmail: user ? user.email : null,
-        isGuest: !user,
-        notifyOnOrder: notifyOnOrder
-      });
+        isGuest: false,
+      };
 
-      // Send notification to admin
+      const cleanOrderPayload = cleanUndefined(orderPayload);
+      const orderRef = await addDoc(collection(db, 'orders'), cleanOrderPayload);
+
       await notificationSystem.sendOrderNotification({
         orderId: orderRef.id,
-        productName: product.name,
-        totalAmount: product.price + selectedDelivery.fee,
-        userId: user ? user.uid : 'guest'
+        productName: checkoutItems.length > 1 ? `${checkoutItems.length} items` : checkoutItems[0].name,
+        totalAmount: totalAmount,
+        userId: user.uid
       });
+      
+      // If checkout was from cart, clear it
+      if (!productId) {
+        clearCart();
+      }
 
       toast.success('Order placed successfully!');
       navigate('/order-success');
+
     } catch (error) {
       console.error('Error placing order:', error);
       toast.error('Failed to place order. Please try again.');
@@ -190,15 +326,12 @@ const Checkout = () => {
     }
   };
 
-  if (!product) {
+  if (checkoutItems.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Card>
-          <Card.Content className="text-center py-12">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No product selected</h2>
-            <Button onClick={() => navigate('/')}>Go to Home</Button>
-          </Card.Content>
-        </Card>
+        <Card><Card.Content className="text-center py-12">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Checkout...</h2>
+        </Card.Content></Card>
       </div>
     );
   }
@@ -206,194 +339,32 @@ const Checkout = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
       <form className="checkout-grid" onSubmit={handleSubmit}>
-        {/* Left: Delivery Info */}
         <div className="checkout-main">
-          {/* Address Section */}
-          <div className="checkout-address-section">
-            <div className="checkout-address-header">
-              <h2 className="text-lg font-semibold">Shipping Address</h2>
-              {addressSaved && !editAddress && (
-                <button
-                  type="button"
-                  className="checkout-edit-btn"
-                  onClick={() => setEditAddress(true)}
-                >
-                  Edit
-                </button>
-              )}
-            </div>
-            <div className={`address-transition ${editAddress ? 'edit-mode' : 'view-mode'}`}> 
-              {editAddress ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2 mb-2">
-                    {['home', 'office', 'other'].map(type => (
-                      <button
-                        key={type}
-                        type="button"
-                        className={`checkout-address-type-btn${formData.addressType === type ? ' selected' : ''}`}
-                        onClick={() => handleAddressTypeChange(type)}
-                      >
-                        {type.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                  <Input
-                    label="Full Name *"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <Input
-                    label="Phone Number *"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <Input
-                    label="Address *"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <Input
-                    label="Additional Location Details"
-                    name="additionalInfo"
-                    value={formData.additionalInfo}
-                    onChange={handleInputChange}
-                    placeholder="Landmark, instructions, etc."
-                  />
-                  <button
-                    type="button"
-                    className="save-address-btn"
-                    onClick={handleSaveAddress}
-                  >
-                    Save Address
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <div className="flex gap-2 mb-1">
-                    <span className="checkout-address-type-btn selected">
-                      {formData.addressType?.toUpperCase() || 'HOME'}
-                    </span>
-                    <span className="font-medium">{formData.name || 'Name not set'}</span>
-                    <span className="text-gray-500">{formData.phone || 'Phone not set'}</span>
-                  </div>
-                  <div className="text-gray-700 text-sm">
-                    {formData.address || 'Address not set'}
-                  </div>
-                  {formData.additionalInfo && (
-                    <div className="text-gray-500 text-xs">
-                      {formData.additionalInfo}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Delivery Option Section */}
-          <div className="checkout-delivery-section">
-            <h2 className="text-lg font-semibold mb-2">Delivery Option</h2>
-            <div className="flex flex-col gap-3">
-              {deliveryOptions.map(option => (
-                <label
-                  key={option.label}
-                  className={`delivery-option-row${selectedDelivery && selectedDelivery.label === option.label ? ' selected' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="deliveryOption"
-                    checked={selectedDelivery && selectedDelivery.label === option.label}
-                    onChange={() => handleDeliveryChange(option)}
-                    className="mr-3"
-                  />
-                  <div className="flex-1">
-                    <div className="delivery-option-label">{option.label}</div>
-                    <div className="delivery-option-eta">{option.eta}</div>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Delivery Location Dropdown */}
-          {deliveryLocations.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Delivery Location</label>
-              <select
-                className="w-full p-2 border rounded"
-                value={selectedLocation}
-                onChange={handleLocationChange}
-                required
-              >
-                {deliveryLocations.map((loc, idx) => (
-                  <option key={idx} value={loc}>{loc}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          <AddressSection 
+            user={user}
+            addressData={addressData} 
+            onAddressChange={setAddressData}
+            onSave={handleSaveAddress}
+            isSaved={isAddressSaved}
+            isEditing={isEditingAddress}
+            setEditing={setEditingAddress}
+          />
+          <DeliverySection 
+            selected={selectedDelivery}
+            onSelect={setSelectedDelivery}
+            options={deliveryOptions}
+            selectedLocation={selectedLocation}
+            onLocationChange={(e) => setSelectedLocation(e.target.value)}
+            locations={deliveryLocations}
+          />
         </div>
-
-        {/* Right: Order Summary */}
-        <div className="checkout-summary">
-          <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span>Product</span>
-              <span>{product.name}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Price</span>
-              <span>Rs. {product.price}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Delivery Fee</span>
-              <span>Rs. {selectedDelivery?.fee || 0}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Total</span>
-              <span>Rs. {(product.price + (selectedDelivery?.fee || 0)).toFixed(2)}</span>
-            </div>
-          </div>
-          <div className="flex items-center mt-4 mb-2">
-            <input
-              type="checkbox"
-              id="notifyOnOrder"
-              checked={notifyOnOrder}
-              onChange={e => setNotifyOnOrder(e.target.checked)}
-              style={{ accentColor: '#7f53ac', width: 18, height: 18, marginRight: 8 }}
-            />
-            <label htmlFor="notifyOnOrder" style={{ fontSize: '0.97rem', color: '#555', cursor: 'pointer' }}>
-              Allow order status notifications to your phone/email
-            </label>
-          </div>
-          <Button
-            type="submit"
-            className="w-full mt-6"
-            disabled={loading}
-            style={loading ? {
-              background: 'linear-gradient(90deg, #e0e7ff 0%, #f1f5f9 100%)',
-              color: '#7f53ac',
-              border: '2px solid #7f53ac44',
-              boxShadow: '0 0 16px 4px #7f53ac33, 0 2px 8px #ff660022',
-              opacity: 1,
-              filter: 'grayscale(0.1) brightness(1.08)',
-              textShadow: '0 1px 8px #e0e7ff, 0 0 2px #7f53ac44',
-              cursor: 'not-allowed',
-              fontWeight: 800,
-              fontSize: '1.1rem',
-              letterSpacing: '0.04em',
-              transition: 'box-shadow 0.2s, background 0.2s, color 0.2s',
-            } : {}}
-          >
-            {loading ? 'Placing Order...' : 'Place Order'}
-          </Button>
-        </div>
+        
+        <OrderSummary 
+          items={checkoutItems} 
+          deliveryFee={selectedDelivery?.fee || 0} 
+          user={user}
+          loading={loading}
+        />
       </form>
     </div>
   );
