@@ -12,6 +12,7 @@
         "axios": "^1.9.0",
         "firebase": "^11.10.0",
         "framer-motion": "^12.23.3",
+        "fuse.js": "^7.1.0",
         "lodash": "^4.17.21",
         "lucide-react": "^0.534.0",
         "react": "^18.3.1",
