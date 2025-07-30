@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { collection, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+=======
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import { db } from '../../firebase/config';
 import StatsCard from '../components/StatsCard';
 import Card from '../../components/ui/Card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+<<<<<<< HEAD
 import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -21,6 +28,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+<<<<<<< HEAD
     // Real-time products
     const unsubProducts = onSnapshot(collection(db, 'products'), (productsSnapshot) => {
       const totalProducts = productsSnapshot.size;
@@ -33,6 +41,26 @@ const Dashboard = () => {
       const pendingOrders = orders.filter(order => order.status === 'Pending').length;
       const totalRevenue = orders.reduce((sum, order) => sum + (order.price || 0), 0);
       // Customers
+=======
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch products count
+      const productsSnapshot = await getDocs(collection(db, 'products'));
+      const totalProducts = productsSnapshot.size;
+
+      // Fetch orders
+      const ordersSnapshot = await getDocs(collection(db, 'orders'));
+      const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate() }));
+      
+      const totalOrders = orders.length;
+      const pendingOrders = orders.filter(order => order.status === 'Pending').length;
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.price || 0), 0);
+
+      // Fetch customers (grouped by name/phone)
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       const customerMap = {};
       orders.forEach(order => {
         const key = `${order.customerName}-${order.phone}`;
@@ -51,6 +79,7 @@ const Dashboard = () => {
       const customersData = Object.values(customerMap).sort((a, b) => b.lastOrder - a.lastOrder);
       const totalCustomers = customersData.length;
       const recentCustomers = customersData.slice(0, 5);
+<<<<<<< HEAD
       setStats(prev => ({ ...prev, totalOrders, pendingOrders, totalRevenue, totalCustomers }));
       setRecentCustomers(recentCustomers);
       // Recent orders
@@ -59,6 +88,23 @@ const Dashboard = () => {
         .slice(0, 5);
       setRecentOrders(recentOrdersData);
       // Sales data
+=======
+
+      // Recent orders
+      const recentOrdersQuery = query(
+        collection(db, 'orders'),
+        orderBy('createdAt', 'desc'),
+        limit(5)
+      );
+      const recentOrdersSnapshot = await getDocs(recentOrdersQuery);
+      const recentOrdersData = recentOrdersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate()
+      }));
+
+      // Generate real sales data (monthly revenue and order count)
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       const monthlyMap = {};
       orders.forEach(order => {
         if (!order.createdAt) return;
@@ -69,11 +115,27 @@ const Dashboard = () => {
         monthlyMap[month].sales += order.price || 0;
         monthlyMap[month].orders += 1;
       });
+<<<<<<< HEAD
       const salesData = Object.values(monthlyMap).sort((a, b) => new Date(a.month) - new Date(b.month));
       setSalesData(salesData);
     });
     return () => { unsubProducts(); unsubOrders(); };
   }, []);
+=======
+      // Sort months chronologically
+      const salesData = Object.values(monthlyMap).sort((a, b) => new Date(a.month) - new Date(b.month));
+
+      setStats({ totalProducts, totalOrders, pendingOrders, totalRevenue, totalCustomers });
+      setRecentOrders(recentOrdersData);
+      setRecentCustomers(recentCustomers);
+      setSalesData(salesData);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   if (loading) {
     return (
@@ -85,6 +147,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+<<<<<<< HEAD
       <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'flex-end' }}>
         <Link to="/admin/delivery-settings">
           <Button variant="outline" style={{ fontWeight: 700, fontSize: '1.1rem', padding: '0.8rem 2rem', borderRadius: 12 }}>
@@ -92,6 +155,8 @@ const Dashboard = () => {
           </Button>
         </Link>
       </div>
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatsCard
@@ -169,8 +234,13 @@ const Dashboard = () => {
           <h3 className="text-lg font-semibold">Recent Orders</h3>
         </Card.Header>
         <Card.Content>
+<<<<<<< HEAD
           <div className="admin-table-scroll-wrapper">
             <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '1200px' }}>
+=======
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">

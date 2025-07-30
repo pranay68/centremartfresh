@@ -544,6 +544,7 @@
     .chat-input {
         padding: 0.75rem;
     }
+<<<<<<< HEAD
 }
 
 .customer-support-chat {
@@ -835,4 +836,6 @@
         right: 20px;
         left: 20px;
     }
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 }

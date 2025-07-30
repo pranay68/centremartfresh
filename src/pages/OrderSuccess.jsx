@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
@@ -14,6 +15,16 @@ const OrderSuccess = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <CoffinDanceModal open={showCoffin} onClose={() => setShowCoffin(false)} />
+=======
+import React from 'react';
+import { Link } from 'react-router-dom';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+
+const OrderSuccess = () => {
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       <div className="max-w-2xl mx-auto px-4">
         <Card>
           <Card.Content className="text-center py-12">

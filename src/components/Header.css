@@ -100,6 +100,7 @@
     color: #667eea;
 }
 
+<<<<<<< HEAD
 
 /* Support Button Styles */
 
@@ -128,6 +129,8 @@
     font-size: 0.9rem;
 }
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 .user-profile {
     display: flex;
     align-items: center;
@@ -305,6 +308,7 @@
     .header-left {
         min-width: 60px;
     }
+<<<<<<< HEAD
 }
 
 @media (max-width: 600px) {
@@ -365,4 +369,6 @@
     100% {
         box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
     }
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 }

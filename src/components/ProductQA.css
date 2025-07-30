@@ -95,6 +95,7 @@
     margin-top: 1rem;
 }
 
+<<<<<<< HEAD
 .qa-header>button,
 .form-actions>button:not(.btn-secondary):not(.btn-outline) {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -114,6 +115,8 @@
     box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
 }
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
 /* Questions List */
 

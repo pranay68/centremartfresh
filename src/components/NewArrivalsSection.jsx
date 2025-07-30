@@ -1,10 +1,18 @@
 import React from 'react';
+<<<<<<< HEAD
 import { Link } from 'react-router-dom';
 import { FaLeaf, FaNewspaper } from 'react-icons/fa';
 import ProductCard from './ProductGrid/ProductCard';
 import './NewArrivalsSection.css';
 
 const NewArrivalsSection = ({ products = [], onProductClick, isAdmin = false, onEdit, onAuthRequired }) => {
+=======
+import { FaLeaf, FaNewspaper } from 'react-icons/fa';
+import ProductCard from './ProductCard';
+import './NewArrivalsSection.css';
+
+const NewArrivalsSection = ({ products = [], onProductClick, isAdmin = false, onEdit }) => {
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   // Filter new arrival products (you can add a newArrival property to products)
   const newArrivalProducts = products.filter(product => product.newArrival) || [];
 
@@ -35,7 +43,11 @@ const NewArrivalsSection = ({ products = [], onProductClick, isAdmin = false, on
         )}
       </div>
 
+<<<<<<< HEAD
       <div className="new-arrivals-products product-bar-grid">
+=======
+      <div className="new-arrivals-products">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         {displayProducts.length > 0 ? (
           displayProducts.map((product, index) => (
             <div key={product.id} className="new-arrivals-product">
@@ -46,7 +58,10 @@ const NewArrivalsSection = ({ products = [], onProductClick, isAdmin = false, on
               <ProductCard 
                 product={product} 
                 onProductClick={onProductClick}
+<<<<<<< HEAD
                 onAuthRequired={onAuthRequired}
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
               />
             </div>
           ))
@@ -65,9 +80,15 @@ const NewArrivalsSection = ({ products = [], onProductClick, isAdmin = false, on
 
       {displayProducts.length > 6 && (
         <div className="new-arrivals-footer">
+<<<<<<< HEAD
           <Link to="/new-arrivals" className="view-all-new-arrivals-btn">
             View All New Arrivals
           </Link>
+=======
+          <button className="view-all-new-arrivals-btn">
+            View All New Arrivals
+          </button>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         </div>
       )}
     </section>

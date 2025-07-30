@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { Link } from 'react-router-dom';
 import { FaFire, FaClock } from 'react-icons/fa';
 import ProductCard from './ProductGrid/ProductCard';
 import './FlashSaleSection.css';
 
 const FlashSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit, onAuthRequired }) => {
+=======
+import { FaFire, FaClock } from 'react-icons/fa';
+import ProductCard from './ProductCard';
+import './FlashSaleSection.css';
+
+const FlashSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit }) => {
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   const [timeLeft, setTimeLeft] = useState({
     hours: 23,
     minutes: 59,
@@ -84,15 +92,22 @@ const FlashSaleSection = ({ products = [], onProductClick, isAdmin = false, onEd
         )}
       </div>
 
+<<<<<<< HEAD
       <div className="flash-sale-products product-bar-grid">
+=======
+      <div className="flash-sale-products">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         {flashSaleProducts.length > 0 ? (
           flashSaleProducts.map((product, index) => (
             <div key={product.id} className="flash-sale-product">
               <ProductCard 
                 product={product} 
                 onProductClick={onProductClick}
+<<<<<<< HEAD
                 compact={true}
                 onAuthRequired={onAuthRequired}
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
               />
             </div>
           ))
@@ -111,9 +126,15 @@ const FlashSaleSection = ({ products = [], onProductClick, isAdmin = false, onEd
 
       {flashSaleProducts.length > 4 && (
         <div className="flash-sale-footer">
+<<<<<<< HEAD
           <Link to="/flash-sale" className="view-all-flash-sale-btn">
             View All Flash Sale Products
           </Link>
+=======
+          <button className="view-all-flash-sale-btn">
+            View All Flash Sale Products
+          </button>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         </div>
       )}
     </section>

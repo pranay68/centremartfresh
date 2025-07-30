@@ -189,6 +189,7 @@
 
 /* FLASH SALE PRODUCTS */
 
+<<<<<<< HEAD
 
 /* Remove grid styles from .flash-sale-products to avoid conflict with .product-bar-grid */
 
@@ -200,6 +201,24 @@
 
 .flash-sale-product {
     width: 100%;
+=======
+.flash-sale-products {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+.flash-sale-product {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 }
 
 .flash-sale-product:hover {

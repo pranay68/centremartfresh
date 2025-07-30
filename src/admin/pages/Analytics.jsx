@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+<<<<<<< HEAD
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+=======
+import { collection, getDocs } from 'firebase/firestore';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import { db } from '../../firebase/config';
 import Card from '../../components/ui/Card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
@@ -95,6 +99,7 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30'); // days
 
+<<<<<<< HEAD
   useEffect(() => {
     const unsubOrders = onSnapshot(collection(db, 'orders'), (ordersSnapshot) => {
       const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate() }));
@@ -113,6 +118,48 @@ const Analytics = () => {
     return () => unsubOrders();
   }, [dateRange]);
 
+=======
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      const [ordersSnapshot, productsSnapshot] = await Promise.all([
+        getDocs(collection(db, 'orders')),
+        getDocs(collection(db, 'products'))
+      ]);
+
+      const orders = ordersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate()
+      }));
+
+      const products = productsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      const salesData = generateSalesData(orders, dateRange);
+      const categoryData = generateCategoryData(products);
+      const revenueData = generateRevenueData(orders);
+      const topProducts = getTopProducts(orders, products);
+
+      setAnalytics({
+        salesData,
+        categoryData,
+        revenueData,
+        topProducts,
+      });
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">

@@ -114,6 +114,7 @@
 /* NEW ARRIVALS PRODUCTS */
 
 .new-arrivals-products {
+<<<<<<< HEAD
     padding: 0;
     margin: 0;
     /* grid styles removed, now handled by .product-bar-grid */
@@ -121,6 +122,24 @@
 
 .new-arrivals-product {
     width: 100%;
+=======
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+.new-arrivals-product {
+    position: relative;
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 }
 
 .new-arrivals-product:hover {

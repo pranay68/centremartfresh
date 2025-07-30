@@ -40,15 +40,17 @@ const Home = () => {
   const productCache = useMemo(() => new Map(), []);
 
   // Utility functions
-  const normalize = str =>
+  const normalize = useCallback(str => 
     str?.toLowerCase()
       .replace(/[^a-z0-9]/gi, '')
       .replace(/moblie|mobl|mobliee/g, 'mobile')
       .replace(/sho|sneekar|snkar/g, 'shoe')
       .replace(/laptap|labtop/g, 'laptop')
-      .replace(/tv|teevee|tvee/g, 'television');
+      .replace(/tv|teevee|tvee/g, 'television'),
+    []
+  );
 
-  const filterProducts = list => {
+  const filterProducts = useCallback(list => {
     if (!searchTerm) return list;
     const cleaned = normalize(searchTerm);
     return list.filter(product => {
@@ -57,9 +59,9 @@ const Home = () => {
       const cat = normalize(product.category || '');
       return name.includes(cleaned) || desc.includes(cleaned) || cat.includes(cleaned);
     });
-  };
+  }, [searchTerm, normalize]);
 
-  // Data fetching with caching
+  // Data fetching
   const fetchProducts = useCallback(async (initial = false) => {
     if (loading || (!hasMore && !initial)) return;
 
@@ -71,9 +73,9 @@ const Home = () => {
 
     // Check cache for initial load
     if (initial) {
-      const cachedProducts = Array.from(productCache.values()).filter(
-        item => Date.now() - item.timestamp < 5 * 60 * 1000 // 5 minutes cache
-      ).map(item => item.data);
+      const cachedProducts = Array.from(productCache.values())
+        .filter(item => Date.now() - item.timestamp < 5 * 60 * 1000)
+        .map(item => item.data);
       
       if (cachedProducts.length > 0) {
         setProducts(cachedProducts);
@@ -95,7 +97,6 @@ const Home = () => {
         ...doc.data()
       }));
 
-      // Update cache and state
       if (initial) {
         newProducts.forEach(product => {
           productCache.set(product.id, {
@@ -105,7 +106,6 @@ const Home = () => {
         });
         setProducts(newProducts);
 
-        // Get total count
         const countSnapshot = await getCountFromServer(collection(db, 'products'));
         setTotalCount(countSnapshot.data().count);
       } else {
@@ -140,19 +140,15 @@ const Home = () => {
   }, []);
 
   const fetchPanels = useCallback(async () => {
-    // Get unique categories from products
     const productsSnapshot = await getDocs(collection(db, 'products'));
     const allProducts = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
     const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
     
-    const panels = categories.map(category => {
-      const categoryProducts = allProducts.filter(p => p.category === category);
-      return {
-        title: category,
-        products: categoryProducts.slice(0, 6)
-      };
-    }).filter(panel => panel.products.length > 0);
+    const panels = categories.map(category => ({
+      title: category,
+      products: allProducts.filter(p => p.category === category).slice(0, 6)
+    })).filter(panel => panel.products.length > 0);
 
     setPanels(panels);
   }, []);
@@ -163,7 +159,6 @@ const Home = () => {
     fetchAllProducts();
     fetchPanels();
     
-    // Check if user is admin
     const adminStatus = localStorage.getItem('isAdmin') === 'true';
     setIsAdmin(adminStatus);
 

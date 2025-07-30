@@ -1,10 +1,17 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
+=======
+import React, { useState } from 'react';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Card from '../../components/ui/Card';
 import toast from 'react-hot-toast';
+<<<<<<< HEAD
 import { db } from '../../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import "../AdminPanel.css";
 
 const Settings = () => {
@@ -28,6 +35,7 @@ const Settings = () => {
 
   const [loading, setLoading] = useState(false);
 
+<<<<<<< HEAD
   // Delivery Options State
   const [deliveryOptions, setDeliveryOptions] = useState([]);
   const [newOption, setNewOption] = useState({ label: '', fee: '', eta: '' });
@@ -154,6 +162,8 @@ const Settings = () => {
     saveDeliveryOptions(deliveryOptions);
   };
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   const handleSettingsChange = (field, value) => {
     setSettings(prev => ({ ...prev, [field]: value }));
   };
@@ -339,6 +349,7 @@ const Settings = () => {
           </Card.Content>
         </Card>
 
+<<<<<<< HEAD
         {/* Delivery Options & Locations Section */}
         <Card>
           <Card.Header>
@@ -417,6 +428,8 @@ const Settings = () => {
           </Card.Content>
         </Card>
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         {/* System Information */}
         <Card>
           <Card.Header>

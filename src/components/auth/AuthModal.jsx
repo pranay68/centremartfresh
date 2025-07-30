@@ -168,4 +168,8 @@ const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }) => {
     </Modal>
   );
 };
+<<<<<<< HEAD
+=======
+
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 export default AuthModal;

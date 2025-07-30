@@ -3,8 +3,12 @@ import React from "react";
 import "./TempApp.css";
 
 // React Router
+<<<<<<< HEAD
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+=======
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
 // Context Providers (UNCOMMENT ONE AT A TIME IF DEBUGGING)
 import { AuthProvider } from "./context/AuthContext";
@@ -24,6 +28,7 @@ import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import Notifications from "./pages/Notifications";
 import Returns from "./pages/Returns";
+<<<<<<< HEAD
 import Orders from "./pages/Orders";
 import Admin from "./admin/Admin";
 import ReviewModal from './components/ReviewModal';
@@ -74,16 +79,47 @@ const AppContent = () => {
 
 const TempApp = () => (
   <Router>
+=======
+import Admin from "./admin/Admin";
+
+// TempApp main component
+const TempApp = () => {
+  return (
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     <ThemeProvider>
       <AuthProvider>
         <CartProvider>
           <WishlistProvider>
+<<<<<<< HEAD
             <AppContent />
+=======
+            <Router>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/wishlist" element={<Wishlist />} />
+                <Route path="/account" element={<Account />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/returns" element={<Returns />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/order-success" element={<OrderSuccess />} />
+                <Route path="/admin/*" element={<Admin />} />
+              </Routes>
+
+              {/* Toast notifications */}
+              <Toaster position="top-right" />
+            </Router>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
           </WishlistProvider>
         </CartProvider>
       </AuthProvider>
     </ThemeProvider>
+<<<<<<< HEAD
   </Router>
 );
+=======
+  );
+};
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
 export default TempApp;

@@ -83,6 +83,7 @@ body,
     padding: 2rem 3vw;
     background: var(--admin-bg);
     min-width: 0;
+<<<<<<< HEAD
     overflow-x: auto;
 }
 
@@ -133,6 +134,8 @@ body,
 
 .admin-table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
     background: #1746a2;
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 }
 
 
@@ -323,13 +326,17 @@ body,
         gap: 0.5rem;
         padding: 1rem 0.5rem;
         min-width: 0;
+<<<<<<< HEAD
         position: sticky;
         top: 0;
         z-index: 20;
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     }
     .admin-content {
         padding: 1rem 2vw;
     }
+<<<<<<< HEAD
     .admin-header {
         flex-direction: column;
         align-items: flex-start;
@@ -350,19 +357,26 @@ body,
         padding: 0.5rem;
         font-size: 0.95rem;
     }
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 }
 
 @media (max-width: 600px) {
     .admin-header {
         flex-direction: column;
         align-items: flex-start;
+<<<<<<< HEAD
         padding: 0.5rem 0.5rem;
+=======
+        padding: 0.7rem 1rem;
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     }
     .admin-content {
         padding: 0.5rem 1vw;
     }
     .admin-card,
     .admin-modal {
+<<<<<<< HEAD
         padding: 0.5rem;
     }
     .admin-btn,
@@ -471,4 +485,8 @@ body,
 
 .admin-btn:hover {
     background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+=======
+        padding: 1rem;
+    }
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 }

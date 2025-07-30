@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { collection, getDocs, updateDoc, doc, query, orderBy, deleteDoc } from 'firebase/firestore';
+=======
+import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import { db } from '../../firebase/config';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Card from '../../components/ui/Card';
 import toast from 'react-hot-toast';
+<<<<<<< HEAD
 import './AdminOrderPanel.css';
 import './OrderPanelBackground.css';
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns';
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -16,7 +23,10 @@ const Orders = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedOrders, setSelectedOrders] = useState(new Set());
   const [updating, setUpdating] = useState(false);
+<<<<<<< HEAD
   const [dateRange, setDateRange] = useState('all');
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   useEffect(() => {
     fetchOrders();
@@ -92,6 +102,7 @@ const Orders = () => {
     }
   };
 
+<<<<<<< HEAD
   const handleDeleteOrder = async (orderId) => {
     if (!window.confirm('Are you sure you want to delete this order?')) return;
     try {
@@ -124,14 +135,20 @@ const Orders = () => {
       rangeStart = null;
   }
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
       order.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.phone?.includes(searchTerm);
     const matchesStatus = !statusFilter || order.status === statusFilter;
+<<<<<<< HEAD
     const matchesDate = !rangeStart || (order.createdAt && isAfter(order.createdAt, rangeStart));
     return matchesSearch && matchesStatus && matchesDate;
+=======
+    return matchesSearch && matchesStatus;
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   });
 
   const getStatusColor = (status) => {
@@ -154,6 +171,7 @@ const Orders = () => {
   }
 
   return (
+<<<<<<< HEAD
     <div
       className="order-panel-bg"
       style={{
@@ -165,6 +183,9 @@ const Orders = () => {
       }}
     >
       <div className="order-panel-content">
+=======
+    <div className="space-y-6">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
@@ -192,7 +213,11 @@ const Orders = () => {
       {/* Filters */}
       <Card>
         <Card.Content className="p-4">
+<<<<<<< HEAD
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+=======
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
             <Input
               placeholder="Search by product, customer, or phone..."
               value={searchTerm}
@@ -210,6 +235,7 @@ const Orders = () => {
               <option value="Delivered">Delivered</option>
               <option value="Cancelled">Cancelled</option>
             </select>
+<<<<<<< HEAD
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
@@ -221,10 +247,13 @@ const Orders = () => {
                 <option value="month">This Month</option>
                 <option value="year">This Year</option>
               </select>
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
           </div>
         </Card.Content>
       </Card>
 
+<<<<<<< HEAD
         {/* Add bulk actions above the table */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div className="flex gap-2">
@@ -271,6 +300,13 @@ const Orders = () => {
                   <col style={{ width: '90px' }} />
                   <col style={{ width: '120px' }} />
                 </colgroup>
+=======
+      {/* Orders Table */}
+      <Card>
+        <Card.Content className="p-0">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left">
@@ -281,18 +317,47 @@ const Orders = () => {
                       className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
                   </th>
+<<<<<<< HEAD
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">More Details</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+=======
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredOrders.map((order) => (
+<<<<<<< HEAD
                     <tr key={order.id} className="order-row">
                       <td className="order-cell">
+=======
+                  <tr key={order.id} className={selectedOrders.has(order.id) ? 'bg-blue-50' : ''}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                       <input
                         type="checkbox"
                         checked={selectedOrders.has(order.id)}
@@ -300,6 +365,7 @@ const Orders = () => {
                         className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
                     </td>
+<<<<<<< HEAD
                       <td className="order-img-col order-cell">
                         <img
                           src={order.productImageURL || 'https://via.placeholder.com/60'}
@@ -315,10 +381,43 @@ const Orders = () => {
                       {order.isGuest && (
                           <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Guest</span>
                       )}
+=======
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <img
+                          src={order.productImageURL || 'https://via.placeholder.com/40'}
+                          alt={order.productName}
+                          className="w-10 h-10 rounded-lg object-cover mr-3"
+                        />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {order.productName}
+                          </div>
+                          {order.quantity > 1 && (
+                            <div className="text-xs text-gray-500">
+                              Qty: {order.quantity}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{order.customerName}</div>
+                      <div className="text-sm text-gray-500">{order.address}</div>
+                      {order.isGuest && (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                          Guest
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div>{order.phone}</div>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                       {order.email && (
                         <div className="text-xs text-gray-500">{order.email}</div>
                       )}
                     </td>
+<<<<<<< HEAD
                       <td className="order-actions-col order-cell">
                         <div className="action-buttons">
                           {order.status !== 'Delivered' && (
@@ -332,12 +431,29 @@ const Orders = () => {
                               <span className="icon">✔️</span> Mark as Delivered
                             </button>
                           )}
+=======
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      Rs. {order.price?.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.createdAt?.toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                       <select
                         value={order.status}
                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                         className="text-xs border border-gray-300 rounded px-2 py-1"
+<<<<<<< HEAD
                             style={{ minWidth: 80, marginLeft: 4 }}
                             disabled={updating}
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                       >
                         <option value="Pending">Pending</option>
                         <option value="Processing">Processing</option>
@@ -345,6 +461,7 @@ const Orders = () => {
                         <option value="Delivered">Delivered</option>
                         <option value="Cancelled">Cancelled</option>
                       </select>
+<<<<<<< HEAD
                           <button
                             className="admin-btn"
                             title="Delete Order"
@@ -354,6 +471,8 @@ const Orders = () => {
                             🗑️
                           </button>
                         </div>
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                     </td>
                   </tr>
                 ))}
@@ -368,7 +487,10 @@ const Orders = () => {
           <p className="text-gray-500">No orders found</p>
         </div>
       )}
+<<<<<<< HEAD
       </div>
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     </div>
   );
 };

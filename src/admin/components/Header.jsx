@@ -1,6 +1,9 @@
 import React from 'react';
 import Button from '../../components/ui/Button';
+<<<<<<< HEAD
 import NotificationBell from './NotificationBell';
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
 const Header = ({ onMenuClick, onLogout }) => {
   return (
@@ -19,7 +22,10 @@ const Header = ({ onMenuClick, onLogout }) => {
         </div>
         
         <div className="flex items-center space-x-4">
+<<<<<<< HEAD
           <NotificationBell />
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-medium">A</span>

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { collection, getDocs, updateDoc, doc, onSnapshot } from 'firebase/firestore';
+=======
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import { db } from '../../firebase/config';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -23,13 +27,23 @@ const Inventory = () => {
   ];
 
   useEffect(() => {
+<<<<<<< HEAD
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+=======
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'products'));
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       const productsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         stock: doc.data().stock || 0, // Default stock to 0 if not set
       }));
       setProducts(productsData);
+<<<<<<< HEAD
       setLoading(false);
     }, (error) => {
       console.error('Error fetching products:', error);
@@ -38,6 +52,15 @@ const Inventory = () => {
     });
     return () => unsubscribe();
   }, []);
+=======
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to fetch products');
+    } finally {
+      setLoading(false);
+    }
+  };
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   const updateStock = async () => {
     if (!selectedProduct || !stockUpdate.quantity) {
@@ -68,7 +91,11 @@ const Inventory = () => {
       setShowStockModal(false);
       setSelectedProduct(null);
       setStockUpdate({ quantity: '', operation: 'set' });
+<<<<<<< HEAD
       // fetchProducts(); // No longer needed as onSnapshot handles updates
+=======
+      fetchProducts();
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     } catch (error) {
       console.error('Error updating stock:', error);
       toast.error('Failed to update stock');
@@ -176,8 +203,13 @@ const Inventory = () => {
       {/* Products Table */}
       <Card>
         <Card.Content className="p-0">
+<<<<<<< HEAD
           <div className="admin-table-scroll-wrapper">
             <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '1200px' }}>
+=======
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">

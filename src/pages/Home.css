@@ -18,6 +18,7 @@ body {
 }
 
 
+<<<<<<< HEAD
 /* 🚀 LENNOX CENTER MART - HOME PAGE STYLES */
 
 
@@ -266,6 +267,8 @@ body {
 }
 
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 /* === HERO SECTION === */
 
 .hero-section {
@@ -431,6 +434,7 @@ body {
     color: #1e293b;
 }
 
+<<<<<<< HEAD
 
 /* === PRODUCT CARD === */
 
@@ -439,6 +443,106 @@ body {
 
 
 /* Removing conflicting styles to prevent corruption */
+=======
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+
+/* === PRODUCT CARD === */
+
+.product-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 1px solid #e2e8f0;
+    position: relative;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+.product-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image {
+    transform: scale(1.05);
+}
+
+.product-content {
+    padding: 1.5rem;
+}
+
+.product-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.product-price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #059669;
+    margin-bottom: 1rem;
+}
+
+.product-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5a67d8;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
 
 /* === CATEGORY PANEL === */

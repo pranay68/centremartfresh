@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
 import ProductCard from "../components/ProductGrid/ProductCard";
+=======
+import React, { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { collection, getDocs, query, limit, startAfter } from "firebase/firestore";
+import { db } from "../firebase/config";
+import ProductCard from "../components/ProductCard";
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import ProductDetailPanel from "../components/ProductDetailPanel";
 import Header from "../components/Header";
 import "./CategoryPage.css";
@@ -12,10 +20,16 @@ const CategoryPage = () => {
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
+=======
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   const decodedCategory = decodeURIComponent(category);
 
   useEffect(() => {
+<<<<<<< HEAD
     const productsRef = collection(db, "products");
     const unsubscribe = onSnapshot(productsRef, (snapshot) => {
       const allProducts = [];
@@ -33,6 +47,49 @@ const CategoryPage = () => {
     });
     return () => unsubscribe();
   }, [decodedCategory]);
+=======
+    fetchProducts(true);
+    // eslint-disable-next-line
+  }, [decodedCategory]);
+
+  const fetchProducts = async (initial = false) => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      let q;
+      const productsRef = collection(db, "products");
+      if (initial) {
+        q = query(productsRef, limit(15));
+      } else if (lastDoc) {
+        q = query(productsRef, startAfter(lastDoc), limit(10));
+      } else {
+        setLoading(false);
+        return;
+      }
+      const snapshot = await getDocs(q);
+      const newProducts = [];
+      let lastVisible = null;
+      snapshot.forEach((doc) => {
+        const product = { id: doc.id, ...doc.data() };
+        if (product.category && product.category.toLowerCase().includes(decodedCategory.toLowerCase())) {
+          newProducts.push(product);
+          lastVisible = doc;
+        }
+      });
+      if (initial) {
+        setProducts(newProducts);
+      } else {
+        setProducts((prev) => [...prev, ...newProducts]);
+      }
+      setLastDoc(lastVisible);
+      setHasMore(newProducts.length >= (initial ? 15 : 10));
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   const getCategoryIcon = (category) => {
     const categoryLower = category.toLowerCase();
@@ -49,6 +106,7 @@ const CategoryPage = () => {
     return '🛍️';
   };
 
+<<<<<<< HEAD
   const PRODUCTS_PER_PAGE = 20;
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
@@ -58,6 +116,21 @@ const CategoryPage = () => {
   }, [products, currentPage]);
 
   if (loading) {
+=======
+  // Infinite scroll handler
+  useEffect(() => {
+    if (!hasMore || loading) return;
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+        fetchProducts(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, );
+
+  if (loading && products.length === 0) {
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
         <Header />
@@ -88,6 +161,7 @@ const CategoryPage = () => {
               </p>
             </div>
           </div>
+<<<<<<< HEAD
           <div style={{ display: 'flex', gap: '12px' }}>
             <Link 
               to="/" 
@@ -139,6 +213,11 @@ const CategoryPage = () => {
               🏠 Home
             </Link>
           </div>
+=======
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', background: 'var(--primary-color)', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 500 }}>
+            ← Back to Home
+          </Link>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         </div>
 
         {products.length === 0 ? (
@@ -153,18 +232,27 @@ const CategoryPage = () => {
             </Link>
           </div>
         ) : (
+<<<<<<< HEAD
           <div className="products-grid">
             {paginatedProducts.map((product) => (
+=======
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
+            {products.map((product) => (
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
               <div key={product.id} style={{ transition: 'transform 0.3s ease' }}>
                 <ProductCard 
                   product={product} 
                   onProductClick={() => setSelectedProduct(product)}
+<<<<<<< HEAD
                   compact={true}
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                 />
               </div>
             ))}
           </div>
         )}
+<<<<<<< HEAD
         {totalPages > 1 && (
           <div className="pagination-bar" style={{ marginTop: 24, textAlign: 'center' }}>
             {Array.from({ length: totalPages }, (_, i) => (
@@ -179,6 +267,8 @@ const CategoryPage = () => {
             ))}
           </div>
         )}
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       </div>
 
       {selectedProduct && (
@@ -191,4 +281,8 @@ const CategoryPage = () => {
   );
 };
 
+<<<<<<< HEAD
 export default CategoryPage; 
+=======
+export default CategoryPage;
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d

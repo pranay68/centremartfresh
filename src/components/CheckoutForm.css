@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Checkout Form Main Container */
 
 .checkout-form-container {
@@ -567,4 +568,54 @@ textarea:required:focus {
     background: linear-gradient(90deg, #e0e7ff 0%, #f1f5f9 100%) !important;
     color: #7f53ac !important;
     border-color: #7f53ac99 !important;
+=======
+.checkout-form {
+    max-width: 500px;
+    margin: auto;
+    padding: 2rem;
+    background: #ffffffd1;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+}
+
+.checkout-form h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.checkout-form label {
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.checkout-form input,
+.checkout-form textarea {
+    width: 100%;
+    padding: 0.8rem;
+    margin-top: 0.3rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.checkout-form button {
+    background-color: #1f8ef1;
+    color: white;
+    padding: 0.9rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 1rem;
+    font-size: 1rem;
+    transition: 0.3s;
+}
+
+.checkout-form button:hover {
+    background-color: #005fcc;
+}
+
+.checkout-success {
+    text-align: center;
+    padding: 3rem;
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 }

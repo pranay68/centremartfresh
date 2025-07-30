@@ -1,68 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import ProductCard from '../components/ProductCard';
-import CategoryPanel from '../components/CategoryPanel';
-import FlashSaleSection from '../components/FlashSaleSection';
-import TopSaleSection from '../components/TopSaleSection';
-import NewArrivalsSection from '../components/NewArrivalsSection';
-import AdminPanelControl from '../components/AdminPanelControl';
-import Header from '../components/Header';
-import SearchAnalytics from '../components/SearchAnalytics';
-import ProductDetailPanel from '../components/ProductDetailPanel';
-import CustomerSupport from '../components/CustomerSupport';
-import { db } from '../firebase/config';
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  getDocs,
-  startAfter,
-  getCountFromServer
-} from 'firebase/firestore';
-import './HomeNew.css';
-
-const Home = () => {
-  // State
-  const [products, setProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]);
-  const [lastDoc, setLastDoc] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [totalCount, setTotalCount] = useState(0);
-  const [panels, setPanels] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // Refs
-  const observer = useRef();
-  const abortControllerRef = useRef(null);
-  const productCache = useMemo(() => new Map(), []);
-
-  // Utility functions
-  const normalize = str =>
-    str?.toLowerCase()
-      .replace(/[^a-z0-9]/gi, '')
-      .replace(/moblie|mobl|mobliee/g, 'mobile')
-      .replace(/sho|sneekar|snkar/g, 'shoe')
-      .replace(/laptap|labtop/g, 'laptop')
-      .replace(/tv|teevee|tvee/g, 'television');
-
-  const filterProducts = list => {
-    if (!searchTerm) return list;
-    const cleaned = normalize(searchTerm);
-    return list.filter(product => {
-      const name = normalize(product.name || '');
-      const desc = normalize(product.description || '');
-      const cat = normalize(product.category || '');
-      return name.includes(cleaned) || desc.includes(cleaned) || cat.includes(cleaned);
-    });
-  };
-
-  // Data fetching with caching
-  const fetchProducts = useCallback(async (initial = false) => {
     if (loading || (!hasMore && !initial)) return;
-
+    
     // Cancel any ongoing fetch
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -104,10 +42,6 @@ const Home = () => {
           });
         });
         setProducts(newProducts);
-
-        // Get total count
-        const countSnapshot = await getCountFromServer(collection(db, 'products'));
-        setTotalCount(countSnapshot.data().count);
       } else {
         setProducts(prev => {
           const combined = [...prev, ...newProducts];
@@ -123,6 +57,12 @@ const Home = () => {
 
       setLastDoc(newDocs[newDocs.length - 1]);
       setHasMore(newDocs.length === 12);
+      
+      // Update total count on initial load
+      if (initial) {
+        const countSnapshot = await getCountFromServer(collection(db, 'products'));
+        setTotalCount(countSnapshot.data().count);
+      }
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error('Error fetching products:', error);
@@ -130,7 +70,95 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  }, [loading, hasMore, lastDoc, productCache]);
+  }, [loading, hasMore, lastDoc, productCache]);react';
+import { Virtuoso } from 'react-virtuoso';
+import { debounce } from 'lodash';
+import ProductCard from '../components/ProductCard';
+import CategoryPanel from '../components/CategoryPanel';
+import FlashSaleSection from '../components/FlashSaleSection';
+=======
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import ProductCard from '../components/ProductCard';
+import CategoryPanel from '../components/CategoryPanel';
+import FlashSaleSection from '../components/FlashSaleSection';
+import TopSaleSection from '../components/TopSaleSection';
+import NewArrivalsSection from '../components/NewArrivalsSection';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
+import AdminPanelControl from '../components/AdminPanelControl';
+import Header from '../components/Header';
+import SearchAnalytics from '../components/SearchAnalytics';
+import ProductDetailPanel from '../components/ProductDetailPanel';
+import CustomerSupport from '../components/CustomerSupport';
+import { db } from '../firebase/config';
+import {
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+  startAfter
+} from 'firebase/firestore';
+import './HomeNew.css';
+
+const Home = () => {
+  const [products, setProducts] = useState([]);
+<<<<<<< HEAD
+  const [visibleProducts, setVisibleProducts] = useState([]);
+=======
+  const [allProducts, setAllProducts] = useState([]);
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
+  const [lastDoc, setLastDoc] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+<<<<<<< HEAD
+  const [totalCount, setTotalCount] = useState(0);
+  const abortControllerRef = useRef(null);
+  const productCache = useMemo(() => new Map(), []);
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
+  const [panels, setPanels] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const observer = useRef();
+
+  const normalize = str =>
+    str
+      .toLowerCase()
+      .replace(/[^a-z0-9]/gi, '')
+      .replace(/moblie|mobl|mobliee/g, 'mobile')
+      .replace(/sho|sneekar|snkar/g, 'shoe')
+      .replace(/laptap|labtop/g, 'laptop')
+      .replace(/tv|teevee|tvee/g, 'television');
+
+  const filterProducts = list => {
+    if (!searchTerm) return list;
+    const cleaned = normalize(searchTerm);
+    return list.filter(product => {
+      const name = normalize(product.name || '');
+      const desc = normalize(product.description || '');
+      const cat = normalize(product.category || '');
+      return name.includes(cleaned) || desc.includes(cleaned) || cat.includes(cleaned);
+    });
+  };
+
+  const fetchProducts = useCallback(async (initial = false) => {
+    if (loading) return;
+    setLoading(true);
+
+    const productsRef = collection(db, 'products');
+    const q = initial || !lastDoc
+      ? query(productsRef, orderBy('name'), limit(12))
+      : query(productsRef, orderBy('name'), startAfter(lastDoc), limit(12));
+
+    const snapshot = await getDocs(q);
+    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    setProducts(prev => (initial ? items : [...prev, ...items]));
+    setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+    setHasMore(snapshot.docs.length === 12);
+    setLoading(false);
+  }, [loading, lastDoc]);
 
   const fetchAllProducts = useCallback(async () => {
     const productsRef = collection(db, 'products');
@@ -157,24 +185,16 @@ const Home = () => {
     setPanels(panels);
   }, []);
 
-  // Effects
   useEffect(() => {
     fetchProducts(true);
     fetchAllProducts();
     fetchPanels();
     
-    // Check if user is admin
+    // Check if user is admin (simple localStorage check)
     const adminStatus = localStorage.getItem('isAdmin') === 'true';
     setIsAdmin(adminStatus);
-
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
   }, [fetchProducts, fetchAllProducts, fetchPanels]);
 
-  // Infinite scroll
   const lastProductRef = useCallback(
     node => {
       if (loading || !hasMore) return;
@@ -191,7 +211,6 @@ const Home = () => {
     [loading, hasMore, fetchProducts]
   );
 
-  // Event handlers
   const handleSearch = useCallback((term, filteredProducts = null) => {
     setSearchTerm(term);
     if (filteredProducts) {
@@ -199,48 +218,56 @@ const Home = () => {
     }
   }, []);
 
-  const handleProductClick = useCallback((product) => {
+  const handleProductClick = (product) => {
     setSelectedProduct(product);
-  }, []);
+  };
 
-  const handleCloseProductDetail = useCallback(() => {
+  const handleCloseProductDetail = () => {
     setSelectedProduct(null);
-  }, []);
+  };
 
-  const handleSectionEdit = useCallback((sectionType) => {
+<<<<<<< HEAD
+=======
+  const handleSectionEdit = (sectionType) => {
     console.log(`Editing section: ${sectionType}`);
+    // Simple alert for now - we'll build admin panel later
     alert(`Edit ${sectionType} section - Admin panel coming soon!`);
-  }, []);
+  };
 
-  const handleAdminSave = useCallback((sections) => {
+  const handleAdminSave = (sections) => {
     console.log('Saving sections:', sections);
+    // Save to localStorage for now
     localStorage.setItem('adminSections', JSON.stringify(sections));
     alert('Sections saved successfully!');
-  }, []);
+  };
 
-  const handleAdminDelete = useCallback((sectionId) => {
+  const handleAdminDelete = (sectionId) => {
     console.log('Deleting section:', sectionId);
     alert(`Section ${sectionId} deleted!`);
-  }, []);
+  };
 
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   return (
     <div className="home-page">
       <Header 
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
+        searchTerm={searchTerm} 
+        setSearchTerm={setSearchTerm} 
         products={allProducts}
         onSearch={handleSearch}
       />
 
-      {isAdmin && (
-        <AdminPanelControl 
-          isVisible={true}
-          onSave={handleAdminSave}
-          onDelete={handleAdminDelete}
-          onEdit={handleSectionEdit}
-        />
-      )}
+<<<<<<< HEAD
+=======
+      {/* Admin Panel Control */}
+      <AdminPanelControl 
+        isVisible={isAdmin}
+        onSave={handleAdminSave}
+        onDelete={handleAdminDelete}
+        onEdit={handleSectionEdit}
+      />
 
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
+      {/* Hero Section */}
       {!searchTerm && (
         <section className="hero-section">
           <div className="hero-content">
@@ -249,7 +276,6 @@ const Home = () => {
                 src="/image.png" 
                 alt="Centre Mart Logo" 
                 className="hero-logo-image"
-                loading="lazy"
               />
               <h1 className="hero-title">Centre Mart</h1>
             </div>
@@ -263,31 +289,40 @@ const Home = () => {
         </section>
       )}
 
+      {/* Flash Sale Section */}
       {!searchTerm && (
-        <>
-          <FlashSaleSection 
-            products={allProducts}
-            onProductClick={handleProductClick}
-            isAdmin={isAdmin}
-            onEdit={handleSectionEdit}
-          />
-
-          <TopSaleSection 
-            products={allProducts}
-            onProductClick={handleProductClick}
-            isAdmin={isAdmin}
-            onEdit={handleSectionEdit}
-          />
-
-          <NewArrivalsSection 
-            products={allProducts}
-            onProductClick={handleProductClick}
-            isAdmin={isAdmin}
-            onEdit={handleSectionEdit}
-          />
-        </>
+        <FlashSaleSection 
+          products={allProducts}
+          onProductClick={handleProductClick}
+          isAdmin={isAdmin}
+<<<<<<< HEAD
+=======
+          onEdit={handleSectionEdit}
+        />
       )}
 
+      {/* Top Sale Section */}
+      {!searchTerm && (
+        <TopSaleSection 
+          products={allProducts}
+          onProductClick={handleProductClick}
+          isAdmin={isAdmin}
+          onEdit={handleSectionEdit}
+        />
+      )}
+
+      {/* New Arrivals Section */}
+      {!searchTerm && (
+        <NewArrivalsSection 
+          products={allProducts}
+          onProductClick={handleProductClick}
+          isAdmin={isAdmin}
+          onEdit={handleSectionEdit}
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
+        />
+      )}
+
+      {/* Category Panels */}
       {panels.length > 0 && !searchTerm && (
         <>
           {panels.map((panel, i) => {
@@ -304,6 +339,7 @@ const Home = () => {
         </>
       )}
 
+      {/* Infinite Feed */}
       {(panels.length === 0 || searchTerm) && (
         <section className="product-section" id="products">
           <div className="products-header">
@@ -313,13 +349,29 @@ const Home = () => {
           </div>
 
           <div className="products-grid">
+<<<<<<< HEAD
             {!products.length && !searchTerm &&
               Array(12).fill(null).map((_, i) => (
                 <ProductCard key={i} loading={true} />
               ))}
 
             {products.length > 0 && filterProducts(products).length === 0 && searchTerm && (
-              <div className="no-results">
+=======
+          {!products.length && !searchTerm &&
+            Array(12).fill(null).map((_, i) => (
+              <ProductCard key={i} loading={true} />
+            ))}
+
+          {products.length > 0 && filterProducts(products).length === 0 && searchTerm && (
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
+              <div style={{ 
+                gridColumn: '1/-1', 
+                textAlign: 'center', 
+                color: '#666',
+                padding: '2rem',
+                fontSize: '1.1rem'
+              }}>
+<<<<<<< HEAD
                 No products found matching "{searchTerm}"
               </div>
             )}
@@ -330,12 +382,25 @@ const Home = () => {
                 <div
                   key={product.id}
                   ref={isLast ? lastProductRef : null}
-                  className="product-card-wrapper"
                 >
+=======
+              No products found matching "{searchTerm}"
+              </div>
+          )}
+
+          {filterProducts(products).map((product, i, arr) => {
+            const isLast = i === arr.length - 1 && !searchTerm;
+            return (
+              <div
+                key={product.id}
+                ref={isLast ? lastProductRef : null}
+              >
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                   <ProductCard 
                     product={product} 
                     onProductClick={handleProductClick}
                   />
+<<<<<<< HEAD
                 </div>
               );
             })}
@@ -344,8 +409,19 @@ const Home = () => {
               Array(4).fill(null).map((_, i) => (
                 <ProductCard key={`loading-${i}`} loading={true} />
               ))}
+=======
+              </div>
+            );
+          })}
+
+          {loading && !searchTerm &&
+            Array(4).fill(null).map((_, i) => (
+              <ProductCard key={`loading-${i}`} loading={true} />
+            ))}
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
           </div>
 
+          {/* Search Analytics */}
           {searchTerm && (
             <SearchAnalytics 
               searchTerm={searchTerm}
@@ -355,16 +431,30 @@ const Home = () => {
         </section>
       )}
 
+      {/* Product Detail Panel */}
       {selectedProduct && (
+<<<<<<< HEAD
         <ProductDetailPanel
+=======
+        <ProductDetailPanel 
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
           product={selectedProduct}
           onClose={handleCloseProductDetail}
         />
       )}
 
+<<<<<<< HEAD
+      {/* Customer Support Widget */}
+=======
+      {/* Customer Support */}
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       <CustomerSupport />
     </div>
   );
 };
 
+<<<<<<< HEAD
 export default Home;
+=======
+export default Home;
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d

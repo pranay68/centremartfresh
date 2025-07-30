@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+<<<<<<< HEAD
 import { collection, query, where, orderBy, getDocs, doc, updateDoc, onSnapshot, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { updateProfile } from 'firebase/auth';
@@ -23,12 +24,20 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from '../components/ui/Modal';
+=======
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import { Link } from 'react-router-dom';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
 const Account = () => {
   const { user, userProfile, logout } = useAuth();
   const [orders, setOrders] = useState([]);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState('profile');
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
@@ -88,6 +97,8 @@ const Account = () => {
     const unreviewed = orders.filter(o => !reviewedProductIds.has(o.productId));
     setUnreviewedProducts(unreviewed);
   }, [orders, userReviews]);
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -111,6 +122,7 @@ const Account = () => {
         // Get recently viewed from localStorage or user profile
         const recentlyViewedData = JSON.parse(localStorage.getItem('centremart_recently_viewed') || '[]');
         setRecentlyViewed(recentlyViewedData.slice(0, 5));
+<<<<<<< HEAD
         
         // Load addresses
         if (userProfile?.addresses) {
@@ -123,6 +135,8 @@ const Account = () => {
           phone: userProfile?.phone || '',
           email: user.email || ''
         });
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -131,6 +145,7 @@ const Account = () => {
     };
 
     fetchUserData();
+<<<<<<< HEAD
   }, [user, userProfile]);
 
   const handleProfileSave = async () => {
@@ -275,6 +290,9 @@ const Account = () => {
     setSubmittingReview(false);
     setShowReviewModal(false);
   };
+=======
+  }, [user]);
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   if (!user) {
     return (
@@ -322,6 +340,7 @@ const Account = () => {
     }
   };
 
+<<<<<<< HEAD
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'addresses', label: 'Addresses', icon: MapPin },
@@ -330,6 +349,8 @@ const Account = () => {
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -340,6 +361,7 @@ const Account = () => {
           </Button>
         </div>
 
+<<<<<<< HEAD
         {/* Tab Navigation */}
         <div className="flex space-x-1 bg-white rounded-lg p-1 mb-8 shadow-sm">
           {tabs.map((tab) => {
@@ -698,6 +720,55 @@ const Account = () => {
             <Card>
               <Card.Header>
                 <h2 className="text-xl font-semibold">My Orders</h2>
+=======
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Info */}
+          <div className="lg:col-span-1">
+            <Card>
+              <Card.Header>
+                <h2 className="text-xl font-semibold">Profile Information</h2>
+              </Card.Header>
+              <Card.Content className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Name</label>
+                  <p className="text-lg font-medium text-gray-900">
+                    {user.displayName || userProfile?.name || 'Not provided'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Email</label>
+                  <p className="text-lg font-medium text-gray-900">{user.email}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Member Since</label>
+                  <p className="text-lg font-medium text-gray-900">
+                    {user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+                
+                <div className="pt-4 space-y-2">
+                  <Link to="/wishlist" className="block">
+                    <Button variant="outline" className="w-full">
+                      ❤️ View Wishlist
+                    </Button>
+                  </Link>
+                  <Link to="/cart" className="block">
+                    <Button variant="outline" className="w-full">
+                      🛒 View Cart
+                    </Button>
+                  </Link>
+                </div>
+              </Card.Content>
+            </Card>
+          </div>
+
+          {/* Orders and Activity */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Recent Orders */}
+            <Card>
+              <Card.Header>
+                <h2 className="text-xl font-semibold">Recent Orders</h2>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
               </Card.Header>
               <Card.Content>
                 {orders.length === 0 ? (
@@ -709,6 +780,7 @@ const Account = () => {
                     </Link>
                   </div>
                 ) : (
+<<<<<<< HEAD
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
@@ -740,10 +812,33 @@ const Account = () => {
                         ))}
                       </tbody>
                     </table>
+=======
+                  <div className="space-y-4">
+                    {orders.slice(0, 5).map((order) => (
+                      <div key={order.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium text-gray-900">{order.productName}</h3>
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                            {order.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-gray-600">
+                          <span>Rs. {order.price?.toLocaleString()}</span>
+                          <span>{order.createdAt?.toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {orders.length > 5 && (
+                      <p className="text-center text-gray-600">
+                        And {orders.length - 5} more orders...
+                      </p>
+                    )}
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                   </div>
                 )}
               </Card.Content>
             </Card>
+<<<<<<< HEAD
           )}
           {/* Order Detail Modal */}
           {selectedOrder && (
@@ -920,6 +1015,32 @@ const Account = () => {
           )}
         </div>
       </Modal>
+=======
+
+            {/* Recently Viewed */}
+            {recentlyViewed.length > 0 && (
+              <Card>
+                <Card.Header>
+                  <h2 className="text-xl font-semibold">Recently Viewed</h2>
+                </Card.Header>
+                <Card.Content>
+                  <div className="space-y-2">
+                    {recentlyViewed.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                        <span className="text-gray-900">Product ID: {item.productId}</span>
+                        <span className="text-sm text-gray-600">
+                          {new Date(item.viewedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Card.Content>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     </div>
   );
 };

@@ -6,7 +6,11 @@ import {
   onAuthStateChanged,
   updateProfile
 } from 'firebase/auth';
+<<<<<<< HEAD
 import { auth, db, signInWithGoogle as firebaseSignInWithGoogle } from '../firebase/config';
+=======
+import { auth, db } from '../firebase/config';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
@@ -94,6 +98,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+<<<<<<< HEAD
   const signInWithGoogle = async () => {
     try {
       const result = await firebaseSignInWithGoogle();
@@ -121,14 +126,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   const value = {
     user,
     userProfile,
     signup,
     login,
     logout,
+<<<<<<< HEAD
     loading,
     signInWithGoogle
+=======
+    loading
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   };
 
   return (

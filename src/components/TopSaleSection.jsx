@@ -1,10 +1,18 @@
 import React from 'react';
+<<<<<<< HEAD
 import { Link } from 'react-router-dom';
 import { FaCrown, FaStar, FaChartLine, FaFire } from 'react-icons/fa';
 import ProductCard from './ProductGrid/ProductCard';
 import './TopSaleSection.css';
 
 const TopSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit, onAuthRequired }) => {
+=======
+import { FaFire, FaChartLine } from 'react-icons/fa';
+import ProductCard from './ProductCard';
+import './TopSaleSection.css';
+
+const TopSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit }) => {
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   // Filter top selling products (you can add a topSale property to products)
   const topSaleProducts = products.filter(product => product.topSale) || [];
 
@@ -35,7 +43,11 @@ const TopSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit
         )}
       </div>
 
+<<<<<<< HEAD
       <div className="top-sale-products product-bar-grid">
+=======
+      <div className="top-sale-products">
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         {displayProducts.length > 0 ? (
           displayProducts.map((product, index) => (
             <div key={product.id} className="top-sale-product">
@@ -46,8 +58,11 @@ const TopSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit
               <ProductCard 
                 product={product} 
                 onProductClick={onProductClick}
+<<<<<<< HEAD
                 compact={true}
                 onAuthRequired={onAuthRequired}
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
               />
             </div>
           ))
@@ -66,9 +81,15 @@ const TopSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit
 
       {displayProducts.length > 4 && (
         <div className="top-sale-footer">
+<<<<<<< HEAD
           <Link to="/top-sellers" className="view-all-top-sale-btn">
             View All Top Sellers
           </Link>
+=======
+          <button className="view-all-top-sale-btn">
+            View All Top Sellers
+          </button>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         </div>
       )}
     </section>

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
+=======
+import React, { useState } from 'react';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import './OrderPanel.css';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -10,7 +14,10 @@ const OrderPanel = ({ product, onClose }) => {
   const [phone, setPhone] = useState('');
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState('');
+<<<<<<< HEAD
   const [showReviewPopup, setShowReviewPopup] = useState(false);
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   const deliveryAreas = [
     'kadam chowk', 'bhanu chowk', 'siva chowk', 'pirari chowk',
@@ -25,11 +32,14 @@ const OrderPanel = ({ product, onClose }) => {
     audio.play().catch(() => {/* ignore play error if any */});
   };
 
+<<<<<<< HEAD
   const playReviewMusic = () => {
     const audio = new Audio('/review-reminder.mp3'); // Place this file in public/
     audio.play().catch(() => {});
   };
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   const handleOrder = async () => {
     if (!name.trim() || !location.trim() || !phone.trim()) {
       setError('⚠️ Please fill in all fields!');
@@ -47,7 +57,11 @@ const OrderPanel = ({ product, onClose }) => {
       await addDoc(collection(db, 'orders'), {
         productId: product.id,
         productName: product.name,
+<<<<<<< HEAD
         productImageURL: product.imageUrl || '',
+=======
+        productImageURL: product.imageUrl,
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         price: product.price,
         deliveryCharge: 0,
         customerName: name.trim(),
@@ -59,8 +73,11 @@ const OrderPanel = ({ product, onClose }) => {
       });
       toast.success('🎉 Order placed successfully! Sit tight and relax.');
       playDing();
+<<<<<<< HEAD
       setShowReviewPopup(true);
       playReviewMusic();
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
       onClose();
     } catch (err) {
       console.error('Order error:', err);
@@ -70,6 +87,7 @@ const OrderPanel = ({ product, onClose }) => {
     }
   };
 
+<<<<<<< HEAD
   useEffect(() => {
     if (showReviewPopup) {
       const timer = setTimeout(() => setShowReviewPopup(false), 6000);
@@ -77,6 +95,8 @@ const OrderPanel = ({ product, onClose }) => {
     }
   }, [showReviewPopup]);
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   return (
     <div className="order-panel-backdrop">
       <div className="order-panel-modal">
@@ -125,6 +145,7 @@ const OrderPanel = ({ product, onClose }) => {
           </button>
         </div>
       </div>
+<<<<<<< HEAD
       {showReviewPopup && (
         <div className="review-reminder-popup">
           <span>🎵</span>
@@ -132,6 +153,8 @@ const OrderPanel = ({ product, onClose }) => {
           <button className="close-popup-btn" onClick={() => setShowReviewPopup(false)}>✖</button>
         </div>
       )}
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     </div>
   );
 };

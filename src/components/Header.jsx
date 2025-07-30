@@ -1,10 +1,15 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
+=======
+import React, { useState } from 'react';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import AuthModal from './auth/AuthModal';
 import PowerSearch from './PowerSearch';
 import ProfileDropdown from './ProfileDropdown';
+<<<<<<< HEAD
 import CustomerSupportChat from './CustomerSupportChat';
 import { Bell, MessageCircle } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -12,10 +17,17 @@ import { db } from '../firebase/config';
 import './Header.css';
 
 const Header = ({ searchTerm, setSearchTerm = () => {}, products, onSearch }) => {
+=======
+import ThemeSwitcher from './ThemeSwitcher';
+import './Header.css';
+
+const Header = ({ searchTerm, setSearchTerm, products, onSearch }) => {
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   const { user, logout } = useAuth();
   const { getTotalItems } = useCart();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState('login');
+<<<<<<< HEAD
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [showSupportChat, setShowSupportChat] = useState(false);
 
@@ -42,6 +54,8 @@ const Header = ({ searchTerm, setSearchTerm = () => {}, products, onSearch }) =>
       setUnreadNotifications(3);
     }
   };
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   const handleAuthClick = (tab) => {
     setAuthTab(tab);
@@ -55,15 +69,22 @@ const Header = ({ searchTerm, setSearchTerm = () => {}, products, onSearch }) =>
     }
   };
 
+<<<<<<< HEAD
   const handleSupportClick = () => {
     setShowSupportChat(true);
   };
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   return (
     <>
       <header className="header">
         <div className="header-container">
           <div className="header-left">
+<<<<<<< HEAD
+=======
+            <ThemeSwitcher />
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
           </div>
           
           <Link to="/" className="logo">
@@ -89,6 +110,7 @@ const Header = ({ searchTerm, setSearchTerm = () => {}, products, onSearch }) =>
           <nav className="nav-menu">
             {user ? (
               <>
+<<<<<<< HEAD
                 {/* Reviews Button */}
                 <button className="nav-link" onClick={() => window.dispatchEvent(new CustomEvent('open-reviews-modal'))}>
                   Reviews
@@ -107,6 +129,11 @@ const Header = ({ searchTerm, setSearchTerm = () => {}, products, onSearch }) =>
                 
                 <Link to="/wishlist" className="nav-link">
                   ❤️ Wishlist                      
+=======
+                <ProfileDropdown />
+                <Link to="/wishlist" className="nav-link">
+                  ❤️ Wishlist
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                 </Link>
                 <Link to="/cart" className="nav-link cart-link">
                   🛒 Cart
@@ -144,6 +171,7 @@ const Header = ({ searchTerm, setSearchTerm = () => {}, products, onSearch }) =>
         onClose={() => setShowAuthModal(false)}
         defaultTab={authTab}
       />
+<<<<<<< HEAD
 
       <CustomerSupportChat
         isOpen={showSupportChat}
@@ -151,6 +179,8 @@ const Header = ({ searchTerm, setSearchTerm = () => {}, products, onSearch }) =>
         customerId={user?.uid || 'anonymous'}
         customerName={user?.displayName || user?.email || 'Anonymous'}
       />
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     </>
   );
 };

@@ -24,6 +24,7 @@ const Customers = () => {
         createdAt: doc.data().createdAt?.toDate()
       }));
 
+<<<<<<< HEAD
       // Group orders by real user if possible, fallback to legacy/guest
       const customerMap = {};
       orders.forEach(order => {
@@ -48,6 +49,24 @@ const Customers = () => {
         }
         customerMap[key].orders.push(order);
         customerMap[key].totalSpent += (order.price || 0) * (order.quantity || 1);
+=======
+      // Group orders by customer
+      const customerMap = {};
+      orders.forEach(order => {
+        const key = `${order.customerName}-${order.phone}`;
+        if (!customerMap[key]) {
+          customerMap[key] = {
+            name: order.customerName,
+            phone: order.phone,
+            address: order.address,
+            orders: [],
+            totalSpent: 0,
+            lastOrder: null,
+          };
+        }
+        customerMap[key].orders.push(order);
+        customerMap[key].totalSpent += order.price || 0;
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         if (!customerMap[key].lastOrder || order.createdAt > customerMap[key].lastOrder) {
           customerMap[key].lastOrder = order.createdAt;
         }
@@ -100,7 +119,11 @@ const Customers = () => {
       {/* Customers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCustomers.map((customer, index) => (
+<<<<<<< HEAD
           <Card key={`${customer.email || customer.name}-${customer.phone}`} hover>
+=======
+          <Card key={`${customer.name}-${customer.phone}`} hover>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
             <Card.Content className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center">
@@ -109,6 +132,7 @@ const Customers = () => {
                   </div>
                   <div className="ml-3">
                     <h3 className="font-semibold text-gray-900">{customer.name}</h3>
+<<<<<<< HEAD
                     {customer.email && (
                       <p className="text-xs text-gray-500">{customer.email}</p>
                     )}
@@ -116,6 +140,9 @@ const Customers = () => {
                     {customer.isGuest && (
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 ml-1">Guest</span>
                     )}
+=======
+                    <p className="text-sm text-gray-600">{customer.phone}</p>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
                   </div>
                 </div>
                 <div className="text-right">

@@ -1,12 +1,19 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
+=======
+import React, { useState } from 'react';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import { FaArrowLeft, FaShoppingCart, FaMapMarkerAlt, FaStar, FaTruck, FaShieldAlt, FaUndo, FaClock, FaCreditCard } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import './ProductDetailPanel.css';
+<<<<<<< HEAD
 import RatingAndReviews from './RatingAndReviews';
 import ProductQA from './ProductQA';
 import { db } from '../firebase/config';
 import { collection, query, where, orderBy, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
 const ProductDetailPanel = ({ product, onClose }) => {
   const { addToCart } = useCart();
@@ -14,6 +21,7 @@ const ProductDetailPanel = ({ product, onClose }) => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedLocation, setSelectedLocation] = useState('');
+<<<<<<< HEAD
   const [reviews, setReviews] = useState([]);
   const [qna, setQna] = useState([]);
 
@@ -39,6 +47,8 @@ const ProductDetailPanel = ({ product, onClose }) => {
     });
     return () => { unsubReviews(); unsubQna(); };
   }, [product?.id]);
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 
   const deliveryAreas = [
     'kadam chowk', 'bhanu chowk', 'siva chowk', 'pirari chowk',
@@ -55,6 +65,10 @@ const ProductDetailPanel = ({ product, onClose }) => {
   };
 
   const handleBuyNow = () => {
+<<<<<<< HEAD
+=======
+    addToCart(product, quantity);
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     navigate('/checkout', { state: { product: { ...product, quantity } } });
   };
 
@@ -64,6 +78,7 @@ const ProductDetailPanel = ({ product, onClose }) => {
     }
   };
 
+<<<<<<< HEAD
   const handleSubmitReview = async ({ rating, text }) => {
     // TODO: Add user info if available
     await addDoc(collection(db, 'productReviews'), {
@@ -86,6 +101,8 @@ const ProductDetailPanel = ({ product, onClose }) => {
     });
   };
 
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
   return (
     <div className="product-detail-panel">
       <div className="panel-header">
@@ -138,6 +155,7 @@ const ProductDetailPanel = ({ product, onClose }) => {
             {/* Ratings */}
             <div className="product-rating">
               <div className="stars">
+<<<<<<< HEAD
                 {(() => {
                   const avg = reviews.length ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length : 0;
                   return [1,2,3,4,5].map(star => (
@@ -148,6 +166,13 @@ const ProductDetailPanel = ({ product, onClose }) => {
               <span className="rating-text">
                 {reviews.length ? `${(reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)} (${reviews.length} review${reviews.length > 1 ? 's' : ''})` : 'No reviews yet'}
               </span>
+=======
+                {[1, 2, 3, 4, 5].map(star => (
+                  <FaStar key={star} className={star <= 4 ? 'filled' : 'empty'} />
+                ))}
+              </div>
+              <span className="rating-text">4.2 (128 reviews)</span>
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
             </div>
 
             {/* Price Section */}
@@ -314,6 +339,7 @@ const ProductDetailPanel = ({ product, onClose }) => {
               </div>
             </div>
           )}
+<<<<<<< HEAD
 
           {/* Add demo reviews and Q&A after the product.specifications block */}
           {(
@@ -322,6 +348,8 @@ const ProductDetailPanel = ({ product, onClose }) => {
               <ProductQA productId={product.id} productName={product.name} />
             </div>
           )}
+=======
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         </div>
       </div>
     </div>

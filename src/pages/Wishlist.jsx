@@ -4,7 +4,11 @@ import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
+<<<<<<< HEAD
 import ProductCard from '../components/ProductGrid/ProductCard';
+=======
+import ProductCard from '../components/ProductCard';
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 
@@ -106,7 +110,11 @@ const Wishlist = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {wishlistProducts.map((product) => (
+<<<<<<< HEAD
             <ProductCard key={product.id} product={product} compact={true} />
+=======
+            <ProductCard key={product.id} product={product} />
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
           ))}
         </div>
       </div>
