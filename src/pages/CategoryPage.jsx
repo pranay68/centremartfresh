@@ -85,7 +85,7 @@ const CategoryPage = () => {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [hasMore, loading, lastDoc]);
+  }, );
 
   if (loading && products.length === 0) {
     return (
@@ -159,8 +159,3 @@ const CategoryPage = () => {
 };
 
 export default CategoryPage;
-{
-  "scripts": {
-    "vercel-build": "npm install && npm run build"
-  }
-}
