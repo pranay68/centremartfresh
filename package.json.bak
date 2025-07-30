@@ -3,16 +3,34 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
+    "dependencies": {
         "@csstools/normalize.css": "^12.1.1",
         "@firebase/auth": "^1.11.0",
         "@firebase/firestore": "^4.9.0",
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         "@testing-library/dom": "^10.4.0",
         "@testing-library/jest-dom": "^6.6.3",
         "@testing-library/react": "^16.3.0",
         "@testing-library/user-event": "^13.5.0",
+<<<<<<< HEAD
         "axios": "^1.10.0",
         "cosine-similarity": "^1.0.1",
         "date-fns": "^4.1.0",
+        "firebase": "^11.10.0",
+        "framer-motion": "^12.23.3",
+        "fuse.js": "^6.6.2",
+        "lodash": "^4.17.21",
+        "lucide-react": "^0.525.0",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "react-hot-toast": "^2.5.2",
+        "react-icons": "^5.5.0",
+        "react-router-dom": "^7.6.3",
+        "react-scripts": "5.0.1",
+        "react-virtuoso": "^4.13.0",
+        "recharts": "^3.1.0",
+=======
+        "axios": "^1.9.0",
         "firebase": "^11.10.0",
         "framer-motion": "^12.23.3",
         "fuse.js": "^7.1.0",
@@ -25,8 +43,8 @@
         "react-icons": "^5.5.0",
         "react-router-dom": "^7.7.1",
         "react-scripts": "^5.0.1",
-        "react-virtuoso": "^4.13.0",
-        "recharts": "^3.1.0",
+        "recharts": "^2.15.3",
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
         "web-vitals": "^2.1.4"
     },
     "scripts": {
@@ -52,6 +70,8 @@
             "last 1 firefox version",
             "last 1 safari version"
         ]
+<<<<<<< HEAD
+=======
     },
     "devDependencies": {
         "@types/react": "^19.1.9",
@@ -60,5 +80,6 @@
         "postcss": "^8.5.6",
         "postcss-preset-env": "^10.2.4",
         "tailwindcss": "^4.1.11"
+>>>>>>> fe18f97f0bc70af05074cbfefd57cf9626683a1d
     }
 }
