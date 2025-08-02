@@ -55,7 +55,28 @@ const ProductDetailPanel = ({ product, onClose }) => {
   };
 
   const handleBuyNow = () => {
-    navigate('/checkout', { state: { product: { ...product, quantity } } });
+    const finalPrice = Math.round(calculatePrice(quantity));
+    navigate('/checkout', { 
+      state: { 
+        product: { 
+          ...product, 
+          quantity,
+          finalPrice,
+          hasBulkDiscount: quantity >= 6,
+          originalTotal: product.price * quantity,
+          savings: quantity >= 6 ? Math.round(product.price * quantity * 0.01) : 0
+        } 
+      } 
+    });
+  };
+
+  const calculatePrice = (qty) => {
+    const basePrice = product.price || 0;
+    const totalPrice = basePrice * qty;
+    if (qty >= 6) {
+      return totalPrice * 0.99; // 1% discount for 6 or more items
+    }
+    return totalPrice;
   };
 
   const handleQuantityChange = (newQuantity) => {
@@ -152,12 +173,23 @@ const ProductDetailPanel = ({ product, onClose }) => {
 
             {/* Price Section */}
             <div className="product-price-section">
-              <div className="price">Rs {product.price}</div>
+              <div className="price">Rs {Math.round(calculatePrice(quantity))}</div>
               {product.originalPrice && product.originalPrice > product.price && (
                 <div className="original-price">Rs {product.originalPrice}</div>
               )}
               {product.discount && (
                 <div className="discount-badge">{product.discount}% OFF</div>
+              )}
+              {quantity >= 6 && (
+                <div className="bulk-discount-badge">1% bulk discount applied</div>
+              )}
+            </div>
+
+            {/* Total Price */}
+            <div className="total-price-section">
+              <span>Total: Rs {Math.round(calculatePrice(quantity))}</span>
+              {quantity >= 6 && (
+                <span className="savings">You save: Rs {Math.round(product.price * quantity * 0.01)}</span>
               )}
             </div>
 

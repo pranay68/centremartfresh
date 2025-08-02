@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Home from './pages/Home';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
@@ -13,8 +14,7 @@ function App() {
     return ( <
         div className = "App"
         style = {
-            { backgroundColor: 'white', minHeight: '100vh' }
-        } >
+            { backgroundColor: 'white', minHeight: '100vh' } } >
         <
         CartProvider >
         <
@@ -22,6 +22,32 @@ function App() {
         <
         >
         <
+        Toaster position = "top-center"
+        reverseOrder = { false }
+        gutter = { 8 }
+        toastOptions = {
+            {
+                duration: 3000,
+                style: {
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                },
+                success: {
+                    iconTheme: {
+                        primary: 'var(--success-color)',
+                        secondary: 'white',
+                    },
+                },
+                error: {
+                    iconTheme: {
+                        primary: 'var(--error-color)',
+                        secondary: 'white',
+                    },
+                },
+            }
+        }
+        /> <
         Routes >
         <
         Route path = "/"
@@ -38,14 +64,14 @@ function App() {
         /> <
         Route path = "/orders"
         element = { < Orders / > }
-        /> < /
-        Routes > <
+        /> <
+        /Routes> <
         ReviewModal / >
         <
-        /> < /
-        Router > <
-        /CartProvider> < /
-        div >
+        /> <
+        /Router> <
+        /CartProvider> <
+        /div>
     );
 }
 

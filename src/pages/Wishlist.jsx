@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getAllProducts } from '../utils/productData';
 import ProductCard from '../components/ProductGrid/ProductCard';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -15,32 +14,20 @@ const Wishlist = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchWishlistProducts = async () => {
-      if (wishlist.length === 0) {
-        setWishlistProducts([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const q = query(
-          collection(db, 'products'),
-          where('__name__', 'in', wishlist)
-        );
-        const snapshot = await getDocs(q);
-        const products = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setWishlistProducts(products);
-      } catch (error) {
-        console.error('Error fetching wishlist products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWishlistProducts();
+    if (wishlist.length === 0) {
+      setWishlistProducts([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const allProducts = getAllProducts();
+      const products = allProducts.filter(p => wishlist.includes(p.id));
+      setWishlistProducts(products);
+    } catch (error) {
+      console.error('Error filtering wishlist products:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [wishlist]);
 
   if (!user) {

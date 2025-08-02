@@ -73,20 +73,11 @@ bro
 }
 
 .product-card.out_of_stock {
-    opacity: 0.8;
+    opacity: 0.9;
 }
 
-.product-card.out_of_stock::after {
-    content: 'Out of Stock';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-    background: rgba(255, 0, 0, 0.8);
-    color: white;
-    padding: 5px 20px;
-    font-weight: bold;
-    z-index: 2;
+.product-card.out_of_stock .product-image-container {
+    opacity: 0.7;
 }
 
 .product-card.low_stock .product-image::after {
@@ -410,9 +401,13 @@ bro
 
 .product-price-container {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
-    margin-bottom: 8px;
+    margin: 8px 0;
+    background: #f8fafc;
+    padding: 6px 10px;
+    border-radius: 6px;
+    gap: 8px;
 }
 
 .product-price {
@@ -422,9 +417,11 @@ bro
 }
 
 .current-price {
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 700;
-    color: #059669 !important;
+    color: #000 !important;
+    display: flex;
+    align-items: center;
 }
 
 .original-price {
@@ -995,9 +992,12 @@ bro
 }
 
 .btn-disabled {
-    background: #e5e7eb;
-    color: #b0b0b0;
+    width: 100%;
+    background: #f3f4f6;
+    color: #ef4444;
+    font-weight: 600;
     cursor: not-allowed;
+    border: 1px solid #fee2e2;
 }
 
 

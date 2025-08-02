@@ -3,10 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, Heart, ShoppingCart, Bell, User, Home, MessageCircle } from 'lucide-react';
 import { useMediaQuery } from 'react-responsive';
 import './HomeMobile.css';
-import { collection, query, orderBy, limit, startAfter, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getAllProducts } from '../utils/productData';
 
-const PRODUCTS_PER_PAGE = 10;
+// const PRODUCTS_PER_PAGE = 10; // Removed as it is unused
 const BUFFER_SIZE = 30; // Maximum products to keep in memory
 const SCROLL_THRESHOLD = 0.8; // Load more when 80% scrolled
 
@@ -16,9 +15,7 @@ const HomeMobile = () => {
   
   // Product management states
   const [products, setProducts] = useState([]);
-  const [lastDoc, setLastDoc] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [productPositions, setProductPositions] = useState({}); // Track scroll positions
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: BUFFER_SIZE });
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,52 +23,25 @@ const HomeMobile = () => {
   // Refs
   const scrollRef = useRef(null);
   const loadingRef = useRef(false);
-  const productCache = useRef({}); // Cache for removed products
-  
-  // Fetch products with pagination
-  const fetchProducts = useCallback(async (startAfterDoc = null) => {
-    if (loading || !hasMore) return;
-    
+  // Fetch all products from local data
+  const fetchProducts = useCallback(() => {
+    setLoading(true);
     try {
-      setLoading(true);
-      loadingRef.current = true;
-      
-      const productsRef = collection(db, 'products');
-      let q;
-      
-      if (startAfterDoc) {
-        q = query(productsRef, orderBy('name'), startAfter(startAfterDoc), limit(PRODUCTS_PER_PAGE));
-      } else {
-        q = query(productsRef, orderBy('name'), limit(PRODUCTS_PER_PAGE));
-      }
-      
-      const snapshot = await getDocs(q);
-      const newProducts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      setProducts(prev => {
-        const combined = [...prev, ...newProducts];
-        // Update product positions
-        const positions = {...productPositions};
-        newProducts.forEach((p, idx) => {
-          positions[p.id] = prev.length + idx;
-        });
-        setProductPositions(positions);
-        return combined;
+      const allProducts = getAllProducts();
+      setProducts(allProducts);
+      // Set product positions for virtualization
+      const positions = {};
+      allProducts.forEach((p, idx) => {
+        positions[p.id] = idx;
       });
-      
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === PRODUCTS_PER_PAGE);
-      
+      setProductPositions(positions);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error loading products:', error);
     } finally {
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [loading, hasMore, productPositions]);
+  }, []);
 
   // Handle search
   const handleSearch = (e) => {
@@ -147,32 +117,11 @@ const HomeMobile = () => {
       .sort((a, b) => productPositions[a.id] - productPositions[b.id]);
     
     if (productsToRestore.length > 0) {
-      setProducts(prev => {
-        const restored = [...productsToRestore, ...prev];
-        // Clean up cache
-        const newCache = {...productCache.current};
-        productsToRestore.forEach(p => {
-          delete newCache[p.id];
-        });
-        productCache.current = newCache;
-        return restored;
-      });
-    }
-  }, [productPositions]);
-
-  // Initialize scroll event listener
-  useEffect(() => {
-    const currentRef = scrollRef.current;
-    if (currentRef) {
-      currentRef.addEventListener('scroll', handleScroll);
-      return () => currentRef.removeEventListener('scroll', handleScroll);
-    }
-  }, [handleScroll]);
 
   // Initial load
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   // Get visible products
   const visibleProducts = products.slice(visibleRange.start, visibleRange.end);
@@ -263,9 +212,9 @@ const HomeMobile = () => {
         </div>
 
         {/* Loading indicator */}
-        {hasMore && (
+        {loading && (
           <div className="loading-trigger">
-            {loading && <div className="loading-spinner" />}
+            <div className="loading-spinner" />
           </div>
         )}
 
@@ -297,4 +246,6 @@ const HomeMobile = () => {
   );
 };
 
-export default HomeMobile; 
+}
+}
+export default HomeMobile;

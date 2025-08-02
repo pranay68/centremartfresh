@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { collection, getDocs, onSnapshot } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { getAllProducts } from '../utils/productData';
 import ProductCard from '../components/ProductGrid/ProductCard';
 import { sortByStock } from '../utils/sortProducts';
 import ProductDetailPanel from "../components/ProductDetailPanel";
@@ -16,24 +15,23 @@ const CategoryPage = () => {
 
   const decodedCategory = decodeURIComponent(category);
 
-  useEffect(() => {
-    const productsRef = collection(db, "products");
-    const unsubscribe = onSnapshot(productsRef, (snapshot) => {
-      const allProducts = [];
-      snapshot.forEach((doc) => {
-        const product = { id: doc.id, ...doc.data() };
-        if (product.category && product.category.toLowerCase().includes(decodedCategory.toLowerCase())) {
-          allProducts.push(product);
-        }
-      });
-      setProducts(allProducts);
+  // Fetch products by category from local data
+  const fetchProducts = useCallback(() => {
+    setLoading(true);
+    try {
+      const allProducts = getAllProducts();
+      const filtered = allProducts.filter(p => p.category === decodedCategory);
+      setProducts(filtered);
+    } catch (error) {
+      console.error('Error filtering products:', error);
+    } finally {
       setLoading(false);
-    }, (error) => {
-      setLoading(false);
-      console.error("Error fetching products:", error);
-    });
-    return () => unsubscribe();
+    }
   }, [decodedCategory]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const getCategoryIcon = (category) => {
     const categoryLower = category.toLowerCase();

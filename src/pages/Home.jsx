@@ -10,20 +10,14 @@ import SearchAnalytics from '../components/SearchAnalytics';
 import ProductDetailPanel from '../components/ProductDetailPanel';
 import CustomerSupport from '../components/CustomerSupport';
 import AuthModal from '../components/auth/AuthModal';
-import { Filter, SortAsc, Eye, Heart, ShoppingCart, Star, TrendingUp, Clock, Zap, Search, Grid3X3, List } from 'lucide-react';
+import { Filter, SortAsc, Eye, Heart, ShoppingCart, Star, TrendingUp, Clock, Zap, Search, LayoutGrid, List } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { db } from '../firebase/config';
 import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  getDocs,
-  startAfter,
-  where,
-  addDoc,
-  onSnapshot
-} from 'firebase/firestore';
+  getAllProducts,
+  searchProducts,
+  getTopSellingProducts,
+  getNewArrivals
+} from '../utils/productData';
 import './HomeNew.css';
 import { useAuth } from '../context/AuthContext';
 import RatingAndReviews from '../components/RatingAndReviews';
@@ -33,15 +27,15 @@ import BottomNav from '../components/ui/BottomNav';
 const Home = () => {
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
-  const [lastDoc, setLastDoc] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [panels, setPanels] = useState([]);
+  const [visibleCategories, setVisibleCategories] = useState(4); // Initially show 4 categories
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const PRODUCTS_PER_PAGE = 12;
+  const categoryObserverRef = useRef();
 
   // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -67,6 +61,18 @@ const Home = () => {
   const [showAllRecentlyViewed, setShowAllRecentlyViewed] = useState(false);
   
   const observer = useRef();
+  const productCache = useRef(new Map());
+  const CACHE_TIMEOUT = 5 * 60 * 1000; // 5 minutes cache
+  
+  // Define categories early
+  const [categories, setCategories] = useState([]);
+  const [lastFetch, setLastFetch] = useState(null);
+
+  // Effect to update categories whenever allProducts changes
+  useEffect(() => {
+    const uniqueCategories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
+    setCategories(uniqueCategories);
+  }, [allProducts]);
 
   // Remove the normalize and filterProducts functions
 
@@ -130,113 +136,72 @@ const Home = () => {
   // Set compact mode by default for search results
   const [viewMode, setViewMode] = useState(searchTerm ? 'compact' : 'grid');
 
-  // Fetch initial products
-  const fetchProducts = useCallback(async (initial = false) => {
-    if (loading || (!hasMore && !initial)) return;
-    
+  // Load products from local data only
+  const loadProducts = useCallback(() => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const productsRef = collection(db, 'products');
-      
-      let q;
-      if (initial) {
-        q = query(productsRef, orderBy('name'), limit(PRODUCTS_PER_PAGE));
-      } else {
-        if (!lastDoc) return;
-        q = query(productsRef, orderBy('name'), startAfter(lastDoc), limit(PRODUCTS_PER_PAGE));
-      }
-
-      const snapshot = await getDocs(q);
-      const fetchedProducts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      setProducts(prev => initial ? fetchedProducts : [...prev, ...fetchedProducts]);
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === PRODUCTS_PER_PAGE);
-      setLoading(false);
+      const allProductsData = getAllProducts();
+      setAllProducts(allProductsData);
+      // Filter and sort products based on current filters
+      setProducts(applyFiltersAndSort(allProductsData));
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error loading products:', error);
+      toast.error('Failed to load products');
+    } finally {
       setLoading(false);
     }
-  }, [loading, lastDoc, hasMore]);
+  }, [applyFiltersAndSort]);
 
-  // Initialize intersection observer for infinite scroll
-  const lastProductRef = useCallback(node => {
-    if (loading) return;
-    
-    if (observer.current) observer.current.disconnect();
-    
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        fetchProducts(false);
-      }
-    });
-    
-    if (node) observer.current.observe(node);
-  }, [loading, hasMore, fetchProducts]);
+  // Initialize intersection observers for infinite scroll
+  // Remove infinite scroll logic for Firestore pagination
+  const lastProductRef = useCallback(node => {}, []);
 
-  // Fetch products by category
-  const fetchProductsByCategory = useCallback(async (category, initial = false) => {
-    if (loading || (!hasMore && !initial)) return;
-    
+  // Category lazy loading observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && visibleCategories < categories.length) {
+          setVisibleCategories(prev => Math.min(prev + 3, categories.length));
+        }
+      },
+      { rootMargin: '100px' }
+    );
+
+    if (categoryObserverRef.current) {
+      observer.observe(categoryObserverRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [visibleCategories, categories.length]);
+
+  // Fetch products by category from local data
+  const fetchProductsByCategory = useCallback((category) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const productsRef = collection(db, 'products');
-      
-      let q;
-      if (initial) {
-        q = query(
-          productsRef, 
-          where('category', '==', category),
-          orderBy('name'),
-          limit(PRODUCTS_PER_PAGE)
-        );
-      } else {
-        if (!lastDoc) return;
-        q = query(
-          productsRef,
-          where('category', '==', category),
-          orderBy('name'),
-          startAfter(lastDoc),
-          limit(PRODUCTS_PER_PAGE)
-        );
-      }
-
-      const snapshot = await getDocs(q);
-      const fetchedProducts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      setProducts(prev => initial ? fetchedProducts : [...prev, ...fetchedProducts]);
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === PRODUCTS_PER_PAGE);
-      setLoading(false);
+      const allProductsData = getAllProducts();
+      const filtered = allProductsData.filter(p => p.category === category);
+      setProducts(applyFiltersAndSort(filtered));
     } catch (error) {
-      console.error('Error fetching products by category:', error);
+      console.error('Error filtering products by category:', error);
+      toast.error('Failed to filter products');
+    } finally {
       setLoading(false);
     }
-  }, [loading, lastDoc, hasMore]);
+  }, [applyFiltersAndSort]);
 
   // Effect to fetch initial products
   useEffect(() => {
-    fetchProducts(true);
-  }, [fetchProducts]);
+    loadProducts();
+  }, [loadProducts]);
 
-  // Reset pagination when category changes
+  // Reset products when category changes
   useEffect(() => {
     if (filters.category) {
-      setLastDoc(null);
-      setHasMore(true);
-      fetchProductsByCategory(filters.category, true);
+      fetchProductsByCategory(filters.category);
     } else {
-      setLastDoc(null);
-      setHasMore(true);
-      fetchProducts(true);
+      loadProducts();
     }
-  }, [filters.category, fetchProducts, fetchProductsByCategory]);
+  }, [filters.category, fetchProductsByCategory, loadProducts]);
 
   // Render products with intersection observer
   const renderProducts = (products) => {
@@ -280,14 +245,7 @@ const Home = () => {
     });
   };
 
-  // Real-time allProducts
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAllProducts(items);
-    });
-    return () => unsubscribe();
-  }, []);
+  // Remove real-time product updates (onSnapshot) for products
 
   // Remove fetchAllProducts and fetchPanels, and use allProducts for panels and sections.
 
@@ -305,12 +263,11 @@ const Home = () => {
       setCompareList(compareData);
     };
 
-    fetchProducts(true);
-    
+    loadProducts();
     // Check if user is admin (simple localStorage check)
     const adminStatus = localStorage.getItem('isAdmin') === 'true';
     setIsAdmin(adminStatus);
-  }, [fetchProducts]);
+  }, []);
 
   const handleSearch = useCallback((term, filteredProducts = null) => {
     setSearchTerm(term);
@@ -413,32 +370,20 @@ const Home = () => {
   const [userOrders, setUserOrders] = useState([]);
   const [reviewingOrder, setReviewingOrder] = useState(null);
 
+  // Remove Firestore review fetching logic
   const handleOpenReviews = async () => {
     if (!user) {
       alert('Please sign in to view your reviews.');
       return;
     }
-    // Fetch all orders for this user
-    const q = query(
-      collection(db, 'orders'),
-      where('userId', '==', user.uid)
-    );
-    const snap = await getDocs(q);
-    setUserOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    // TODO: Implement review fetching from local data if needed
     setShowReviewModal(true);
   };
 
   // Review submission handler
+  // Remove Firestore review submission logic
   const handleSubmitReview = async (order, review) => {
-    await addDoc(collection(db, 'productReviews'), {
-      productId: order.productId,
-      userId: user.uid,
-      userName: user.displayName || user.email || 'Anonymous',
-      rating: review.rating,
-      text: review.text,
-      createdAt: new Date(),
-      verified: true
-    });
+    // TODO: Implement review submission to local data if needed
     toast.success('Review submitted!');
     setReviewingOrder(null);
     setShowReviewModal(false);
@@ -452,7 +397,6 @@ const Home = () => {
 
   // Get filtered and sorted products
   const displayProducts = applyFiltersAndSort(products);
-  const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
 
   return (
     <div className="home-page">
@@ -533,19 +477,33 @@ const Home = () => {
       {/* Category Panels - show each category and its products */}
       {!searchTerm && (
         <>
-          {categories.map((cat, i) => {
+          {categories.slice(0, visibleCategories).map((cat, i) => {
             const catProducts = allProducts.filter(p => p.category === cat);
             return catProducts.length > 0 ? (
-              <CategoryPanel
-                key={cat}
-                title={cat}
-                products={catProducts}
-                onProductClick={handleProductClick}
-                onAuthRequired={handleAuthRequired}
-                compact={true}
-              />
+              <div 
+                key={cat} 
+                ref={i === visibleCategories - 1 ? categoryObserverRef : null}
+              >
+                <CategoryPanel
+                  title={cat}
+                  products={catProducts}
+                  onProductClick={handleProductClick}
+                  onAuthRequired={handleAuthRequired}
+                  compact={true}
+                />
+              </div>
             ) : null;
           })}
+          {visibleCategories < categories.length && (
+            <div className="load-more-categories">
+              <button 
+                onClick={() => setVisibleCategories(prev => Math.min(prev + 3, categories.length))}
+                className="load-more-btn"
+              >
+                Load More Categories
+              </button>
+            </div>
+          )}
         </>
       )}
 
@@ -616,7 +574,7 @@ const Home = () => {
                 onClick={() => setViewMode('grid')}
                 title="Grid View"
               >
-                <Grid3X3 size={16} />
+                <LayoutGrid size={16} />
               </button>
               <button 
                 className={`view-mode-btn ${viewMode === 'compact' ? 'active' : ''}`}

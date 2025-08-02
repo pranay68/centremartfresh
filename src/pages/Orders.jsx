@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { collection, query, where, orderBy, getDocs, updateDoc, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { safeTimestamp, formatDate } from '../utils/dateUtils';
 import { 
   Package, 
   Clock, 
@@ -40,7 +41,7 @@ const Orders = () => {
         const userOrders = ordersSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate()
+          createdAt: safeTimestamp(doc.data().createdAt)
         }));
         setOrders(userOrders);
         setLoading(false);
@@ -83,13 +84,7 @@ const Orders = () => {
     }
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-  };
+  // Using formatDate from dateUtils
 
   const calculateTotal = (items) => {
     return (items || []).reduce((total, item) => total + (item.price * item.quantity), 0);

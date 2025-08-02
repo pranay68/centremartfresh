@@ -1,16 +1,57 @@
-import React from 'react';
-import { FaCrown, FaStar, FaChartLine, FaFire } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaChartLine, FaFire } from 'react-icons/fa';
 import ProductCard from './ProductGrid/ProductCard';
 import './TopSaleSection.css';
+import { collection, query, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 const TopSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit, onAuthRequired }) => {
-  // Filter top selling products (you can add a topSale property to products)
-  const topSaleProducts = products.filter(product => product.topSale) || [];
+  const [topSellers, setTopSellers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // If no top sale products, show some products with high ratings or random selection
-  const displayProducts = topSaleProducts.length > 0 
-    ? topSaleProducts 
-    : products.slice(0, 6); // Show first 6 products as fallback
+  useEffect(() => {
+    const fetchTopSellers = async () => {
+      try {
+        // Get all orders
+        const ordersQuery = query(collection(db, 'orders'));
+        const ordersSnapshot = await getDocs(ordersQuery);
+        const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Count sales for each product
+        const salesCount = {};
+        orders.forEach(order => {
+          if (order.items) {
+            order.items.forEach(item => {
+              if (item.id) {
+                salesCount[item.id] = (salesCount[item.id] || 0) + (item.quantity || 1);
+              }
+            });
+          }
+        });
+
+        // Sort products by sales count and get top 6
+        const topProducts = products
+          .map(product => ({
+            ...product,
+            salesCount: salesCount[product.id] || 0
+          }))
+          .sort((a, b) => b.salesCount - a.salesCount)
+          .slice(0, 6);
+
+        setTopSellers(topProducts);
+      } catch (error) {
+        console.error('Error fetching top sellers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (products.length > 0) {
+      fetchTopSellers();
+    }
+  }, [products]);
+
+  const displayProducts = topSellers.length > 0 ? topSellers : products.slice(0, 6);
 
   if (displayProducts.length === 0 && !isAdmin) return null;
 
@@ -35,7 +76,12 @@ const TopSaleSection = ({ products = [], onProductClick, isAdmin = false, onEdit
       </div>
 
       <div className="top-sale-products product-bar-grid">
-        {displayProducts.length > 0 ? (
+        {loading ? (
+          <div className="loading-products">
+            <div className="loading-spinner"></div>
+            <p>Loading top sellers...</p>
+          </div>
+        ) : displayProducts.length > 0 ? (
           displayProducts.map((product, index) => (
             <div key={product.id} className="top-sale-product">
               <div className="product-badge">

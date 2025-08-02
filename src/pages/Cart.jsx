@@ -23,84 +23,8 @@ const Cart = () => {
   const [loading, setLoading] = useState(true);
   const [selectedItems, setSelectedItems] = useState(new Set());
 
-  // Mock cart data
-  const mockCartItems = [
-    {
-      id: 1,
-      name: "Premium Wireless Bluetooth Headphones",
-      price: 2499,
-      originalPrice: 3499,
-      quantity: 1,
-      stock: 15,
-      image: "https://via.placeholder.com/300x200?text=Headphones",
-      brand: "SoundMaster",
-      color: "Black",
-      size: "Standard",
-      rating: 4.5,
-      reviewCount: 1247,
-      features: ["Noise Cancellation", "30-hour battery"],
-      prime: true,
-      freeShipping: true,
-      location: "Karachi, Pakistan"
-    },
-    {
-      id: 2,
-      name: "Smart Fitness Watch",
-      price: 1899,
-      quantity: 2,
-      stock: 8,
-      image: "https://via.placeholder.com/300x200?text=Watch",
-      brand: "FitTech",
-      color: "Blue",
-      size: "Large",
-      rating: 4.2,
-      reviewCount: 856,
-      features: ["Heart Rate Monitor", "GPS Tracking"],
-      prime: true,
-      freeShipping: true,
-      location: "Lahore, Pakistan"
-    },
-    {
-      id: 3,
-      name: "Wireless Gaming Mouse",
-      price: 899,
-      originalPrice: 1299,
-      quantity: 1,
-      stock: 25,
-      image: "https://via.placeholder.com/300x200?text=Mouse",
-      brand: "GamePro",
-      color: "RGB",
-      size: "Medium",
-      rating: 4.7,
-      reviewCount: 2341,
-      features: ["RGB Lighting", "Programmable Buttons"],
-      freeShipping: true,
-      location: "Islamabad, Pakistan"
-    }
-  ];
 
-  const mockSavedItems = [
-    {
-      id: 4,
-      name: "Bluetooth Speaker",
-      price: 1299,
-      image: "https://via.placeholder.com/300x200?text=Speaker",
-      brand: "AudioMax",
-      rating: 4.1,
-      reviewCount: 432
-    }
-  ];
-
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setCartItems(mockCartItems);
-      setSavedItems(mockSavedItems);
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  const handleQuantityChange = (itemId, newQuantity) => {
+    const handleQuantityChange = (itemId, newQuantity) => {
     setCartItems(prev => 
       prev.map(item => 
         item.id === itemId 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, getDoc } from 'firebase/firestore';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, getDoc, limit, startAfter } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -11,6 +11,9 @@ import { Link } from 'react-router-dom';
 import Modal from '../../components/ui/Modal';
 import { FaSearch } from 'react-icons/fa';
 import { uploadToCloudinary } from '../../utils/cloudinaryUpload';
+import { searchProducts } from '../../utils/productSearch';
+import { sortByStock } from '../../utils/sortProducts';
+import throttle from 'lodash/throttle';
 
 const Products = () => {
   // Categories state
@@ -94,9 +97,10 @@ const Products = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fetch products from Firebase
+  // Fetch initial batch of products and set up real-time updates
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+    const productsRef = collection(db, 'products');
+    const unsubscribe = onSnapshot(query(productsRef, limit(10)), (snapshot) => {
       const productsData = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -122,6 +126,26 @@ const Products = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // Search and filter products
+  const handleSearch = useCallback(
+    throttle(async (term) => {
+      setSearchTerm(term);
+      if (!term) {
+        setFilteredProducts(products.slice(0, visibleCount));
+        return;
+      }
+
+      try {
+        const searchResults = await searchProducts(term, products);
+        setFilteredProducts(searchResults.slice(0, visibleCount));
+      } catch (error) {
+        console.error('Search error:', error);
+        toast.error('Search failed');
+      }
+    }, 300),
+    [products, visibleCount]
+  );
 
   // Filter products by category
   useEffect(() => {

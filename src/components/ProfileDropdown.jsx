@@ -4,14 +4,61 @@ import { useAuth } from '../context/AuthContext';
 import { 
   User, 
   Package, 
-  Settings, 
-  LogOut, 
-  MapPin, 
+  Settings,                                             <div className="order-status-container">
+                        <div 
+                          className={`order-status ${order.status === 'cancelled' ? 'cancelled' : ''}`}
+                          style={{ color: getOrderStatus(order.status).color }}
+                        >
+                          {getOrderStatus(order.status).text}
+                        </div>
+                        {order.status !== 'cancelled' && (
+                          <button
+                            className="cancel-order-btn"
+                            onClick={() => handleCancelOrder(order.id)}
+                          >
+                            <XCircle size={14} />
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                ))}
+              </div>
+              {userOrders.length > 3 && (
+                <Link to="/orders" className="view-all-orders" onClick={() => setIsOpen(false)}>
+                  View all {userOrders.length} orders
+                </Link>
+              )}="order-actions">
+                        <div 
+                          className={`order-status ${order.status === 'cancelled' ? 'cancelled' : ''}`}
+                          style={{ color: getOrderStatus(order.status).color }}
+                        >
+                          {getOrderStatus(order.status).text}
+                        </div>
+                        {order.status !== 'cancelled' && (
+                          <button
+                            className="cancel-order-btn"
+                            onClick={() => handleCancelOrder(order.id)}
+                          >
+                            <XCircle size={14} />
+                            <span>Cancel</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                ))}
+              </div>
+              {userOrders.length > 3 && (
+                <Link to="/orders" className="view-all-orders" onClick={() => setIsOpen(false)}>
+                  View all {userOrders.length} orders
+                </Link>
+              )}  MapPin, 
   Clock,
   ChevronDown,
-  UserCheck
+  UserCheck,
+  XCircle
 } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './ProfileDropdown.css';
 
@@ -45,6 +92,34 @@ const ProfileDropdown = () => {
       console.error('Error loading user data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const updatedOrders = userData.orders.map(order => {
+          if (order.id === orderId) {
+            return { ...order, status: 'cancelled' };
+          }
+          return order;
+        });
+
+        await updateDoc(userDocRef, { orders: updatedOrders });
+        
+        // Update order in admin's orders collection
+        const orderDocRef = doc(db, 'orders', orderId);
+        await updateDoc(orderDocRef, { status: 'cancelled' });
+        
+        // Refresh orders data
+        loadUserData();
+      }
+    } catch (error) {
+      console.error('Error cancelling order:', error);
     }
   };
 
@@ -152,6 +227,10 @@ const ProfileDropdown = () => {
                 <span className="order-count">{userOrders.length}</span>
               )}
             </Link>
+            <Link to="/order-cancellation" className="dropdown-item" onClick={() => setIsOpen(false)}>
+              <XCircle size={16} />
+              <span>Order Cancellation</span>
+            </Link>
             <Link to="/settings" className="dropdown-item" onClick={() => setIsOpen(false)}>
               <Settings size={16} />
               <span>Settings</span>
@@ -170,13 +249,27 @@ const ProfileDropdown = () => {
                         {new Date(order.timestamp?.toDate() || Date.now()).toLocaleDateString()}
                       </span>
                     </div>
-                    <div 
-                      className="order-status"
-                      style={{ color: getOrderStatus(order.status).color }}
-                    >
-                      {getOrderStatus(order.status).text}
+                    <div className="order-status-container">
+                        <div 
+                          className={`order-status ${order.status === 'cancelled' ? 'cancelled' : ''}`}
+                          style={{ color: getOrderStatus(order.status).color }}
+                        >
+                          {getOrderStatus(order.status).text}
+                        </div>
+                        {order.status !== 'cancelled' && (
+                          <button
+                            className="cancel-order-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCancelOrder(order.id);
+                            }}
+                          >
+                            <XCircle size={14} />
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
                 ))}
               </div>
               {userOrders.length > 3 && (

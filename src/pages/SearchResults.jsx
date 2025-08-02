@@ -5,8 +5,7 @@ import ProductCard from '../components/ProductGrid/ProductCard';
 import ProductDetailPanel from '../components/ProductDetailPanel';
 import PowerSearch from '../components/PowerSearch';
 import { useEffect, useState, useMemo } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getAllProducts } from '../utils/productData';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -16,16 +15,15 @@ const SearchResults = () => {
   const queryParam = searchParams.get('q') || searchParams.get('query') || '';
 
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState(queryParam);
   const [allProducts, setAllProducts] = useState([]);
 
   // Fuse.js options to match PowerSearch configuration
-  const fuseOptions = {
+  const fuseOptions = useMemo(() => ({
     keys: [
       { name: 'name', weight: 0.7 },
       { name: 'description', weight: 0.3 },
@@ -33,7 +31,7 @@ const SearchResults = () => {
     ],
     threshold: 0.3,
     includeScore: false,
-  };
+  }), []);
 
   // Run initial search when queryParam or allProducts change
   useEffect(() => {
@@ -54,21 +52,16 @@ const SearchResults = () => {
 
     setResults(sortByStock(filtered));
     setCurrentPage(1);
-    setHasMore(filtered.length > ITEMS_PER_PAGE);
-  }, [queryParam, allProducts]);
+  }, [queryParam, allProducts, fuseOptions]);
 
   // Fetch all products from Firestore
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, 'products'));
-        const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setAllProducts(products);
-      } catch (error) {
-        setError('Failed to load products.');
-      }
-    };
-    fetchProducts();
+    try {
+      const products = getAllProducts();
+      setAllProducts(products);
+    } catch (error) {
+      setError('Failed to load products.');
+    }
   }, []);
 
   // Pagination
@@ -89,7 +82,6 @@ const SearchResults = () => {
             setSearchTerm(term);
             setResults(filteredProducts || []);
             setCurrentPage(1);
-            setHasMore((filteredProducts || []).length > ITEMS_PER_PAGE);
           }}
         />
         <div className="search-stats">

@@ -5,6 +5,14 @@ import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import "../AdminPanel.css";
+// Utility to safely convert Firestore Timestamp, string, or number to Date
+function safeToDate(ts) {
+  if (!ts) return null;
+  if (typeof ts.toDate === 'function') return ts.toDate();
+  if (typeof ts === 'string' || typeof ts === 'number') return new Date(ts);
+  if (ts instanceof Date) return ts;
+  return null;
+}
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -21,7 +29,7 @@ const Customers = () => {
       const orders = ordersSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
+        createdAt: safeToDate(doc.data().createdAt)
       }));
 
       // Group orders by real user if possible, fallback to legacy/guest
