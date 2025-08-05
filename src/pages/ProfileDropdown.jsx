@@ -150,6 +150,10 @@ const ProfileDropdown = () => {
                 <span className="order-count">{userOrders.length}</span>
               )}
             </Link>
+            <Link to="/order-cancellation" className="dropdown-item" onClick={() => setIsOpen(false)}>
+              <Clock size={16} />
+              <span>Order Cancellation</span>
+            </Link>
             <Link to="/settings" className="dropdown-item" onClick={() => setIsOpen(false)}>
               <Settings size={16} />
               <span>Settings</span>

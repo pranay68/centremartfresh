@@ -1,9 +1,25 @@
+@media (max-width: 768px) {
+    body,
+    html,
+    #root,
+    .App,
+    .mobile-view,
+    .mobile-container,
+    main {
+        background: #fff !important;
+        --theme-bg-primary: #fff !important;
+        --theme-bg-secondary: #fff !important;
+        --theme-bg-tertiary: #fff !important;
+    }
+}
+
+
 /* Mobile-specific styles */
 
 .mobile-view {
     width: 100%;
     min-height: 100vh;
-    background: var(--theme-bg-primary);
+    background: #fff !important;
 }
 
 .mobile-container {
@@ -21,7 +37,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    background: var(--theme-bg-primary);
+    background: #fff !important;
     padding: 6px 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -57,7 +73,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    background: var(--theme-bg-secondary);
+    background: #fff !important;
     border-radius: 6px;
     padding: 0 8px;
     border: 1px solid var(--theme-border);
@@ -104,7 +120,7 @@
 
 .mobile-product-card {
     position: relative;
-    background: var(--theme-bg-secondary);
+    background: #fff !important;
     border-radius: 8px;
     overflow: hidden;
     text-decoration: none;
