@@ -237,7 +237,17 @@ const ProductDetail = () => {
   };
 
   const handleBuyNow = () => {
-    // Navigate to checkout
+    // Save product and quantity to sessionStorage for checkout
+    if (product) {
+      const buyNowItem = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.images?.[0] || '',
+        quantity: quantity,
+      };
+      sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+    }
     navigate('/checkout');
   };
 
