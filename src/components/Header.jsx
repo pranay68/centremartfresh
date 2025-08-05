@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import AuthModal from './auth/AuthModal';
 import PowerSearch from './PowerSearch';
-import ProfileDropdown from './ProfileDropdown';
+import ProfileDropdown from '../pages/ProfileDropdown';
 import CustomerSupportChat from './CustomerSupportChat';
 import { Bell, MessageCircle } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
