@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
-import { getAllProducts } from '../utils/productData';
+import { getProductsByIds } from '../data/productsService';
 import ProductCard from '../components/ProductGrid/ProductCard';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -19,15 +19,8 @@ const Wishlist = () => {
       setLoading(false);
       return;
     }
-    try {
-      const allProducts = getAllProducts();
-      const products = allProducts.filter(p => wishlist.includes(p.id));
-      setWishlistProducts(products);
-    } catch (error) {
-      console.error('Error filtering wishlist products:', error);
-    } finally {
-      setLoading(false);
-    }
+    setWishlistProducts(getProductsByIds(wishlist));
+    setLoading(false);
   }, [wishlist]);
 
   if (!user) {

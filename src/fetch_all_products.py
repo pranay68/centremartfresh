@@ -25,6 +25,7 @@ def fetch_all_products():
                 "name": data.get('name', ''),
                 "category": data.get('category', ''),
                 "description": data.get('description', '')
+                "price":data.get('price', )
             })
         
         print(f"✅ Fetched {len(products)} products from Firestore!")

@@ -230,37 +230,6 @@
     font-size: 0.9rem;
 }
 
-.bulk-discount-badge {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    font-weight: 500;
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
-}
-
-.total-price-section {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: #f8fafc;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.total-price-section span {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #0f172a;
-}
-
-.total-price-section .savings {
-    color: #059669;
-    font-size: 0.9rem;
-}
-
 
 /* Quantity Selector */
 

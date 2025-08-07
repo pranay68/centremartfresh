@@ -58,6 +58,24 @@ const OrderList = ({ orders, loading, onOrderClick }) => {
                 <span>Rs. {order.totalAmount?.toLocaleString() || order.price?.toLocaleString() || '0.00'}</span>
               </div>
             </div>
+            {/* Cancel Order Button */}
+            {['Pending', 'Processing', 'Shipped'].includes(order.status) && (
+              <div className="order-actions">
+                <button
+                  className="cancel-order-btn"
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (window.confirm('Are you sure you want to cancel this order?')) {
+                      if (order.onCancel) {
+                        order.onCancel(order.id);
+                      }
+                    }
+                  }}
+                >
+                  Cancel Order
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getAllProducts } from '../utils/productData';
+import { getProductsByCategory } from "../data/productsService";
 import ProductCard from '../components/ProductGrid/ProductCard';
 import { sortByStock } from '../utils/sortProducts';
 import ProductDetailPanel from "../components/ProductDetailPanel";
@@ -15,23 +15,13 @@ const CategoryPage = () => {
 
   const decodedCategory = decodeURIComponent(category);
 
-  // Fetch products by category from local data
-  const fetchProducts = useCallback(() => {
-    setLoading(true);
-    try {
-      const allProducts = getAllProducts();
-      const filtered = allProducts.filter(p => p.category === decodedCategory);
-      setProducts(filtered);
-    } catch (error) {
-      console.error('Error filtering products:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [decodedCategory]);
-
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    setLoading(true);
+    setTimeout(() => {
+      setProducts(getProductsByCategory(decodedCategory));
+      setLoading(false);
+    }, 0);
+  }, [decodedCategory]);
 
   const getCategoryIcon = (category) => {
     const categoryLower = category.toLowerCase();
