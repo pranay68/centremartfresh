@@ -1,9 +1,8 @@
 import products from '../data/products.json';
 
 // Ensure products is an array
-const productArray = Array.isArray(products) ? products : 
-                    Array.isArray(products.products) ? products.products : 
-                    [];
+const productArray = Array.isArray(products) ? products :
+    Array.isArray(products.products) ? products.products : [];
 
 // Process the products and normalize the data
 export const getAllProducts = () => {
@@ -28,7 +27,7 @@ export const getAllProducts = () => {
 export const getProductById = (productId) => {
     const product = productArray.find(p => p.id === productId);
     if (!product) return null;
-    
+
     return {
         id: product.id,
         name: product.Description,
@@ -71,7 +70,7 @@ export const getProductsByCategory = (categoryName) => {
 export const searchProducts = (searchTerm) => {
     const term = searchTerm.toLowerCase();
     return productArray
-        .filter(product => 
+        .filter(product =>
             product.Description.toLowerCase().includes(term) ||
             product["Group Name"].toLowerCase().includes(term) ||
             product["Supplier Name"].toLowerCase().includes(term)
@@ -120,6 +119,11 @@ export const getAllCategories = () => {
     return [...new Set(products.map(product => product["Group Name"]))];
 };
 
+export const getProductsByIds = (ids) => {
+    const idSet = new Set(ids);
+    return getAllProducts().filter(p => idSet.has(p.id));
+};
+
 // Get products with low stock (less than or equal to 5)
 export const getLowStockProducts = () => {
     return products
@@ -163,3 +167,50 @@ export const getHighMarginProducts = () => {
             inStock: Number(product.Stock) > 0
         }));
 };
+
+// --- Local stock overrides (persisted in localStorage) ---
+const STOCK_OVERRIDES_KEY = 'cm_local_stock_overrides_v1';
+
+function loadStockOverrides() {
+    try {
+        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(STOCK_OVERRIDES_KEY) : null;
+        return raw ? JSON.parse(raw) : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function saveStockOverrides(overrides) {
+    try {
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem(STOCK_OVERRIDES_KEY, JSON.stringify(overrides));
+        }
+    } catch (_) {}
+}
+
+export function getProductStock(productId) {
+    const overrides = loadStockOverrides();
+    if (overrides[productId] != null) return overrides[productId];
+    const raw = productArray.find(p => p.id === productId);
+    return raw ? Number(raw.Stock) || 0 : 0;
+}
+
+export function setProductStock(productId, newStock) {
+    const overrides = loadStockOverrides();
+    overrides[productId] = Math.max(0, parseInt(newStock, 10) || 0);
+    saveStockOverrides(overrides);
+    return overrides[productId];
+}
+
+export function adjustProductStock(productId, delta) {
+    const current = getProductStock(productId);
+    return setProductStock(productId, current + (parseInt(delta, 10) || 0));
+}
+
+export function getAllProductsWithOverrides() {
+    const overrides = loadStockOverrides();
+    return getAllProducts().map(p => ({
+        ...p,
+        stock: overrides[p.id] != null ? overrides[p.id] : p.stock
+    }));
+}

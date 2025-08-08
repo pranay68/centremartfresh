@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import { getAllProductsWithOverrides, setProductStock } from '../../utils/productOperations';
 import { getStockStatus } from '../../utils/sortProducts';
 import './StockManagement.css';
 
@@ -17,13 +16,7 @@ const StockManagement = () => {
 
   const fetchProducts = async () => {
     try {
-      const productsRef = collection(db, 'products');
-      const q = query(productsRef);
-      const snapshot = await getDocs(q);
-      const productsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const productsData = getAllProductsWithOverrides();
       setProducts(productsData);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -34,16 +27,10 @@ const StockManagement = () => {
 
   const handleStockUpdate = async (productId, newStock) => {
     try {
-      const productRef = doc(db, 'products', productId);
-      await updateDoc(productRef, {
-        stock: parseInt(newStock, 10)
-      });
-      
-      // Update local state
+      const updated = setProductStock(productId, newStock);
       setProducts(products.map(p => 
-        p.id === productId ? { ...p, stock: parseInt(newStock, 10) } : p
+        p.id === productId ? { ...p, stock: updated } : p
       ));
-      
       setEditingId(null);
     } catch (error) {
       console.error('Error updating stock:', error);
@@ -53,7 +40,7 @@ const StockManagement = () => {
 
   const startEditing = (product) => {
     setEditingId(product.id);
-    setEditValue(product.stock?.toString() || '0');
+    setEditValue((product.stock ?? 0).toString());
   };
 
   const filteredProducts = products.filter(product => {
@@ -81,13 +68,13 @@ const StockManagement = () => {
             className={filter === 'out_of_stock' ? 'active' : ''} 
             onClick={() => setFilter('out_of_stock')}
           >
-            Out of Stock ({products.filter(p => p.stock === 0).length})
+            Out of Stock ({products.filter(p => (p.stock || 0) === 0).length})
           </button>
           <button 
             className={filter === 'low_stock' ? 'active' : ''} 
             onClick={() => setFilter('low_stock')}
           >
-            Low Stock ({products.filter(p => p.stock > 0 && p.stock <= 2).length})
+            Low Stock ({products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 2).length})
           </button>
         </div>
       </div>
@@ -108,7 +95,7 @@ const StockManagement = () => {
             return (
               <div key={product.id} className={`table-row ${status}`}>
                 <div className="col-product">
-                  <img src={product.image} alt={product.name} />
+                  {product.image && <img src={product.image} alt={product.name} />}
                   <span>{product.name}</span>
                 </div>
                 <div className="col-category">{product.category}</div>

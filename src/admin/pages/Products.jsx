@@ -14,6 +14,7 @@ import { uploadToCloudinary } from '../../utils/cloudinaryUpload';
 import { searchProducts } from '../../utils/productSearch';
 import { sortByStock } from '../../utils/sortProducts';
 import throttle from 'lodash/throttle';
+import { getAllProductsWithOverrides } from '../../utils/productOperations';
 
 const Products = () => {
   // Categories state
@@ -80,10 +81,6 @@ const Products = () => {
   const [filterMarginMin, setFilterMarginMin] = useState('');
   const [filterMarginMax, setFilterMarginMax] = useState('');
 
-  // Infinite scroll state
-  const [visibleCount, setVisibleCount] = useState(30);
-  const listRef = useRef();
-
   // Sticky header and bulk actions bar state
   const [isSticky, setIsSticky] = useState(false);
   const tableWrapperRef = useRef();
@@ -99,32 +96,10 @@ const Products = () => {
 
   // Fetch initial batch of products and set up real-time updates
   useEffect(() => {
-    const productsRef = collection(db, 'products');
-    const unsubscribe = onSnapshot(query(productsRef, limit(10)), (snapshot) => {
-      const productsData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          stock: data.stock || 0,
-          deliveryFee: data.deliveryFee || 0,
-          offer: data.offer || '',
-          createdAt: data.createdAt ? data.createdAt.toDate ? data.createdAt.toDate().toISOString() : data.createdAt : new Date().toISOString(),
-          price: typeof data.price === 'number' ? data.price : parseFloat(data.price) || 0,
-          name: data.name || '',
-          description: data.description || '',
-          category: data.category || '',
-          imageUrl: data.imageUrl || ''
-        };
-      });
-      setProducts(productsData);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching products:', error);
-      toast.error('Failed to fetch products');
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    // Load all products from local database with stock overrides applied
+    const productsData = getAllProductsWithOverrides();
+    setProducts(productsData);
+    setLoading(false);
   }, []);
 
   // Search and filter products
@@ -132,19 +107,19 @@ const Products = () => {
     throttle(async (term) => {
       setSearchTerm(term);
       if (!term) {
-        setFilteredProducts(products.slice(0, visibleCount));
+        setFilteredProducts(products);
         return;
       }
 
       try {
         const searchResults = await searchProducts(term, products);
-        setFilteredProducts(searchResults.slice(0, visibleCount));
+        setFilteredProducts(searchResults);
       } catch (error) {
         console.error('Search error:', error);
         toast.error('Search failed');
       }
     }, 300),
-    [products, visibleCount]
+    [products]
   );
 
   // Filter products by category
@@ -191,19 +166,7 @@ const Products = () => {
     setFilteredProducts(filtered);
   }, [products, selectedCategory, filterSupplier, filterPriceMin, filterPriceMax, filterStock, filterMarginMin, filterMarginMax, searchTerm]);
 
-  // Infinite scroll handler
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!listRef.current) return;
-      const { scrollTop, scrollHeight, clientHeight } = listRef.current;
-      if (scrollTop + clientHeight >= scrollHeight - 100) {
-        setVisibleCount(c => Math.min(filteredProducts.length, c + 30));
-      }
-    };
-    const ref = listRef.current;
-    if (ref) ref.addEventListener('scroll', handleScroll);
-    return () => { if (ref) ref.removeEventListener('scroll', handleScroll); };
-  }, [filteredProducts.length]);
+  // Removed infinite scroll handler to show all products at once
 
   // Fetch categories from Firestore
   useEffect(() => {
@@ -812,7 +775,7 @@ const Products = () => {
                   <th className="px-2 py-2 text-left">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200" ref={listRef}>
+              <tbody className="divide-y divide-gray-200">
                 {Object.entries(groupedProducts).map(([category, productsInCat]) => (
                   <React.Fragment key={category}>
                     {/* Category Row */}
@@ -837,7 +800,7 @@ const Products = () => {
                       </td>
                     </tr>
                     {/* Products in Category */}
-                    {productsInCat.slice(0, visibleCount).map(product => (
+                    {productsInCat.map(product => (
                       <tr key={product.id} className="product-row">
                         <td className="product-cell"><input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => handleProductSelection(product.id)} className="rounded border-gray-300" /></td>
                         <td className="product-cell">

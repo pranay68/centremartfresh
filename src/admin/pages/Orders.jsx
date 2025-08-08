@@ -29,7 +29,7 @@ const Orders = () => {
       const ordersData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
+        createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : doc.data().createdAt
       }));
       setOrders(ordersData);
     } catch (error) {

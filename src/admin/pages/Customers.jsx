@@ -18,11 +18,22 @@ const Customers = () => {
   const fetchCustomers = async () => {
     try {
       const ordersSnapshot = await getDocs(collection(db, 'orders'));
-      const orders = ordersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
+      const orders = ordersSnapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        let createdAt = data.createdAt;
+        if (createdAt?.toDate) {
+          createdAt = createdAt.toDate();
+        } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+          createdAt = new Date(createdAt);
+        } else {
+          createdAt = null;
+        }
+        return {
+          id: doc.id,
+          ...data,
+          createdAt
+        };
+      });
 
       // Group orders by real user if possible, fallback to legacy/guest
       const customerMap = {};
@@ -44,16 +55,53 @@ const Customers = () => {
             totalSpent: 0,
             lastOrder: null,
             isGuest: !(order.userId || order.userEmail),
+            userId: order.userId || null,
           };
         }
         customerMap[key].orders.push(order);
-        customerMap[key].totalSpent += (order.price || 0) * (order.quantity || 1);
-        if (!customerMap[key].lastOrder || order.createdAt > customerMap[key].lastOrder) {
+        const lineTotal = (order.total ?? order.amount ?? order.price ?? 0);
+        const qty = (order.quantity ?? order.qty ?? 1);
+        customerMap[key].totalSpent += Number(lineTotal) * Number(qty);
+        if (!customerMap[key].lastOrder || (order.createdAt && order.createdAt > customerMap[key].lastOrder)) {
           customerMap[key].lastOrder = order.createdAt;
         }
       });
 
-      const customersData = Object.values(customerMap).sort((a, b) => b.totalSpent - a.totalSpent);
+      // Enrich with user profiles when available
+      const usersToFetch = Array.from(new Set(
+        Object.values(customerMap)
+          .map(c => c.userId)
+          .filter(Boolean)
+      ));
+      if (usersToFetch.length) {
+        const { doc, getDoc } = await import('firebase/firestore');
+        await Promise.all(usersToFetch.map(async (uid) => {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', uid));
+            if (userDoc.exists()) {
+              const profile = userDoc.data();
+              const key = `uid:${uid}`;
+              const existing = customerMap[key];
+              if (existing) {
+                customerMap[key] = {
+                  ...existing,
+                  name: existing.name || profile.name || profile.displayName || existing.name,
+                  email: existing.email || profile.email || existing.email,
+                  phone: existing.phone || profile.phone || profile.phoneNumber || existing.phone,
+                  address: existing.address || profile.address || existing.address,
+                };
+              }
+            }
+          } catch (_) {}
+        }));
+      }
+
+      const customersData = Object.values(customerMap)
+        .map(c => ({
+          ...c,
+          orders: c.orders.sort((a,b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0))
+        }))
+        .sort((a, b) => b.totalSpent - a.totalSpent);
       setCustomers(customersData);
     } catch (error) {
       console.error('Error fetching customers:', error);

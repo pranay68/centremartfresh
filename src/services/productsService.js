@@ -1,5 +1,5 @@
-// src/data/productsService.js
-// Read-only convenience re-exports for local JSON database
+// src/services/productsService.js
+// Unified product service that reads from local JSON database via productOperations
 
 export {
     getAllProducts,
@@ -7,7 +7,6 @@ export {
     getProductsByCategory,
     searchProducts,
     getTopSellingProducts,
-    getAllCategories,
-    getProductsByIds
+    getAllCategories
 }
 from '../utils/productOperations';

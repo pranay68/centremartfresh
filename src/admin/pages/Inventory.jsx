@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../../firebase/config';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
 import "../AdminPanel.css";
+import { getAllProductsWithOverrides, setProductStock } from '../../utils/productOperations';
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
@@ -23,20 +22,14 @@ const Inventory = () => {
   ];
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
-      const productsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        stock: doc.data().stock || 0, // Default stock to 0 if not set
-      }));
-      setProducts(productsData);
+    try {
+      const data = getAllProductsWithOverrides();
+      setProducts(data);
+    } catch (e) {
+      console.error('Error loading inventory products', e);
+    } finally {
       setLoading(false);
-    }, (error) => {
-      console.error('Error fetching products:', error);
-      toast.error('Failed to fetch products');
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    }
   }, []);
 
   const updateStock = async () => {
@@ -63,12 +56,12 @@ const Inventory = () => {
           newStock = quantity;
       }
 
-      await updateDoc(doc(db, 'products', selectedProduct.id), { stock: newStock });
+      const updated = setProductStock(selectedProduct.id, newStock);
+      setProducts(products.map(p => p.id === selectedProduct.id ? { ...p, stock: updated } : p));
       toast.success('Stock updated successfully!');
       setShowStockModal(false);
       setSelectedProduct(null);
       setStockUpdate({ quantity: '', operation: 'set' });
-      // fetchProducts(); // No longer needed as onSnapshot handles updates
     } catch (error) {
       console.error('Error updating stock:', error);
       toast.error('Failed to update stock');

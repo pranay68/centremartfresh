@@ -1,9 +1,15 @@
 import React from 'react';
-import { getAllProducts } from '../data/productsService';
+import { getAllProducts } from '../utils/productOperations';
 import './AdminMobilePanel.css';
 
+import { useEffect, useState } from 'react';
+
 const AdminMobilePanel = () => {
-  const products = getAllProducts();
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    setProducts(getAllProducts());
+  }, []);
 
   return (
     <div className="admin-mobile-panel">
@@ -13,8 +19,14 @@ const AdminMobilePanel = () => {
         <ul className="admin-product-list">
           {products.map(product => (
             <li key={product.id} className="admin-product-item">
-              <span className="admin-product-name">{product.name}</span>
-              <span className="admin-product-price">Rs. {product.price}</span>
+              <div>
+                <span className="admin-product-name">{product.name}</span>
+                <span className="admin-product-id"> (ID: {product.id})</span>
+              </div>
+              <div className="admin-product-details">
+                <span className="admin-product-price">Rs. {product.price}</span>
+                <span className="admin-product-desc">{product.description}</span>
+              </div>
             </li>
           ))}
         </ul>
