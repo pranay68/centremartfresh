@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import './AdminOrderPanel.css';
 import './OrderPanelBackground.css';
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns';
+import { getAllProductsWithOverrides, adjustProductStock } from '../../utils/productOperations';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -17,9 +18,25 @@ const Orders = () => {
   const [selectedOrders, setSelectedOrders] = useState(new Set());
   const [updating, setUpdating] = useState(false);
   const [dateRange, setDateRange] = useState('all');
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('all'); // all | cod | online
+  const [trackingOnly, setTrackingOnly] = useState(false);
+  const [delivererFilter, setDelivererFilter] = useState('');
+  const [sortKey, setSortKey] = useState('createdAt'); // createdAt | amount | status
+  const [sortDir, setSortDir] = useState('desc');
+  const [deductStockOnUpdate, setDeductStockOnUpdate] = useState(true);
+  const [stockSummary, setStockSummary] = useState({ total: 0, low: 0, out: 0 });
 
   useEffect(() => {
     fetchOrders();
+  }, []);
+
+  useEffect(() => {
+    const products = getAllProductsWithOverrides();
+    const out = products.filter(p => (p.stock || 0) === 0).length;
+    const low = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 2).length;
+    setStockSummary({ total: products.length, low, out });
   }, []);
 
   const fetchOrders = async () => {
@@ -40,10 +57,22 @@ const Orders = () => {
     }
   };
 
+  const computeAmount = (order) => {
+    const base = order.totalAmount || (order.price * (order.quantity || 1)) || order.price || 0;
+    return Number(base) || 0;
+  };
+
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
       toast.success('Order status updated!');
+      // Optionally deduct stock when marking delivered
+      if (deductStockOnUpdate && newStatus === 'Delivered') {
+        const ord = orders.find(o => o.id === orderId);
+        if (ord?.productId) {
+          adjustProductStock(ord.productId, -1 * (ord.quantity || 1));
+        }
+      }
       fetchOrders();
     } catch (error) {
       console.error('Error updating order:', error);
@@ -59,9 +88,15 @@ const Orders = () => {
 
     setUpdating(true);
     try {
-      const promises = Array.from(selectedOrders).map(orderId =>
-        updateDoc(doc(db, 'orders', orderId), { status })
-      );
+      const promises = Array.from(selectedOrders).map(async orderId => {
+        await updateDoc(doc(db, 'orders', orderId), { status });
+        if (deductStockOnUpdate && status === 'Delivered') {
+          const ord = orders.find(o => o.id === orderId);
+          if (ord?.productId) {
+            adjustProductStock(ord.productId, -1 * (ord.quantity || 1));
+          }
+        }
+      });
       await Promise.all(promises);
       toast.success(`${selectedOrders.size} orders updated to ${status}`);
       setSelectedOrders(new Set());
@@ -124,25 +159,73 @@ const Orders = () => {
       rangeStart = null;
   }
 
+  // Filters
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
-      order.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.phone?.includes(searchTerm);
+    const matchesSearch =
+      (order.productName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.phone || '').includes(searchTerm) ||
+      (order.id || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || order.status === statusFilter;
-    const matchesDate = !rangeStart || (order.createdAt && isAfter(order.createdAt, rangeStart));
-    return matchesSearch && matchesStatus && matchesDate;
+    const matchesDate = !rangeStart || (order.createdAt && isAfter(new Date(order.createdAt), rangeStart));
+    const amount = computeAmount(order);
+    const matchesAmountMin = !amountMin || amount >= Number(amountMin);
+    const matchesAmountMax = !amountMax || amount <= Number(amountMax);
+    const matchesPayment = paymentFilter === 'all' ||
+      (paymentFilter === 'cod' && /cash/i.test(order.paymentMethod || '')) ||
+      (paymentFilter === 'online' && /online|card|upi|wallet/i.test(order.paymentMethod || ''));
+    const matchesTracking = !trackingOnly || !!order.trackingNumber;
+    const matchesDeliverer = !delivererFilter || (order.deliveryPerson || '').toLowerCase().includes(delivererFilter.toLowerCase());
+    return matchesSearch && matchesStatus && matchesDate && matchesAmountMin && matchesAmountMax && matchesPayment && matchesTracking && matchesDeliverer;
   });
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      case 'Processing': return 'bg-blue-100 text-blue-800';
-      case 'Shipped': return 'bg-purple-100 text-purple-800';
-      case 'Delivered': return 'bg-green-100 text-green-800';
-      case 'Cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Sorting
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    if (sortKey === 'createdAt') {
+      return dir * ((new Date(a.createdAt)).getTime() - (new Date(b.createdAt)).getTime());
     }
+    if (sortKey === 'amount') {
+      return dir * (computeAmount(a) - computeAmount(b));
+    }
+    if (sortKey === 'status') {
+      return dir * String(a.status || '').localeCompare(String(b.status || ''));
+    }
+    return 0;
+  });
+
+  const toggleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const exportToCSV = () => {
+    const headers = ['Order ID','Date','Customer','Phone','Product','Quantity','Amount','Status','Payment Method','Tracking'];
+    const rows = sortedOrders.map(o => [
+      o.id,
+      o.createdAt ? new Date(o.createdAt).toLocaleString() : '',
+      o.customerName || '',
+      o.phone || '',
+      o.productName || '',
+      o.quantity || 1,
+      computeAmount(o),
+      o.status || '',
+      o.paymentMethod || '',
+      o.trackingNumber || ''
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(x => `"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `orders_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (loading) {
@@ -165,10 +248,10 @@ const Orders = () => {
       }}
     >
       <div className="order-panel-content">
-      {/* Header */}
+      {/* Header with stock quick filters and export */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap">
           <Button 
             onClick={() => bulkUpdateStatus('Processing')}
             disabled={selectedOrders.size === 0}
@@ -186,6 +269,20 @@ const Orders = () => {
           >
             Mark Delivered
           </Button>
+          <label className="flex items-center gap-2 text-xs text-gray-700 ml-2">
+            <input type="checkbox" checked={deductStockOnUpdate} onChange={e => setDeductStockOnUpdate(e.target.checked)} />
+            Deduct stock on status change
+          </label>
+          <div className="flex items-center gap-2 ml-4">
+            <span className="text-xs text-gray-600">Stock:</span>
+            <Button size="sm" variant="outline" onClick={() => window.location.href = '/admin/stock'}>
+              Out of Stock ({stockSummary.out})
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => window.location.href = '/admin/stock'}>
+              Low Stock ({stockSummary.low})
+            </Button>
+            <Button size="sm" variant="outline" onClick={exportToCSV}>Export CSV</Button>
+          </div>
         </div>
       </div>
 
@@ -194,7 +291,7 @@ const Orders = () => {
         <Card.Content className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
-              placeholder="Search by product, customer, or phone..."
+              placeholder="Search by product, customer, phone, or order ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -222,10 +319,28 @@ const Orders = () => {
                 <option value="year">This Year</option>
               </select>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+            <Input placeholder="Min Amount" value={amountMin} onChange={e => setAmountMin(e.target.value)} />
+            <Input placeholder="Max Amount" value={amountMax} onChange={e => setAmountMax(e.target.value)} />
+            <select
+              value={paymentFilter}
+              onChange={e => setPaymentFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="all">All Payments</option>
+              <option value="cod">Cash on Delivery</option>
+              <option value="online">Online</option>
+            </select>
+            <div className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={trackingOnly} onChange={e => setTrackingOnly(e.target.checked)} />
+              Has Tracking Only
+            </div>
+            <Input placeholder="Delivery person" value={delivererFilter} onChange={e => setDelivererFilter(e.target.value)} />
+          </div>
         </Card.Content>
       </Card>
 
-        {/* Add bulk actions above the table */}
+        {/* Bulk actions */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div className="flex gap-2">
             <Button
@@ -254,6 +369,12 @@ const Orders = () => {
             </select>
             <span className="text-xs text-gray-500 mt-2">{selectedOrders.size} selected</span>
           </div>
+          <div className="flex items-center gap-4 text-sm">
+            <span>Sort by:</span>
+            <Button size="sm" variant={sortKey==='createdAt' ? 'primary':'outline'} onClick={() => toggleSort('createdAt')}>Date {sortKey==='createdAt' ? (sortDir==='asc'?'↑':'↓'):''}</Button>
+            <Button size="sm" variant={sortKey==='amount' ? 'primary':'outline'} onClick={() => toggleSort('amount')}>Amount {sortKey==='amount' ? (sortDir==='asc'?'↑':'↓'):''}</Button>
+            <Button size="sm" variant={sortKey==='status' ? 'primary':'outline'} onClick={() => toggleSort('status')}>Status {sortKey==='status' ? (sortDir==='asc'?'↑':'↓'):''}</Button>
+          </div>
         </div>
 
       {/* Orders Table */}
@@ -268,7 +389,8 @@ const Orders = () => {
                   <col style={{ minWidth: '180px', width: '220px' }} />
                   <col style={{ minWidth: '140px', width: '180px' }} />
                   <col style={{ minWidth: '180px', width: '220px' }} />
-                  <col style={{ width: '90px' }} />
+                  <col style={{ minWidth: '140px', width: '160px' }} />
+                  <col style={{ minWidth: '120px', width: '140px' }} />
                   <col style={{ width: '120px' }} />
                 </colgroup>
               <thead className="bg-gray-50">
@@ -286,11 +408,13 @@ const Orders = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">More Details</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => toggleSort('amount')}>Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => toggleSort('createdAt')}>Date</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOrders.map((order) => (
+                {sortedOrders.map((order) => (
                     <tr key={order.id} className="order-row">
                       <td className="order-cell">
                       <input
@@ -319,6 +443,8 @@ const Orders = () => {
                         <div className="text-xs text-gray-500">{order.email}</div>
                       )}
                     </td>
+                      <td className="order-cell font-semibold">Rs. {computeAmount(order).toLocaleString()}</td>
+                      <td className="order-cell text-sm text-gray-600">{order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</td>
                       <td className="order-actions-col order-cell">
                         <div className="action-buttons">
                           {order.status !== 'Delivered' && (
@@ -363,7 +489,23 @@ const Orders = () => {
         </Card.Content>
       </Card>
 
-      {filteredOrders.length === 0 && (
+      {/* Right-side stock insights */}
+      <div className="mt-6">
+        <Card>
+          <Card.Content className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">Stock Overview</div>
+              <div className="flex gap-3 text-sm">
+                <span>Total: {stockSummary.total}</span>
+                <span>Low: {stockSummary.low}</span>
+                <span>Out: {stockSummary.out}</span>
+              </div>
+            </div>
+          </Card.Content>
+        </Card>
+      </div>
+
+      {sortedOrders.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500">No orders found</p>
         </div>

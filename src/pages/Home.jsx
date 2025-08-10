@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/ProductGrid/ProductCard';
 import CategoryPanel from '../components/ProductGrid/CategoryPanel';
 import FlashSaleSection from '../components/FlashSaleSection';
@@ -8,8 +9,6 @@ import AdminPanelControl from '../components/AdminPanelControl';
 import Header from '../components/Header';
 import SearchAnalytics from '../components/SearchAnalytics';
 import ProductDetailPanel from '../components/ProductDetailPanel';
-import CustomerSupport from '../components/CustomerSupport';
-import AuthModal from '../components/auth/AuthModal';
 import { Filter, SortAsc, Eye, Heart, ShoppingCart, Star, TrendingUp, Clock, Zap, Search, LayoutGrid, List } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -19,10 +18,10 @@ import {
   getNewArrivals
 } from '../utils/productData';
 import './HomeNew.css';
-import { useAuth } from '../context/AuthContext';
 import RatingAndReviews from '../components/RatingAndReviews';
 import ReviewModal from '../components/ReviewModal';
 import BottomNav from '../components/ui/BottomNav';
+import CustomerSupportChat from '../components/CustomerSupportChat';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -40,6 +39,9 @@ const Home = () => {
   // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState('login');
+  const { user } = useAuth();
+  const [showSupport, setShowSupport] = useState(false);
+  const [supportInitialMessage, setSupportInitialMessage] = useState('');
   
   // Premium Features State
   const [showFilters, setShowFilters] = useState(false);
@@ -269,6 +271,15 @@ const Home = () => {
     setIsAdmin(adminStatus);
   }, []);
 
+  useEffect(() => {
+    const openHandler = (e) => {
+      setSupportInitialMessage(e.detail?.initialMessage || '');
+      setShowSupport(true);
+    };
+    window.addEventListener('open-support-chat', openHandler);
+    return () => window.removeEventListener('open-support-chat', openHandler);
+  }, []);
+
   const handleSearch = useCallback((term, filteredProducts = null) => {
     setSearchTerm(term);
     setInputValue(term);
@@ -364,36 +375,6 @@ const Home = () => {
     setAuthTab('login');
     setShowAuthModal(true);
   };
-
-  const { user } = useAuth();
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [userOrders, setUserOrders] = useState([]);
-  const [reviewingOrder, setReviewingOrder] = useState(null);
-
-  // Remove Firestore review fetching logic
-  const handleOpenReviews = async () => {
-    if (!user) {
-      alert('Please sign in to view your reviews.');
-      return;
-    }
-    // TODO: Implement review fetching from local data if needed
-    setShowReviewModal(true);
-  };
-
-  // Review submission handler
-  // Remove Firestore review submission logic
-  const handleSubmitReview = async (order, review) => {
-    // TODO: Implement review submission to local data if needed
-    toast.success('Review submitted!');
-    setReviewingOrder(null);
-    setShowReviewModal(false);
-  };
-
-  useEffect(() => {
-    const openReviewsListener = () => handleOpenReviews();
-    window.addEventListener('open-reviews-modal', openReviewsListener);
-    return () => window.removeEventListener('open-reviews-modal', openReviewsListener);
-  }, [user]);
 
   // Get filtered and sorted products
   const displayProducts = applyFiltersAndSort(products);
@@ -786,15 +767,25 @@ const Home = () => {
 
       {/* Auth Modal */}
       {showAuthModal && (
-        <AuthModal 
+        <ReviewModal 
           isOpen={showAuthModal} 
           onClose={() => setShowAuthModal(false)} 
-          defaultTab={authTab}
         />
       )}
 
-      {/* Customer Support Chat */}
-      <CustomerSupport />
+      {/* Customer Support: live chat launcher */}
+      {user && !showSupport && (
+        <button className="support-widget-btn" onClick={() => setShowSupport(true)}>
+          💬 Support
+        </button>
+      )}
+      <CustomerSupportChat 
+        isOpen={!!showSupport}
+        onClose={() => setShowSupport(false)}
+        customerId={user?.uid}
+        customerName={user?.displayName || user?.email?.split('@')[0] || 'User'}
+        initialMessage={supportInitialMessage}
+      />
 
       {/* ReviewModal is now global, not rendered here */}
       <BottomNav />

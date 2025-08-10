@@ -3,6 +3,7 @@ import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Card from '../../components/ui/Card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { getAllProductsIncludingCustom } from '../../utils/productOperations';
 import Button from '../../components/ui/Button';
 import "../AdminPanel.css";
 
@@ -97,18 +98,26 @@ const Analytics = () => {
 
   useEffect(() => {
     const unsubOrders = onSnapshot(collection(db, 'orders'), (ordersSnapshot) => {
-      const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate() }));
-      const unsubProducts = onSnapshot(collection(db, 'products'), (productsSnapshot) => {
-        const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const salesData = generateSalesData(orders, dateRange);
-        const categoryData = generateCategoryData(products);
-        const revenueData = generateRevenueData(orders);
-        const topProducts = getTopProducts(orders, products);
-        setAnalytics({ salesData, categoryData, revenueData, topProducts });
-        setLoading(false);
+      const orders = ordersSnapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        let createdAt = data.createdAt;
+        if (createdAt?.toDate) {
+          createdAt = createdAt.toDate();
+        } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+          createdAt = new Date(createdAt);
+        } else {
+          createdAt = null;
+        }
+        return { id: doc.id, ...data, createdAt };
       });
-      // Clean up products listener
-      return () => unsubProducts();
+      // Load products from local database
+      const products = getAllProductsIncludingCustom();
+      const salesData = generateSalesData(orders, dateRange);
+      const categoryData = generateCategoryData(products);
+      const revenueData = generateRevenueData(orders);
+      const topProducts = getTopProducts(orders, products);
+      setAnalytics({ salesData, categoryData, revenueData, topProducts });
+      setLoading(false);
     });
     return () => unsubOrders();
   }, [dateRange]);

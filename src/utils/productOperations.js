@@ -214,3 +214,101 @@ export function getAllProductsWithOverrides() {
         stock: overrides[p.id] != null ? overrides[p.id] : p.stock
     }));
 }
+
+// --- Local product management (for admin panel) ---
+const CUSTOM_PRODUCTS_KEY = 'cm_custom_products_v1';
+
+function loadCustomProducts() {
+    try {
+        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(CUSTOM_PRODUCTS_KEY) : null;
+        return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+function saveCustomProducts(customProducts) {
+    try {
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem(CUSTOM_PRODUCTS_KEY, JSON.stringify(customProducts));
+        }
+    } catch (_) {}
+}
+
+// Generate next ID for custom products
+function generateProductId() {
+    const customProducts = loadCustomProducts();
+    const maxId = Math.max(
+        ...productArray.map(p => parseInt(p.id) || 0),
+        ...customProducts.map(p => parseInt(p.id) || 0),
+        0
+    );
+    return String(maxId + 1);
+}
+
+// Add a new product (admin only)
+export function addProduct(productData) {
+    const customProducts = loadCustomProducts();
+    const newProduct = {
+        id: generateProductId(),
+        name: productData.name || '',
+        price: parseFloat(productData.price) || 0,
+        description: productData.description || '',
+        category: productData.category || 'Uncategorized',
+        deliveryFee: parseFloat(productData.deliveryFee) || 0,
+        offer: productData.offer || '',
+        stock: parseInt(productData.stock) || 0,
+        imageUrl: productData.imageUrl || 'https://via.placeholder.com/40',
+        createdAt: new Date().toISOString(),
+        isCustom: true
+    };
+    customProducts.push(newProduct);
+    saveCustomProducts(customProducts);
+    return newProduct;
+}
+
+// Update a product (admin only)
+export function updateProduct(productId, updates) {
+    const customProducts = loadCustomProducts();
+    const index = customProducts.findIndex(p => p.id === productId);
+
+    if (index !== -1) {
+        // Update custom product
+        customProducts[index] = {...customProducts[index], ...updates };
+        saveCustomProducts(customProducts);
+        return customProducts[index];
+    } else {
+        // For JSON products, we can only update stock via overrides
+        // Other fields would need to be handled differently
+        if (updates.stock !== undefined) {
+            setProductStock(productId, updates.stock);
+        }
+        return getProductById(productId);
+    }
+}
+
+// Delete a product (admin only - only custom products can be deleted)
+export function deleteProduct(productId) {
+    const customProducts = loadCustomProducts();
+    const filtered = customProducts.filter(p => p.id !== productId);
+    if (filtered.length < customProducts.length) {
+        saveCustomProducts(filtered);
+        return true;
+    }
+    return false; // Cannot delete JSON products
+}
+
+// Get all products including custom ones
+export function getAllProductsIncludingCustom() {
+    const jsonProducts = getAllProducts();
+    const customProducts = loadCustomProducts();
+    const overrides = loadStockOverrides();
+
+    // Merge and apply stock overrides
+    const allProducts = [...jsonProducts, ...customProducts].map(p => ({
+        ...p,
+        stock: overrides[p.id] != null ? overrides[p.id] : p.stock
+    }));
+
+    return allProducts;
+}

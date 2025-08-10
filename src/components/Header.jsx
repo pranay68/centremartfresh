@@ -19,6 +19,11 @@ const Header = ({ searchTerm, setSearchTerm, products, onSearch }) => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [showSupportChat, setShowSupportChat] = useState(false);
 
+  // Fallback internal search state when props not provided
+  const [internalSearch, setInternalSearch] = useState('');
+  const effectiveSearchTerm = typeof searchTerm === 'string' ? searchTerm : internalSearch;
+  const setEffectiveSearchTerm = typeof setSearchTerm === 'function' ? setSearchTerm : setInternalSearch;
+
   useEffect(() => {
     if (!user) return;
     // Real-time notifications using Firestore onSnapshot
@@ -44,6 +49,8 @@ const Header = ({ searchTerm, setSearchTerm, products, onSearch }) => {
   const handleSearch = (term, filteredProducts = null) => {
     if (onSearch) {
       onSearch(term, filteredProducts);
+    } else {
+      setEffectiveSearchTerm(term);
     }
   };
 
@@ -70,8 +77,8 @@ const Header = ({ searchTerm, setSearchTerm, products, onSearch }) => {
             <PowerSearch
               products={products}
               onSearch={handleSearch}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
+              searchTerm={effectiveSearchTerm}
+              setSearchTerm={setEffectiveSearchTerm}
             />
           </div>
           <div className="header-right">

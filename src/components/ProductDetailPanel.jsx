@@ -7,6 +7,7 @@ import RatingAndReviews from './RatingAndReviews';
 import ProductQA from './ProductQA';
 import { db } from '../firebase/config';
 import { collection, query, where, orderBy, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import CustomerSupportChat from './CustomerSupportChat';
 
 const ProductDetailPanel = ({ product, onClose }) => {
   const { addToCart } = useCart();
@@ -16,6 +17,7 @@ const ProductDetailPanel = ({ product, onClose }) => {
   const [selectedLocation, setSelectedLocation] = useState('');
   const [reviews, setReviews] = useState([]);
   const [qna, setQna] = useState([]);
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     if (!product?.id) return;
@@ -105,6 +107,14 @@ const ProductDetailPanel = ({ product, onClose }) => {
       answer: '',
       createdAt: serverTimestamp(),
     });
+  };
+
+  const handleContactSeller = () => {
+    // Dispatch a custom event to open global chat in Home with an initial message
+    const message = `Hi, is "${product.name}" available right now?`;
+    const event = new CustomEvent('open-support-chat', { detail: { initialMessage: message } });
+    window.dispatchEvent(event);
+    setShowChat(true); // Fallback if chat is rendered here instead of globally
   };
 
   return (
@@ -221,6 +231,14 @@ const ProductDetailPanel = ({ product, onClose }) => {
               </button>
               <button className="btn btn-secondary buy-now" onClick={handleBuyNow}>
                 Buy Now
+              </button>
+              <button
+                className="btn btn-outline contact-seller"
+                onClick={handleContactSeller}
+                title="Chat with seller to check availability"
+                onMouseEnter={() => {/* tooltip hint via title */}}
+              >
+                Contact Seller
               </button>
             </div>
 
@@ -356,6 +374,15 @@ const ProductDetailPanel = ({ product, onClose }) => {
           )}
         </div>
       </div>
+      {showChat && (
+        <CustomerSupportChat
+          isOpen={true}
+          onClose={() => setShowChat(false)}
+          customerId={null}
+          customerName={null}
+          initialMessage={`Hi, is "${product.name}" available right now?`}
+        />
+      )}
     </div>
   );
 };

@@ -69,11 +69,18 @@ const Returns = () => {
         orderBy('createdAt', 'desc')
       );
       const ordersSnapshot = await getDocs(ordersQuery);
-      const userOrders = ordersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
+      const userOrders = ordersSnapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        let createdAt = data.createdAt;
+        if (createdAt?.toDate) {
+          createdAt = createdAt.toDate();
+        } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+          createdAt = new Date(createdAt);
+        } else {
+          createdAt = null;
+        }
+        return { id: doc.id, ...data, createdAt };
+      });
       setUserOrders(userOrders);
 
       // Load user returns
@@ -83,11 +90,18 @@ const Returns = () => {
         orderBy('createdAt', 'desc')
       );
       const returnsSnapshot = await getDocs(returnsQuery);
-      const userReturns = returnsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
+      const userReturns = returnsSnapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        let createdAt = data.createdAt;
+        if (createdAt?.toDate) {
+          createdAt = createdAt.toDate();
+        } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+          createdAt = new Date(createdAt);
+        } else {
+          createdAt = null;
+        }
+        return { id: doc.id, ...data, createdAt };
+      });
       setReturns(userReturns);
     } catch (error) {
       console.error('Error loading user data:', error);

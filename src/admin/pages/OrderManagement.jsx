@@ -73,11 +73,18 @@ const OrderManagement = () => {
         limit(50)
       );
       const ordersSnapshot = await getDocs(ordersQuery);
-      const ordersData = ordersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
+      const ordersData = ordersSnapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        let createdAt = data.createdAt;
+        if (createdAt?.toDate) {
+          createdAt = createdAt.toDate();
+        } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+          createdAt = new Date(createdAt);
+        } else {
+          createdAt = null;
+        }
+        return { id: doc.id, ...data, createdAt };
+      });
       setOrders(ordersData);
       calculateStats(ordersData);
       // Fetch user profiles for all unique userIds
@@ -285,7 +292,9 @@ const OrderManagement = () => {
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
+    if (!date) return '';
+    const d = date instanceof Date ? date : new Date(date);
+    return d.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './CustomerSupport.css';
 
-const CustomerSupportChat = ({ isOpen, onClose, customerId, customerName }) => {
+const CustomerSupportChat = ({ isOpen, onClose, customerId, customerName, initialMessage }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [chatId, setChatId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [chatStatus, setChatStatus] = useState('pending');
   const [adminOnline, setAdminOnline] = useState(false);
+  const initialMessageSentRef = useRef(false);
 
   useEffect(() => {
-    if (isOpen && customerId) {
+    if (isOpen && (customerId || 'guest')) {
       initializeChat();
     }
   }, [isOpen, customerId]);
@@ -30,12 +31,36 @@ const CustomerSupportChat = ({ isOpen, onClose, customerId, customerName }) => {
     }
   }, [isOpen, chatId]);
 
+  // Auto-send initial customer message once chat is ready
+  useEffect(() => {
+    const sendInitial = async () => {
+      if (!chatId || !initialMessage || initialMessageSentRef.current) return;
+      try {
+        await addDoc(collection(db, 'supportChats', chatId, 'messages'), {
+          text: initialMessage,
+          sender: 'customer',
+          timestamp: serverTimestamp(),
+          read: false
+        });
+        await updateDoc(doc(db, 'supportChats', chatId), {
+          lastMessage: initialMessage,
+          lastMessageTime: serverTimestamp(),
+          status: 'active'
+        });
+        initialMessageSentRef.current = true;
+      } catch (e) {
+        // ignore
+      }
+    };
+    sendInitial();
+  }, [chatId, initialMessage]);
+
   const initializeChat = async () => {
     setIsLoading(true);
     try {
       // Create a new chat session
       const chatData = {
-        customerId: customerId,
+        customerId: customerId || `guest-${Date.now()}`,
         customerName: customerName || 'Anonymous',
         status: 'pending',
         createdAt: serverTimestamp(),
@@ -47,14 +72,14 @@ const CustomerSupportChat = ({ isOpen, onClose, customerId, customerName }) => {
       setChatId(chatRef.id);
 
       // Add initial message
-      const initialMessage = {
+      const initialAdminMessage = {
         text: 'Hello! How can we help you today?',
         sender: 'admin',
         timestamp: serverTimestamp(),
         isAutoReply: true
       };
 
-      await addDoc(collection(db, 'supportChats', chatRef.id, 'messages'), initialMessage);
+      await addDoc(collection(db, 'supportChats', chatRef.id, 'messages'), initialAdminMessage);
 
       // Listen to messages
       const messagesQuery = query(
@@ -121,6 +146,7 @@ const CustomerSupportChat = ({ isOpen, onClose, customerId, customerName }) => {
           <span className="chat-icon">💬</span>
           <h3>Customer Support</h3>
         </div>
+        <div style={{ color: 'white', fontWeight: 600, fontSize: '0.9rem' }}>+977 981-3026523</div>
         <button className="close-btn" onClick={onClose}>
           ✕
         </button>
@@ -158,24 +184,15 @@ const CustomerSupportChat = ({ isOpen, onClose, customerId, customerName }) => {
           placeholder="Type your message..."
           disabled={isLoading}
         />
-        <button
-          className="send-btn"
-          onClick={sendMessage}
-          disabled={!newMessage.trim() || isLoading}
-        >
+        <button className="send-btn" onClick={sendMessage} disabled={!newMessage.trim() || isLoading}>
           Send
         </button>
       </div>
 
       <div className="chat-status">
-        {adminOnline ? (
-          <span className="status-indicator active">Support Agent is Online</span>
-        ) : (
-          <span className="status-indicator pending">Waiting for agent...</span>
-        )}
-        {chatStatus === 'closed' && (
-          <span className="status-indicator closed">Chat closed</span>
-        )}
+        <span className={`status-indicator ${chatStatus === 'active' ? 'active' : 'pending'}`}>
+          {adminOnline ? 'Support Agent is Online' : 'Waiting for agent...'}
+        </span>
       </div>
     </div>
   );

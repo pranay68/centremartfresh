@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getProductsByCategory } from "../data/productsService";
+import { getAllProducts } from "../utils/productOperations";
 import ProductCard from '../components/ProductGrid/ProductCard';
 import { sortByStock } from '../utils/sortProducts';
 import ProductDetailPanel from "../components/ProductDetailPanel";
@@ -12,16 +12,20 @@ const CategoryPage = () => {
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const decodedCategory = decodeURIComponent(category);
+  const decodedCategory = decodeURIComponent(category || '');
+  const normalizedCategory = decodedCategory.trim().toLowerCase();
 
   useEffect(() => {
     setLoading(true);
     setTimeout(() => {
-      setProducts(getProductsByCategory(decodedCategory));
+      const all = getAllProducts();
+      const catProducts = all.filter(p => (p.category || '').trim().toLowerCase() === normalizedCategory);
+      setProducts(catProducts);
       setLoading(false);
     }, 0);
-  }, [decodedCategory]);
+  }, [normalizedCategory]);
 
   const getCategoryIcon = (category) => {
     const categoryLower = category.toLowerCase();
@@ -37,6 +41,16 @@ const CategoryPage = () => {
     if (categoryLower.includes('toy') || categoryLower.includes('game')) return '🎮';
     return '🛍️';
   };
+
+  const displayProducts = useMemo(() => {
+    if (!searchTerm) return sortByStock(products);
+    const term = searchTerm.toLowerCase();
+    return sortByStock(products.filter(p =>
+      (p.name || '').toLowerCase().includes(term) ||
+      (p.description || '').toLowerCase().includes(term) ||
+      String(p.id || '').toLowerCase().includes(term)
+    ));
+  }, [products, searchTerm]);
 
   if (loading) {
     return (
@@ -74,12 +88,23 @@ const CategoryPage = () => {
           </Link>
         </div>
 
-        {products.length === 0 ? (
+        {/* Category Search Bar */}
+        <div style={{ marginBottom: '16px' }}>
+          <input
+            type="text"
+            placeholder={`Search in ${decodedCategory}...`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: '100%', padding: '12px 14px', border: '1px solid var(--border-color)', borderRadius: '8px', outline: 'none' }}
+          />
+        </div>
+
+        {displayProducts.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '40vh', textAlign: 'center', gap: '20px' }}>
             <div style={{ fontSize: '4rem', opacity: 0.7 }}>😔</div>
             <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-primary)' }}>No products found</h3>
             <p style={{ margin: 0, color: 'var(--text-secondary)', maxWidth: '400px', lineHeight: 1.6 }}>
-              Try adjusting your filters or check back later for new {decodedCategory} products.
+              Try adjusting your search terms or check back later for new {decodedCategory} products.
             </p>
             <Link to="/" style={{ padding: '12px 24px', background: 'var(--primary-color)', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 500 }}>
               Browse All Products
@@ -87,7 +112,7 @@ const CategoryPage = () => {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
-            {sortByStock(products).map((product) => (
+            {displayProducts.map((product) => (
               <div key={product.id} style={{ transition: 'transform 0.3s ease' }}>
                 <ProductCard 
                   product={product} 

@@ -6,6 +6,7 @@ import Card from '../../components/ui/Card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+import { getAllProductsIncludingCustom } from '../../utils/productOperations';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -21,58 +22,85 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Real-time products
-    const unsubProducts = onSnapshot(collection(db, 'products'), (productsSnapshot) => {
-      const totalProducts = productsSnapshot.size;
-      setStats(prev => ({ ...prev, totalProducts }));
-    });
+    // Load products from local database
+    const loadProducts = () => {
+      try {
+        const products = getAllProductsIncludingCustom();
+        const totalProducts = products.length;
+        setStats(prev => ({ ...prev, totalProducts }));
+      } catch (error) {
+        console.error('Products loading error:', error);
+        setLoading(false);
+      }
+    };
+    loadProducts();
     // Real-time orders
-    const unsubOrders = onSnapshot(collection(db, 'orders'), (ordersSnapshot) => {
-      const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate() }));
-      const totalOrders = orders.length;
-      const pendingOrders = orders.filter(order => order.status === 'Pending').length;
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.price || 0), 0);
-      // Customers
-      const customerMap = {};
-      orders.forEach(order => {
-        const key = `${order.customerName}-${order.phone}`;
-        const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : order.createdAt;
-        if (!customerMap[key]) {
-          customerMap[key] = {
-            name: order.customerName,
-            phone: order.phone,
-            lastOrder: orderDate,
-          };
-        }
-        if (!customerMap[key].lastOrder || orderDate > customerMap[key].lastOrder) {
-          customerMap[key].lastOrder = orderDate;
-        }
-      });
-      const customersData = Object.values(customerMap).sort((a, b) => b.lastOrder - a.lastOrder);
-      const totalCustomers = customersData.length;
-      const recentCustomers = customersData.slice(0, 5);
-      setStats(prev => ({ ...prev, totalOrders, pendingOrders, totalRevenue, totalCustomers }));
-      setRecentCustomers(recentCustomers);
-      // Recent orders
-      const recentOrdersData = orders
-        .sort((a, b) => b.createdAt - a.createdAt)
-        .slice(0, 5);
-      setRecentOrders(recentOrdersData);
-      // Sales data
-      const monthlyMap = {};
-      orders.forEach(order => {
-        if (!order.createdAt) return;
-        const month = order.createdAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-        if (!monthlyMap[month]) {
-          monthlyMap[month] = { month, sales: 0, orders: 0 };
-        }
-        monthlyMap[month].sales += order.price || 0;
-        monthlyMap[month].orders += 1;
-      });
-      const salesData = Object.values(monthlyMap).sort((a, b) => new Date(a.month) - new Date(b.month));
-      setSalesData(salesData);
-    });
-    return () => { unsubProducts(); unsubOrders(); };
+    const unsubOrders = onSnapshot(
+      collection(db, 'orders'),
+      (ordersSnapshot) => {
+        const orders = ordersSnapshot.docs.map(doc => {
+          const data = doc.data() || {};
+          let createdAt = data.createdAt;
+          if (createdAt?.toDate) {
+            createdAt = createdAt.toDate();
+          } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+            createdAt = new Date(createdAt);
+          } else {
+            createdAt = null;
+          }
+          return { id: doc.id, ...data, createdAt };
+        });
+        const totalOrders = orders.length;
+        const pendingOrders = orders.filter(order => order.status === 'Pending').length;
+        const totalRevenue = orders.reduce((sum, order) => sum + (order.price || 0), 0);
+        // Customers
+        const customerMap = {};
+        orders.forEach(order => {
+          const orderDate = order.createdAt instanceof Date ? order.createdAt : (order.createdAt ? new Date(order.createdAt) : null);
+          const key = `${order.customerName || 'Customer'}-${order.phone || ''}`;
+          if (!customerMap[key]) {
+            customerMap[key] = {
+              name: order.customerName || 'Customer',
+              phone: order.phone || '',
+              lastOrder: orderDate,
+            };
+          }
+          if (orderDate && (!customerMap[key].lastOrder || orderDate > customerMap[key].lastOrder)) {
+            customerMap[key].lastOrder = orderDate;
+          }
+        });
+        const customersData = Object.values(customerMap).sort((a, b) => (b.lastOrder?.getTime?.() || 0) - (a.lastOrder?.getTime?.() || 0));
+        const totalCustomers = customersData.length;
+        const recentCustomers = customersData.slice(0, 5);
+        setStats(prev => ({ ...prev, totalOrders, pendingOrders, totalRevenue, totalCustomers }));
+        setRecentCustomers(recentCustomers);
+        // Recent orders
+        const recentOrdersData = orders
+          .filter(o => !!o.createdAt)
+          .sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0))
+          .slice(0, 5);
+        setRecentOrders(recentOrdersData);
+        // Sales data
+        const monthlyMap = {};
+        orders.forEach(order => {
+          if (!order.createdAt) return;
+          const month = order.createdAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+          if (!monthlyMap[month]) {
+            monthlyMap[month] = { month, sales: 0, orders: 0 };
+          }
+          monthlyMap[month].sales += order.price || 0;
+          monthlyMap[month].orders += 1;
+        });
+        const salesData = Object.values(monthlyMap).sort((a, b) => new Date(a.month) - new Date(b.month));
+        setSalesData(salesData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Orders listener error:', error);
+        setLoading(false);
+      }
+    );
+    return () => { unsubOrders(); };
   }, []);
 
   if (loading) {
@@ -212,7 +240,7 @@ const Dashboard = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.createdAt?.toLocaleDateString()}
+                      {order.createdAt?.toLocaleDateString?.() || ''}
                     </td>
                   </tr>
                 ))}
@@ -253,7 +281,7 @@ const Dashboard = () => {
                       {customer.phone}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {customer.lastOrder?.toLocaleDateString() || 'N/A'}
+                      {customer.lastOrder?.toLocaleDateString?.() || 'N/A'}
                     </td>
                   </tr>
                 ))}

@@ -48,11 +48,18 @@ const ProductQA = ({ productId, productName }) => {
         orderBy('createdAt', 'desc')
       );
       const questionsSnapshot = await getDocs(questionsQuery);
-      const questionsData = questionsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
+      const questionsData = questionsSnapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        let createdAt = data.createdAt;
+        if (createdAt?.toDate) {
+          createdAt = createdAt.toDate();
+        } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+          createdAt = new Date(createdAt);
+        } else {
+          createdAt = null;
+        }
+        return { id: doc.id, ...data, createdAt };
+      });
       setQuestions(questionsData);
     } catch (error) {
       console.error('Error loading questions:', error);

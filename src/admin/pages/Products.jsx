@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, getDoc, limit, startAfter } from 'firebase/firestore';
+import { collection, getDocs, addDoc, getDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -9,22 +9,28 @@ import { toast } from 'react-hot-toast';
 import './AdminProductPanel.css';
 import { Link } from 'react-router-dom';
 import Modal from '../../components/ui/Modal';
-import { FaSearch } from 'react-icons/fa';
+// import { FaSearch } from 'react-icons/fa'; // Unused for now
 import { uploadToCloudinary } from '../../utils/cloudinaryUpload';
-import { searchProducts } from '../../utils/productSearch';
-import { sortByStock } from '../../utils/sortProducts';
+// import { sortByStock } from '../../utils/sortProducts'; // Unused for now
 import throttle from 'lodash/throttle';
-import { getAllProductsWithOverrides } from '../../utils/productOperations';
+import { addProduct, updateProduct, deleteProduct, setProductStock } from '../../utils/productOperations';
+import { getMixedProductsChunk, searchProductsChunk, getProductsByCategoryChunk, getProductCount, applyStockOverridesToChunk } from '../../utils/optimizedProductOperations';
+import VirtualizedTable from '../../components/VirtualizedTable';
+import PowerSearch from '../../components/PowerSearch';
 
 const Products = () => {
   // Categories state
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategory, setNewCategory] = useState('');
 
-  // Products state
+  // Products state - optimized for large datasets
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All Products');
+  const [totalProductCount, setTotalProductCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const ITEMS_PER_PAGE = 50;
   const [showAddModal, setShowAddModal] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -51,17 +57,12 @@ const Products = () => {
   });
   const [imageFile, setImageFile] = useState(null);
   const [editImageFile, setEditImageFile] = useState(null);
-  const [offerForm, setOfferForm] = useState({
-    discount: '',
-    startDate: '',
-    endDate: '',
-    description: ''
-  });
-  const [showInlineAddCategory, setShowInlineAddCategory] = useState(false);
-  const [inlineNewCategory, setInlineNewCategory] = useState('');
+  // Removed unused offerForm state
+  // Removed unused inline category UI flags
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showChangeOfferModal, setShowChangeOfferModal] = useState(false);
   const [csvProducts, setCsvProducts] = useState([]);
+  // Bulk upload state
   const [csvErrors, setCsvErrors] = useState([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef();
@@ -84,6 +85,7 @@ const Products = () => {
   // Sticky header and bulk actions bar state
   const [isSticky, setIsSticky] = useState(false);
   const tableWrapperRef = useRef();
+  const searchDebounceRef = useRef(null);
   useEffect(() => {
     const handleScroll = () => {
       if (!tableWrapperRef.current) return;
@@ -94,45 +96,143 @@ const Products = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fetch initial batch of products and set up real-time updates
+  // Load initial batch of products (optimized)
   useEffect(() => {
-    // Load all products from local database with stock overrides applied
-    const productsData = getAllProductsWithOverrides();
-    setProducts(productsData);
+    const loadInitialProducts = async () => {
+      setLoading(true);
+      try {
+        // Get total count first
+        const totalCount = getProductCount();
+        setTotalProductCount(totalCount);
+        
+        // Load first chunk
+        const chunk = getMixedProductsChunk(0, ITEMS_PER_PAGE);
+        const chunkWithOverrides = applyStockOverridesToChunk(chunk);
+        
+        setProducts(chunkWithOverrides.products);
+        setFilteredProducts(chunkWithOverrides.products);
+        setHasMore(chunkWithOverrides.hasMore);
+        setCurrentPage(0);
+      } catch (error) {
+        console.error('Error loading products:', error);
+      } finally {
     setLoading(false);
+      }
+    };
+    
+    loadInitialProducts();
   }, []);
 
-  // Search and filter products
+  // Optimized search with chunked loading
   const handleSearch = useCallback(
     throttle(async (term) => {
       setSearchTerm(term);
-      if (!term) {
-        setFilteredProducts(products);
-        return;
-      }
-
+      setLoading(true);
+      
       try {
-        const searchResults = await searchProducts(term, products);
-        setFilteredProducts(searchResults);
+        let chunk;
+        if (!term.trim()) {
+          // Load all products in current category
+          if (selectedCategory === 'All Products') {
+            chunk = getMixedProductsChunk(0, ITEMS_PER_PAGE);
+          } else {
+            chunk = getProductsByCategoryChunk(selectedCategory, 0, ITEMS_PER_PAGE);
+          }
+        } else {
+          // Search products
+          chunk = searchProductsChunk(term, 0, ITEMS_PER_PAGE);
+        }
+        
+        const chunkWithOverrides = applyStockOverridesToChunk(chunk);
+        setFilteredProducts(chunkWithOverrides.products);
+        setHasMore(chunkWithOverrides.hasMore);
+        setCurrentPage(0);
       } catch (error) {
         console.error('Search error:', error);
         toast.error('Search failed');
+      } finally {
+        setLoading(false);
       }
     }, 300),
-    [products]
+    [selectedCategory]
   );
 
-  // Filter products by category
+  // Filter products by category (optimized)
   useEffect(() => {
+    const loadCategoryProducts = async () => {
+      if (searchTerm.trim()) return; // Don't reload if user is searching
+      
+      setLoading(true);
+      try {
+        let chunk;
     if (selectedCategory === 'All Products') {
-      setFilteredProducts(products);
+          chunk = getMixedProductsChunk(0, ITEMS_PER_PAGE);
     } else {
-      setFilteredProducts(products.filter(p => p.category === selectedCategory));
+          chunk = getProductsByCategoryChunk(selectedCategory, 0, ITEMS_PER_PAGE);
+        }
+        
+        const chunkWithOverrides = applyStockOverridesToChunk(chunk);
+        setFilteredProducts(chunkWithOverrides.products);
+        setHasMore(chunkWithOverrides.hasMore);
+        setCurrentPage(0);
+      } catch (error) {
+        console.error('Category filter error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadCategoryProducts();
+  }, [selectedCategory]);
+
+  // Load more products
+  const loadMoreProducts = useCallback(async () => {
+    if (!hasMore || loading) return;
+    
+    setLoading(true);
+    try {
+      const nextPage = currentPage + 1;
+      const startIndex = nextPage * ITEMS_PER_PAGE;
+      
+      let chunk;
+      if (searchTerm.trim()) {
+        chunk = searchProductsChunk(searchTerm, startIndex, ITEMS_PER_PAGE);
+      } else if (selectedCategory === 'All Products') {
+        chunk = getMixedProductsChunk(startIndex, ITEMS_PER_PAGE);
+      } else {
+        chunk = getProductsByCategoryChunk(selectedCategory, startIndex, ITEMS_PER_PAGE);
+      }
+      
+      const chunkWithOverrides = applyStockOverridesToChunk(chunk);
+      
+      setFilteredProducts(prev => [...prev, ...chunkWithOverrides.products]);
+      setHasMore(chunkWithOverrides.hasMore);
+      setCurrentPage(nextPage);
+    } catch (error) {
+      console.error('Load more error:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [selectedCategory, products]);
+  }, [hasMore, loading, currentPage, searchTerm, selectedCategory]);
+
+  
+
+  // Table headers configuration
+  const tableHeaders = [
+    { label: 'Select', width: '40px' },
+    { label: 'Image', width: '60px' },
+    { label: 'Name', width: '2fr' },
+    { label: 'Price', width: '1fr' },
+    { label: 'Offer', width: '1fr' },
+    { label: 'Delivery Fee', width: '1fr' },
+    { label: 'Category', width: '1fr' },
+    { label: 'Stock', width: '1fr' },
+    { label: 'Actions', width: '1fr' }
+  ];
 
   // Advanced filtering logic
   useEffect(() => {
+    if (searchTerm.trim()) return; // when searching, chunked search handles results
     let filtered = products;
     if (selectedCategory !== 'All Products') {
       filtered = filtered.filter(p => p.category === selectedCategory);
@@ -155,16 +255,21 @@ const Products = () => {
     if (filterMarginMax) {
       filtered = filtered.filter(p => Number(p['Margin %'] || p.marginPercent) <= Number(filterMarginMax));
     }
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(p =>
-        (p.name || p['Description'] || '').toLowerCase().includes(term) ||
-        (p.itemCode || p['Item Code'] || '').toLowerCase().includes(term) ||
-        (p.category || p['Group Name'] || '').toLowerCase().includes(term)
-      );
-    }
     setFilteredProducts(filtered);
   }, [products, selectedCategory, filterSupplier, filterPriceMin, filterPriceMax, filterStock, filterMarginMin, filterMarginMax, searchTerm]);
+
+  // Debounce search input to reduce recalculations
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    searchDebounceRef.current = setTimeout(() => {
+      handleSearch(searchTerm);
+    }, 300);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchTerm, handleSearch]);
 
   // Removed infinite scroll handler to show all products at once
 
@@ -225,10 +330,18 @@ const Products = () => {
   // Inline editing for all fields (including image)
   const handleInlineEdit = async (productId, field, value) => {
     try {
-      const productRef = doc(db, 'products', productId);
-      await updateDoc(productRef, {
-        [field]: field === 'price' || field === 'deliveryFee' || field === 'stock' ? parseFloat(value) : value
-      });
+      if (field === 'stock') {
+        setProductStock(productId, value);
+        // Update local state
+        setProducts(prev => prev.map(p => p.id === productId ? {...p, stock: parseInt(value)} : p));
+      } else {
+        const updates = {
+          [field]: field === 'price' || field === 'deliveryFee' ? parseFloat(value) : value
+        };
+        updateProduct(productId, updates);
+        // Update local state
+        setProducts(prev => prev.map(p => p.id === productId ? {...p, ...updates} : p));
+      }
       toast.success(`${field} updated!`);
     } catch (error) {
       toast.error('Failed to update');
@@ -262,7 +375,7 @@ const Products = () => {
     e.preventDefault();
     setUploading(true);
     try {
-      const newProduct = {
+      const newProductData = {
         name: productForm.name,
         price: parseFloat(productForm.price),
         description: productForm.description,
@@ -270,10 +383,11 @@ const Products = () => {
         deliveryFee: parseFloat(productForm.deliveryFee),
         offer: productForm.offer,
         stock: parseInt(productForm.stock),
-        imageUrl: imageFile ? URL.createObjectURL(imageFile) : 'https://via.placeholder.com/40',
-        createdAt: new Date()
+        imageUrl: imageFile ? URL.createObjectURL(imageFile) : 'https://via.placeholder.com/40'
       };
-      await addDoc(collection(db, 'products'), newProduct);
+      const newProduct = addProduct(newProductData);
+      // Update local state
+      setProducts(prev => [...prev, newProduct]);
       setProductForm({ name: '', price: '', description: '', category: '', deliveryFee: '', offer: '', stock: 0 });
       setImageFile(null);
       setShowAddModal(false);
@@ -290,8 +404,7 @@ const Products = () => {
     e.preventDefault();
     setUploading(true);
     try {
-      const productRef = doc(db, 'products', editingProduct.id);
-      await updateDoc(productRef, {
+      const updates = {
         name: editForm.name,
         price: parseFloat(editForm.price),
         description: editForm.description,
@@ -300,7 +413,10 @@ const Products = () => {
         offer: editForm.offer,
         stock: parseInt(editForm.stock),
         imageUrl: editImageFile ? URL.createObjectURL(editImageFile) : editingProduct.imageUrl
-      });
+      };
+      updateProduct(editingProduct.id, updates);
+      // Update local state
+      setProducts(prev => prev.map(p => p.id === editingProduct.id ? {...p, ...updates} : p));
       setShowEditModal(false);
       setEditingProduct(null);
       setEditForm({ name: '', price: '', description: '', category: '', deliveryFee: '', offer: '', stock: 0 });
@@ -314,19 +430,26 @@ const Products = () => {
   };
 
   // Delete product
-  const handleDeleteProduct = async (productId) => {
+  const handleDeleteProduct = useCallback(async (productId) => {
     try {
-      await deleteDoc(doc(db, 'products', productId));
+      const deleted = deleteProduct(productId);
+      if (deleted) {
+        // Update local state
+        setProducts(prev => prev.filter(p => p.id !== productId));
+        setFilteredProducts(prev => prev.filter(p => p.id !== productId));
       toast.success('Product deleted!');
+      } else {
+        toast.error('Cannot delete products from main database. Only custom products can be deleted.');
+      }
     } catch (error) {
       toast.error('Failed to delete product');
     }
-  };
+  }, []);
 
   // Selection logic
-  const handleProductSelection = (productId) => {
+  const handleProductSelection = useCallback((productId) => {
     setSelectedProducts(prev => prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]);
-  };
+  }, []);
   const handleSelectAll = () => {
     if (selectedProducts.length === filteredProducts.length) {
       setSelectedProducts([]);
@@ -342,7 +465,7 @@ const Products = () => {
       setSelectedProducts(categoryProducts.map(p => p.id));
     }
   };
-  const openEditModal = (product) => {
+  const openEditModal = useCallback((product) => {
     setEditingProduct(product);
     setEditForm({
       name: product.name || '',
@@ -354,7 +477,64 @@ const Products = () => {
       stock: product.stock || 0
     });
     setShowEditModal(true);
-  };
+  }, []);
+
+  // Render function for virtualized table rows
+  const renderProductRow = useCallback((product) => {
+    return (
+      <div key={product.id} className="table-row" style={{ display: 'flex', minHeight: '50px', alignItems: 'center', borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{ flex: '0 0 40px', padding: '8px' }}>
+          <input
+            type="checkbox"
+            checked={selectedProducts.includes(product.id)}
+            onChange={() => handleProductSelection(product.id)}
+            className="rounded border-gray-300"
+          />
+        </div>
+        <div style={{ flex: '0 0 60px', padding: '8px' }}>
+          {product.imageUrl ? (
+            <img src={product.imageUrl} alt={product.name} className="w-10 h-10 object-cover rounded border" loading="lazy" />
+          ) : (
+            <div className="w-10 h-10 bg-gray-200 rounded border flex items-center justify-center text-xs">No Img</div>
+          )}
+        </div>
+        <div style={{ flex: '2', padding: '8px', fontSize: '12px' }}>
+          <InlineEditableField product={product} field="name" />
+        </div>
+        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
+          <InlineEditableField product={product} field="price" type="number" />
+        </div>
+        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
+          <InlineEditableField product={product} field="offer" />
+        </div>
+        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
+          <InlineEditableField product={product} field="deliveryFee" type="number" />
+        </div>
+        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
+          <InlineEditableField product={product} field="category" />
+        </div>
+        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
+          <InlineEditableField product={product} field="stock" type="number" />
+        </div>
+        <div style={{ flex: '1', padding: '8px' }}>
+          <div className="action-buttons flex gap-1">
+            <button
+              className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              onClick={() => openEditModal(product)}
+            >
+              Edit
+            </button>
+            <button
+              className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+              onClick={() => handleDeleteProduct(product.id)}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }, [selectedProducts, handleProductSelection, openEditModal, handleDeleteProduct]);
 
   const handleInlineAddCategory = async () => {
     if (!newInlineCategory.trim()) return;
@@ -502,7 +682,9 @@ const Products = () => {
     setUploadingImage(true);
     try {
       const url = await uploadToCloudinary(selectedImageFile, 'image');
-      await updateDoc(doc(db, 'products', addImageProduct.id), { imageUrl: url });
+      updateProduct(addImageProduct.id, { imageUrl: url });
+      // Update local state
+      setProducts(prev => prev.map(p => p.id === addImageProduct.id ? {...p, imageUrl: url} : p));
       toast.success('Image uploaded!');
       handleCloseAddImageModal();
     } catch (err) {
@@ -526,18 +708,7 @@ const Products = () => {
   // Build category list from products
   const allProductCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
   const categories = ['All Products', ...allProductCategories];
-  // Group products by category, including 'Uncategorized' for products without a valid category
-  const groupedProducts = categories.reduce((acc, category) => {
-    if (category === 'All Products') return acc;
-    acc[category] = filteredProducts.filter(p => p.category === category);
-    return acc;
-  }, {});
-  const uncategorizedProducts = filteredProducts.filter(
-    p => !p.category || !categories.includes(p.category)
-  );
-  if (uncategorizedProducts.length > 0) {
-    groupedProducts['Uncategorized'] = uncategorizedProducts;
-  }
+  // Note: Removed groupedProducts logic for performance - using flat virtualized list instead
 
   const csvTemplate = `itemCode,name,baseUnit,group,category,supplier,price,lastPurcMiti,lastPurcQty,salesQty\n1001,Sample Product,PCS,Group,Category,Supplier,100,2082/03/13,12,20`;
 
@@ -595,17 +766,22 @@ const Products = () => {
   const handleBulkUpload = async () => {
     setUploading(true);
     try {
+      const newProducts = [];
       for (const p of csvProducts) {
         if (!p.name || !p.price || !p.category || isNaN(Number(p.price))) continue;
-        await addDoc(collection(db, 'products'), {
+        const newProduct = addProduct({
           name: p.name,
           price: Number(p.price),
           category: p.category,
           description: p.description || '',
           imageUrl: '',
-          createdAt: new Date(),
+          stock: Number(p.stock) || 0,
+          deliveryFee: Number(p.deliveryFee) || 0
         });
+        newProducts.push(newProduct);
       }
+      // Update local state
+      setProducts(prev => [...prev, ...newProducts]);
       setShowBulkModal(false);
       setCsvProducts([]);
       setCsvErrors([]);
@@ -640,11 +816,22 @@ const Products = () => {
 
   return (
     <div className="admin-products-panel">
+      {/* Admin PowerSearch - Optimized */}
+      <div style={{ padding: '12px 0' }}>
+        <PowerSearch
+          products={[]} // Don't pass all products to avoid lag
+          onSearch={(term, results) => {
+            handleSearch(term); // Use our optimized search instead
+          }}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+        />
+      </div>
       {/* Analytics Dashboard */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
         <Card style={{ flex: 1, padding: 16 }}>
           <div style={{ fontSize: 13, color: '#888' }}>Total Products</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>{totalProducts}</div>
+          <div style={{ fontSize: 24, fontWeight: 600 }}>{totalProductCount}</div>
         </Card>
         <Card style={{ flex: 1, padding: 16 }}>
           <div style={{ fontSize: 13, color: '#888' }}>Out of Stock</div>
@@ -757,81 +944,56 @@ const Products = () => {
         </div>
       )}
 
-      {/* Products List */}
+      {/* Products List - Virtualized */}
       <Card>
         <Card.Content className="p-0">
-          <div className="admin-table-scroll-wrapper" ref={tableWrapperRef}>
-            <table className="w-full text-xs" style={{ minWidth: '1200px' }}>
-              <thead className="bg-gray-50 sticky top-0 z-20">
-                <tr>
-                  <th className="px-2 py-2 text-left"><input type="checkbox" checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0} onChange={handleSelectAll} className="rounded border-gray-300" /></th>
-                  <th className="px-2 py-2 text-left">Image</th>
-                  <th className="px-2 py-2 text-left">Name</th>
-                  <th className="px-2 py-2 text-left">SP</th>
-                  <th className="px-2 py-2 text-left">Offer</th>
-                  <th className="px-2 py-2 text-left">Delivery Fee</th>
-                  <th className="px-2 py-2 text-left">Category</th>
-                  <th className="px-2 py-2 text-left">Stock</th>
-                  <th className="px-2 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {Object.entries(groupedProducts).map(([category, productsInCat]) => (
-                  <React.Fragment key={category}>
-                    {/* Category Row */}
-                    <tr className="bg-gray-100">
-                      <td colSpan={9} className="px-2 py-2">
-                        <div className="flex items-center gap-2 ml-6">
+          <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
+            <div className="flex items-center gap-4">
                           <input
                             type="checkbox"
-                            checked={productsInCat.length > 0 && productsInCat.every(p => selectedProducts.includes(p.id))}
-                            onChange={() => {
-                              const allIds = productsInCat.map(p => p.id);
-                              if (allIds.every(id => selectedProducts.includes(id))) {
-                                setSelectedProducts(selectedProducts.filter(id => !allIds.includes(id)));
-                              } else {
-                                setSelectedProducts([...new Set([...selectedProducts, ...allIds])]);
-                              }
-                            }}
+                checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0} 
+                onChange={handleSelectAll} 
                             className="rounded border-gray-300"
                           />
-                          <span className="font-semibold text-blue-800">{category}</span>
+              <span className="text-sm font-medium text-gray-700">
+                {filteredProducts.length} products • {selectedProducts.length} selected
+              </span>
                         </div>
-                      </td>
-                    </tr>
-                    {/* Products in Category */}
-                    {productsInCat.map(product => (
-                      <tr key={product.id} className="product-row">
-                        <td className="product-cell"><input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => handleProductSelection(product.id)} className="rounded border-gray-300" /></td>
-                        <td className="product-cell">
-                          {product.imageUrl ? (
-                            <img src={product.imageUrl} alt={product.name} className="w-10 h-10 object-cover rounded border" />
-                          ) : (
-                            <Button size="xs" variant="outline" onClick={() => handleOpenAddImageModal(product)}>
-                              Add Image
-                            </Button>
-                          )}
-                        </td>
-                        <td className="product-cell"><InlineEditableField product={product} field="name" /></td>
-                        <td className="product-cell"><InlineEditableField product={product} field="price" type="number" /></td>
-                        <td className="product-cell"><InlineEditableField product={product} field="offer" /></td>
-                        <td className="product-cell"><InlineEditableField product={product} field="deliveryFee" type="number" /></td>
-                        <td className="product-cell"><InlineEditableField product={product} field="category" /></td>
-                        <td className="product-cell"><InlineEditableField product={product} field="stock" type="number" /></td>
-                        <td className="product-cell"><div className="action-buttons"><Button size="xs" variant="outline" onClick={() => openEditModal(product)}>Edit</Button><Button size="xs" variant="danger" onClick={() => handleDeleteProduct(product.id)}>Delete</Button></div></td>
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+            {hasMore && (
+              <button 
+                onClick={loadMoreProducts} 
+                disabled={loading}
+                className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+              >
+                {loading ? 'Loading...' : 'Load More'}
+              </button>
+            )}
           </div>
+          
+          <VirtualizedTable
+            data={filteredProducts}
+            itemHeight={50}
+            containerHeight={600}
+            renderItem={renderProductRow}
+            headers={tableHeaders}
+            className="admin-products-table"
+          />
+          
+          {filteredProducts.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No products found</p>
+            </div>
+          )}
+          
+          {loading && (
+            <div className="text-center py-4">
+              <p className="text-blue-600">Loading products...</p>
+            </div>
+          )}
         </Card.Content>
       </Card>
 
-      {filteredProducts.length === 0 && (
-        <div className="text-center py-12"><p className="text-gray-500">No products found in this category</p></div>
-      )}
+
 
       {/* Add Product Modal */}
       {showAddModal && (
@@ -925,7 +1087,7 @@ const Products = () => {
       )}
       {showChangeOfferModal && (
         <Modal isOpen={showChangeOfferModal} onClose={() => setShowChangeOfferModal(false)} title="Change Offer for Selected Products">
-          <ChangeOfferForm selectedProducts={selectedProducts} onClose={() => setShowChangeOfferModal(false)} />
+          <ChangeOfferForm selectedProducts={selectedProducts} onClose={() => setShowChangeOfferModal(false)} setProducts={setProducts} />
         </Modal>
       )}
 
@@ -960,7 +1122,7 @@ const Products = () => {
 
 export default Products;
 
-const ChangeOfferForm = ({ selectedProducts, onClose }) => {
+const ChangeOfferForm = ({ selectedProducts, onClose, setProducts }) => {
   const [offer, setOffer] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -968,7 +1130,15 @@ const ChangeOfferForm = ({ selectedProducts, onClose }) => {
   const handleApplyOffer = async () => {
     setLoading(true);
     try {
-      await Promise.all(selectedProducts.map(productId => updateDoc(doc(db, 'products', productId), { offer, offerStartDate: startDate, offerEndDate: endDate })));
+      selectedProducts.forEach(productId => {
+        updateProduct(productId, { offer, offerStartDate: startDate, offerEndDate: endDate });
+      });
+      // Update local state
+      setProducts(prev => prev.map(p => 
+        selectedProducts.includes(p.id) 
+          ? {...p, offer, offerStartDate: startDate, offerEndDate: endDate}
+          : p
+      ));
       toast.success('Offer updated for selected products!');
       onClose();
     } catch (err) {

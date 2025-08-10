@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { addDoc, collection, writeBatch, doc as firestoreDoc, getDoc as getFirestoreDoc, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../../firebase/config';
 import Modal from '../../components/ui/Modal';
+import { addProduct, getAllProductsIncludingCustom } from '../../utils/productOperations';
 
 // Updated CSV template for download (matches Excel columns)
 const csvTemplate = `Item Code,Description,Base Unit,Group ID,Group Name,Sub Group,Supplier Name,Last CP,Taxable CP,SP,Stock,Last Purc Miti,Last Purc Qty,Sales Qty,#,Margin %,MRP,Location1,Location2,Location3,Location4,Location5\n`;
@@ -65,23 +64,25 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
   const fileInputRef = useRef();
   const [alreadyUploadedMap, setAlreadyUploadedMap] = useState({});
 
-  // Pre-upload scan for duplicates in Firestore
+  // Pre-upload scan for duplicates in local database
   useEffect(() => {
-    const scanForDuplicates = async () => {
+    const scanForDuplicates = () => {
       if (!csvProducts.length) return;
       const map = {};
+      const existingProducts = getAllProductsIncludingCustom();
+      
       for (const p of csvProducts) {
         if (!p['Description'] || !p['Group Name']) continue;
-        const q = query(collection(db, 'products'), where('name', '==', p['Description']), where('category', '==', p['Group Name']));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
+        const duplicate = existingProducts.find(existing => 
+          existing.name === p['Description'] && existing.category === p['Group Name']
+        );
+        if (duplicate) {
           map[p._row] = true;
         }
       }
       setAlreadyUploadedMap(map);
     };
     scanForDuplicates();
-    // eslint-disable-next-line
   }, [csvProducts]);
 
   const handleCSVUpload = (e) => {
@@ -114,8 +115,8 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
     let failCount = 0;
     let skipCount = 0;
     const errors = [];
-    let batch = writeBatch(db);
-    let batchCount = 0;
+    const existingProducts = getAllProductsIncludingCustom();
+    
     for (let i = 0; i < csvProducts.length; i++) {
       const p = csvProducts[i];
       if (alreadyUploadedMap[p._row]) {
@@ -129,62 +130,46 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
         continue;
       }
       try {
-        // Remove all uses of Item Code for duplicate detection, filtering, or validation
-        // Accept and display Item Code from CSV, but do not use it for any checks
-        // Update upload logic to not require or check Item Code
         const itemCode = p['Item Code'];
-        // Check for duplicate by itemCode
-        let existingDocId = null;
-        const q = collection(db, 'products');
-        // Query for existing product with same itemCode
-        const snapshot = await getDocs(query(q, where('name', '==', p['Description']), where('category', '==', p['Group Name'])));
-        if (!snapshot.empty) {
-          existingDocId = snapshot.docs[0].id;
-        }
-        if (existingDocId) {
+        
+        // Check for duplicate in local database
+        const existingProduct = existingProducts.find(existing => 
+          existing.name === p['Description'] && existing.category === p['Group Name']
+        );
+        
+        if (existingProduct) {
           if (duplicateAction === 'skip') {
             skipCount++;
             errors.push({ row: p._row, itemCode, error: 'Duplicate: Skipped' });
             continue;
           } else if (duplicateAction === 'update') {
-            const docRef = firestoreDoc(db, 'products', existingDocId);
-            batch.update(docRef, {
-              ...p,
-              itemCode: p['Item Code'],
-              name: p['Description'],
-              category: p['Group Name'],
-              price: Number(p['SP']),
-              stock: Number(p['Stock']),
-              supplier: p['Supplier Name'],
-              updatedAt: new Date(),
-            });
-            batchCount++;
-            successCount++;
+            // For local database, we can't update JSON products, only custom ones
+            skipCount++;
+            errors.push({ row: p._row, itemCode, error: 'Cannot update existing products from JSON database' });
+            continue;
           } else if (duplicateAction === 'log') {
             skipCount++;
             errors.push({ row: p._row, itemCode, error: 'Duplicate: Logged' });
             continue;
           }
         } else {
-          // New product
-          const newDocRef = firestoreDoc(q);
-          batch.set(newDocRef, {
-            ...p,
-            itemCode: p['Item Code'],
+          // Add new product to local database
+          addProduct({
             name: p['Description'],
             category: p['Group Name'],
-            price: Number(p['SP']),
-            stock: Number(p['Stock']),
+            price: Number(p['SP']) || 0,
+            stock: Number(p['Stock']) || 0,
+            description: p['Description'] || '',
+            itemCode: p['Item Code'],
             supplier: p['Supplier Name'],
-            createdAt: new Date(),
+            unit: p['Base Unit'],
+            mrp: Number(p['MRP']) || 0,
+            margin: Number(p['Margin %']) || 0,
+            deliveryFee: 0,
+            offer: '',
+            imageUrl: 'https://via.placeholder.com/40'
           });
-          batchCount++;
           successCount++;
-        }
-        if (batchCount === 450) {
-          await batch.commit();
-          batch = writeBatch(db); // Create a new batch after commit
-          batchCount = 0;
         }
       } catch (err) {
         failCount++;
@@ -192,9 +177,7 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
       }
       setProgress(Math.round(((i + 1) / csvProducts.length) * 100));
     }
-    if (batchCount > 0) {
-      await batch.commit();
-    }
+    
     setSummary({ success: successCount, failed: failCount, skipped: skipCount });
     setErrorLog(errors);
     setUploading(false);

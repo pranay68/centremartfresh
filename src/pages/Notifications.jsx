@@ -47,11 +47,18 @@ const Notifications = () => {
         orderBy('createdAt', 'desc')
       );
       const notificationsSnapshot = await getDocs(notificationsQuery);
-      const userNotifications = notificationsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      }));
+      const userNotifications = notificationsSnapshot.docs.map(doc => {
+        const data = doc.data() || {};
+        let createdAt = data.createdAt;
+        if (createdAt?.toDate) {
+          createdAt = createdAt.toDate();
+        } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+          createdAt = new Date(createdAt);
+        } else {
+          createdAt = new Date();
+        }
+        return { id: doc.id, ...data, createdAt };
+      });
       setNotifications(userNotifications);
     } catch (error) {
       console.error('Error loading notifications:', error);

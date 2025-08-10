@@ -101,11 +101,18 @@ const Account = () => {
           orderBy('createdAt', 'desc')
         );
         const ordersSnapshot = await getDocs(ordersQuery);
-        const userOrders = ordersSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate()
-        }));
+        const userOrders = ordersSnapshot.docs.map(doc => {
+          const data = doc.data() || {};
+          let createdAt = data.createdAt;
+          if (createdAt?.toDate) {
+            createdAt = createdAt.toDate();
+          } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+            createdAt = new Date(createdAt);
+          } else {
+            createdAt = null;
+          }
+          return { id: doc.id, ...data, createdAt };
+        });
         setOrders(userOrders);
 
         // Get recently viewed from localStorage or user profile
