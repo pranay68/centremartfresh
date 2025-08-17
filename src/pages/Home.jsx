@@ -4,21 +4,16 @@ import ProductCard from '../components/ProductGrid/ProductCard';
 import CategoryPanel from '../components/ProductGrid/CategoryPanel';
 import FlashSaleSection from '../components/FlashSaleSection';
 import TopSaleSection from '../components/TopSaleSection';
-import NewArrivalsSection from '../components/NewArrivalsSection';
 import AdminPanelControl from '../components/AdminPanelControl';
 import Header from '../components/Header';
-import SearchAnalytics from '../components/SearchAnalytics';
+// SearchAnalytics removed to reduce bundle size
 import ProductDetailPanel from '../components/ProductDetailPanel';
-import { Filter, SortAsc, Eye, Heart, ShoppingCart, Star, TrendingUp, Clock, Zap, Search, LayoutGrid, List } from 'lucide-react';
+import { Eye, ShoppingCart, Star, Search, Heart, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
-import {
-  getAllProducts,
-  searchProducts,
-  getTopSellingProducts,
-  getNewArrivals
-} from '../utils/productData';
+import publicProducts from '../utils/publicProducts';
+import { getPrimaryImageOrPlaceholder } from '../utils/imageHelper';
 import './HomeNew.css';
-import RatingAndReviews from '../components/RatingAndReviews';
+// RatingAndReviews removed (not used here)
 import ReviewModal from '../components/ReviewModal';
 import BottomNav from '../components/ui/BottomNav';
 import CustomerSupportChat from '../components/CustomerSupportChat';
@@ -29,23 +24,21 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [inputValue, setInputValue] = useState('');
-  const [panels, setPanels] = useState([]);
+  // panels removed - not used
   const [visibleCategories, setVisibleCategories] = useState(4); // Initially show 4 categories
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const PRODUCTS_PER_PAGE = 12;
+  // pagination constant removed (not used)
   const categoryObserverRef = useRef();
 
   // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authTab, setAuthTab] = useState('login');
   const { user } = useAuth();
   const [showSupport, setShowSupport] = useState(false);
   const [supportInitialMessage, setSupportInitialMessage] = useState('');
   
   // Premium Features State
-  const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState('featured');
+  const [sortBy] = useState('featured');
   const [filters, setFilters] = useState({
     category: '',
     minPrice: '',
@@ -62,13 +55,12 @@ const Home = () => {
   const [showQuickView, setShowQuickView] = useState(false);
   const [showAllRecentlyViewed, setShowAllRecentlyViewed] = useState(false);
   
-  const observer = useRef();
-  const productCache = useRef(new Map());
-  const CACHE_TIMEOUT = 5 * 60 * 1000; // 5 minutes cache
+  // observer/cache removed to reduce complexity
   
   // Define categories early
   const [categories, setCategories] = useState([]);
-  const [lastFetch, setLastFetch] = useState(null);
+  // lastFetch removed
+  const [loadError, setLoadError] = useState(null);
 
   // Effect to update categories whenever allProducts changes
   useEffect(() => {
@@ -136,18 +128,74 @@ const Home = () => {
   }, [filters, sortBy]);
 
   // Set compact mode by default for search results
-  const [viewMode, setViewMode] = useState(searchTerm ? 'compact' : 'grid');
+  const [viewMode] = useState(searchTerm ? 'compact' : 'grid');
 
-  // Load products from local data only
-  const loadProducts = useCallback(() => {
+  // Load products from Supabase incrementally: small initial load for top sections, background fetch for rest
+  // constants for potential future incremental loads
+  // constants reserved for future incremental loading (kept to avoid refactor churn)
+  // eslint-disable-next-line no-unused-vars
+  const INITIAL_LOAD = 24; // few products to show immediately (top sellers etc.)
+  // eslint-disable-next-line no-unused-vars
+  const BACKGROUND_CHUNK = 500; // fetch remaining in larger chunks
+
+  // duplicateWarning kept for future alerts; currently unused
+  useState(null); // keep state slot to avoid refactor churn
+
+  const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const allProductsData = getAllProducts();
-      setAllProducts(allProductsData);
-      // Filter and sort products based on current filters
-      setProducts(applyFiltersAndSort(allProductsData));
+      // Diagnostic: log publicProducts shape to help debug loading issues
+      // (will be removed once root cause is identified)
+      // eslint-disable-next-line no-console
+      console.debug('publicProducts object:', publicProducts, 'ensureLoaded type:', typeof publicProducts?.ensureLoaded);
+      if (!publicProducts || typeof publicProducts.ensureLoaded !== 'function') {
+        throw new Error('publicProducts.ensureLoaded is not available');
+      }
+      // Load from public snapshot via mid-file. Protect against a hung or
+      // throwing loader by racing with a short timeout and falling back to
+      // the current cached snapshot to avoid freezing React passive effects.
+      try {
+        const loaderPromise = publicProducts.ensureLoaded();
+        const timeoutPromise = new Promise((res) => setTimeout(() => res(null), 3000));
+        const result = await Promise.race([loaderPromise, timeoutPromise]);
+        if (result === null) {
+          // timed out - use whatever is currently cached
+          // eslint-disable-next-line no-console
+          console.warn('publicProducts.ensureLoaded timed out; using cached snapshot');
+        }
+      } catch (e) {
+        // ensureLoaded threw synchronously or rejected; log and continue with cached
+        // eslint-disable-next-line no-console
+        console.error('publicProducts.ensureLoaded threw:', e);
+      }
+
+      const snapshot = (publicProducts && typeof publicProducts.getAllCached === 'function') ? publicProducts.getAllCached() : [];
+      // Avoid unnecessary state updates if snapshot hasn't changed (prevents render loops)
+      try {
+        const snapStr = JSON.stringify(snapshot || []);
+        if (typeof window !== 'undefined') {
+          if (!window.__centremart_last_products_snapshot || window.__centremart_last_products_snapshot !== snapStr) {
+            window.__centremart_last_products_snapshot = snapStr;
+            setAllProducts(snapshot || []);
+            setProducts(applyFiltersAndSort(snapshot || []));
+          } else {
+            // snapshot unchanged, skip state updates
+          }
+        } else {
+          setAllProducts(snapshot || []);
+          setProducts(applyFiltersAndSort(snapshot || []));
+        }
+      } catch (e) {
+        // fallback: set state normally if stringify fails
+        setAllProducts(snapshot || []);
+        setProducts(applyFiltersAndSort(snapshot || []));
+      }
+      setLoadError(null);
     } catch (error) {
-      console.error('Error loading products:', error);
+      // Log full error details to console for debugging (message + stack)
+      // eslint-disable-next-line no-console
+      console.error('Error loading products:', error, '\nstack:', error?.stack);
+      setLoadError(error?.message || String(error));
       toast.error('Failed to load products');
     } finally {
       setLoading(false);
@@ -176,12 +224,11 @@ const Home = () => {
     return () => observer.disconnect();
   }, [visibleCategories, categories.length]);
 
-  // Fetch products by category from local data
+  // Fetch products by category from in-memory Supabase list
   const fetchProductsByCategory = useCallback((category) => {
     setLoading(true);
     try {
-      const allProductsData = getAllProducts();
-      const filtered = allProductsData.filter(p => p.category === category);
+      const filtered = allProducts.filter(p => p.category === category);
       setProducts(applyFiltersAndSort(filtered));
     } catch (error) {
       console.error('Error filtering products by category:', error);
@@ -189,12 +236,69 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  }, [applyFiltersAndSort]);
+  }, [applyFiltersAndSort, allProducts]);
 
-  // Effect to fetch initial products
+  // Effect to fetch initial products once on mount. Using a stable
+  // no-deps effect avoids the "maximum update depth" caused by
+  // repeatedly changing `loadProducts` identity and re-running the effect.
   useEffect(() => {
     loadProducts();
-  }, [loadProducts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Listen for product image updates from other panels and refresh cache
+  useEffect(() => {
+    const onRefresh = async () => {
+      try {
+        setLoading(true);
+        // Force refresh cache and reload products
+        await publicProducts.refresh();
+        const snapshot = publicProducts.getAllCached();
+        setAllProducts(snapshot || []);
+        setProducts(applyFiltersAndSort(snapshot || []));
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Home reload after product change failed', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    // Wrap listeners with safe wrappers so listener errors don't bubble up
+    const safeOnRefresh = async (e) => {
+      try {
+        await onRefresh(e);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Error in supabase_products_refresh handler:', err);
+      }
+    };
+
+    const safeStorageHandler = (e) => {
+      try {
+        if (e.key === 'supabase_products_refresh_signal') onRefresh();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Error in storage event handler:', err);
+      }
+    };
+
+    window.addEventListener('supabase_products_refresh', safeOnRefresh);
+    window.addEventListener('storage', safeStorageHandler);
+    // Close overlays when signaled
+    const closeModalsHandler = () => {
+      try {
+        // Attempt to find known overlay elements and remove them
+        const overlays = document.querySelectorAll('.quick-view-overlay, .quick-view-modal, .product-detail-panel, .modal, .quick-view-overlay');
+        overlays.forEach(el => el.remove());
+      } catch (e) {}
+    };
+    window.addEventListener('close-all-modals', closeModalsHandler);
+    return () => {
+      window.removeEventListener('supabase_products_refresh', safeOnRefresh);
+      window.removeEventListener('storage', safeStorageHandler);
+      window.removeEventListener('close-all-modals', closeModalsHandler);
+    };
+  }, [applyFiltersAndSort]);
 
   // Reset products when category changes
   useEffect(() => {
@@ -206,46 +310,7 @@ const Home = () => {
   }, [filters.category, fetchProductsByCategory, loadProducts]);
 
   // Render products with intersection observer
-  const renderProducts = (products) => {
-    return products.map((product, index) => {
-      if (products.length === index + 1) {
-        return (
-          <div
-            ref={lastProductRef}
-            key={product.id}
-            className="product-wrapper"
-          >
-            <ProductCard
-              product={product}
-              onProductClick={handleProductClick}
-              onQuickAdd={handleQuickAddToCart}
-              onWishlist={handleAddToWishlist}
-              onCompare={handleAddToCompare}
-              isInWishlist={wishlist.find(item => item.id === product.id)}
-              isInCompare={compareList.find(item => item.id === product.id)}
-              onAuthRequired={handleAuthRequired}
-              compact={true}
-            />
-          </div>
-        );
-      }
-      return (
-        <div key={product.id} className="product-wrapper">
-          <ProductCard
-            product={product}
-            onProductClick={handleProductClick}
-            onQuickAdd={handleQuickAddToCart}
-            onWishlist={handleAddToWishlist}
-            onCompare={handleAddToCompare}
-            isInWishlist={wishlist.find(item => item.id === product.id)}
-            isInCompare={compareList.find(item => item.id === product.id)}
-            onAuthRequired={handleAuthRequired}
-            compact={true}
-          />
-        </div>
-      );
-    });
-  };
+  // Render products directly in JSX to avoid stale refs; keep mapping simple
 
   // Remove real-time product updates (onSnapshot) for products
 
@@ -253,22 +318,20 @@ const Home = () => {
 
   // Premium: Load user data
   useEffect(() => {
-    const loadUserData = () => {
+    // load small local caches
       const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
       const wishlistData = JSON.parse(localStorage.getItem('wishlist') || '[]');
       const cartData = JSON.parse(localStorage.getItem('cart') || '[]');
       const compareData = JSON.parse(localStorage.getItem('compareList') || '[]');
-      
       setRecentlyViewed(viewed);
       setWishlist(wishlistData);
       setCart(cartData);
       setCompareList(compareData);
-    };
-
+    // call loadProducts once
     loadProducts();
-    // Check if user is admin (simple localStorage check)
     const adminStatus = localStorage.getItem('isAdmin') === 'true';
     setIsAdmin(adminStatus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -372,7 +435,7 @@ const Home = () => {
 
   // Auth Required Handler
   const handleAuthRequired = () => {
-    setAuthTab('login');
+    // show auth modal via Header control
     setShowAuthModal(true);
   };
 
@@ -381,6 +444,11 @@ const Home = () => {
 
   return (
     <div className="home-page">
+      {loadError && (
+        <div style={{background:'#fee2e2', color:'#b91c1c', padding:'8px 12px', fontSize:12}}>
+          Load error: {String(loadError)} — check console for [Supabase Debug]
+        </div>
+      )}
       <Header 
         searchTerm={inputValue}
         setSearchTerm={setInputValue}
@@ -389,6 +457,16 @@ const Home = () => {
           handleSearch(term, filteredProducts);
         }}
       />
+
+      {/* Loading overlay for initial product fetch */}
+      {loading && allProducts.length === 0 && (
+        <div style={{display:'flex', alignItems:'center', justifyContent:'center', padding:20}}>
+          <div style={{background:'#fff', padding:12, borderRadius:8, boxShadow:'0 4px 12px rgba(0,0,0,0.08)'}}>
+            <div style={{fontSize:16, color:'#374151', fontWeight:600}}>Loading products...</div>
+            <div style={{fontSize:12, color:'#6b7280', marginTop:6}}>If this takes long, check your Supabase configuration in .env</div>
+          </div>
+        </div>
+      )}
 
       {/* Admin Panel Control */}
       <AdminPanelControl 
@@ -520,124 +598,7 @@ const Home = () => {
         </section>
       )}
 
-      {/* Premium: Filters and Sorting Bar */}
-      {(panels.length === 0 || searchTerm) && (
-        <section className="filters-sorting-bar">
-          <div className="filters-container">
-            <button 
-              className={`filter-toggle ${showFilters ? 'active' : ''}`}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter size={16} />
-              Filters
-            </button>
-            
-            <div className="sort-container">
-              <SortAsc size={16} />
-              <select 
-                value={sortBy} 
-                onChange={(e) => setSortBy(e.target.value)}
-                className="sort-select"
-              >
-                <option value="featured">Featured</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
-                <option value="newest">Newest First</option>
-                <option value="popular">Most Popular</option>
-              </select>
-            </div>
-
-            {/* View Mode Toggle */}
-            <div className="view-mode-container">
-              <button 
-                className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                onClick={() => setViewMode('grid')}
-                title="Grid View"
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button 
-                className={`view-mode-btn ${viewMode === 'compact' ? 'active' : ''}`}
-                onClick={() => setViewMode('compact')}
-                title="Compact View"
-              >
-                <List size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* Advanced Filters */}
-          {showFilters && (
-            <div className="advanced-filters">
-              <div className="filter-group">
-                <label>Category:</label>
-                <select 
-                  value={filters.category} 
-                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                >
-                  <option value="">All Categories</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Books">Books</option>
-                  <option value="Home">Home & Garden</option>
-                </select>
-              </div>
-              
-              <div className="filter-group">
-                <label>Price Range:</label>
-                <input 
-                  type="number" 
-                  placeholder="Min" 
-                  value={filters.minPrice}
-                  onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value }))}
-                />
-                <input 
-                  type="number" 
-                  placeholder="Max" 
-                  value={filters.maxPrice}
-                  onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
-                />
-              </div>
-              
-              <div className="filter-group">
-                <label>Rating:</label>
-                <select 
-                  value={filters.rating} 
-                  onChange={(e) => setFilters(prev => ({ ...prev, rating: e.target.value }))}
-                >
-                  <option value="">Any Rating</option>
-                  <option value="4">4+ Stars</option>
-                  <option value="3">3+ Stars</option>
-                  <option value="2">2+ Stars</option>
-                </select>
-              </div>
-              
-              <div className="filter-group">
-                <label>
-                  <input 
-                    type="checkbox" 
-                    checked={filters.inStock}
-                    onChange={(e) => setFilters(prev => ({ ...prev, inStock: e.target.checked }))}
-                  />
-                  In Stock Only
-                </label>
-              </div>
-              
-              <div className="filter-group">
-                <label>
-                  <input 
-                    type="checkbox" 
-                    checked={filters.onSale}
-                    onChange={(e) => setFilters(prev => ({ ...prev, onSale: e.target.checked }))}
-                  />
-                  On Sale Only
-                </label>
-              </div>
-            </div>
-          )}
-        </section>
-      )}
+      {/* Filters and sorting removed per request */}
 
       {/* Search Results Section - only show if searching */}
       {searchTerm && (
@@ -720,7 +681,7 @@ const Home = () => {
           <div className="quick-view-modal" onClick={(e) => e.stopPropagation()}>
             <div className="quick-view-content">
               <div className="quick-view-image">
-                <img src={quickViewProduct.image} alt={quickViewProduct.name} />
+                <img src={getPrimaryImageOrPlaceholder(quickViewProduct)} alt={quickViewProduct.name} />
               </div>
               <div className="quick-view-details">
                 <h3>{quickViewProduct.name}</h3>

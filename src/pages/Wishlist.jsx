@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
-import { getProductsByIds } from '../data/productsService';
+import { getProductsByIds } from '../services/productsService';
 import ProductCard from '../components/ProductGrid/ProductCard';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';

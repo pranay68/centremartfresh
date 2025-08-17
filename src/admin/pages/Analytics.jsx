@@ -3,7 +3,7 @@ import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Card from '../../components/ui/Card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
-import { getAllProductsIncludingCustom } from '../../utils/productOperations';
+import publicProducts from '../../utils/publicProducts';
 import Button from '../../components/ui/Button';
 import "../AdminPanel.css";
 
@@ -97,7 +97,7 @@ const Analytics = () => {
   const [dateRange, setDateRange] = useState('30'); // days
 
   useEffect(() => {
-    const unsubOrders = onSnapshot(collection(db, 'orders'), (ordersSnapshot) => {
+    const unsubOrders = onSnapshot(collection(db, 'orders'), async (ordersSnapshot) => {
       const orders = ordersSnapshot.docs.map(doc => {
         const data = doc.data() || {};
         let createdAt = data.createdAt;
@@ -110,8 +110,9 @@ const Analytics = () => {
         }
         return { id: doc.id, ...data, createdAt };
       });
-      // Load products from local database
-      const products = getAllProductsIncludingCustom();
+      // Load products from public snapshot
+      await publicProducts.ensureLoaded();
+      const products = publicProducts.getAllCached().slice(0, 5000);
       const salesData = generateSalesData(orders, dateRange);
       const categoryData = generateCategoryData(products);
       const revenueData = generateRevenueData(orders);

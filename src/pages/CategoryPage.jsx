@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getAllProducts } from "../utils/productOperations";
+import publicProducts from '../utils/publicProducts';
 import ProductCard from '../components/ProductGrid/ProductCard';
 import { sortByStock } from '../utils/sortProducts';
 import ProductDetailPanel from "../components/ProductDetailPanel";
@@ -18,13 +18,22 @@ const CategoryPage = () => {
   const normalizedCategory = decodedCategory.trim().toLowerCase();
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      const all = getAllProducts();
-      const catProducts = all.filter(p => (p.category || '').trim().toLowerCase() === normalizedCategory);
-      setProducts(catProducts);
-      setLoading(false);
-    }, 0);
+    let isMounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        await publicProducts.ensureLoaded();
+        // Use the optimized category getter when available
+        const catProducts = publicProducts.getByCategory(normalizedCategory);
+        if (isMounted) setProducts(catProducts || []);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Category load error:', e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => { isMounted = false; };
   }, [normalizedCategory]);
 
   const getCategoryIcon = (category) => {

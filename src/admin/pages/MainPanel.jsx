@@ -30,7 +30,7 @@ const MainPanel = () => {
         }
         // Merge: keep order, append new
         const merged = [...order.filter(c => cats.includes(c)), ...cats.filter(c => !order.includes(c))];
-        setCategories(cats);
+        setCategories(cats); 
         setOrderedCategories(merged);
         setLoading(false);
       });

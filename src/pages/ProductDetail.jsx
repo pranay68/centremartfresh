@@ -31,6 +31,7 @@ import './ProductDetail.css';
 import { db } from '../firebase/config';
 import { collection, query, where, orderBy, getDocs, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import publicProducts from '../utils/publicProducts';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -148,11 +149,71 @@ const ProductDetail = () => {
   };
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProduct(mockProduct);
-      setLoading(false);
-    }, 1000);
+    let mounted = true;
+    setLoading(true);
+    (async () => {
+      try {
+        // Ensure local snapshot is loaded
+        await publicProducts.ensureLoaded();
+        // Try to find product in local snapshot
+        const local = publicProducts.getById(id);
+        if (local && mounted) {
+          // Normalize fields to the shape this component expects
+          const normalized = {
+            id: local.id,
+            name: local.name || local.raw?.name || local.raw?.Description || '',
+            brand: local.brand || local.supplierName || '',
+            price: local.price ?? local.sp ?? 0,
+            originalPrice: local.mrp ?? null,
+            rating: local.rating ?? 0,
+            reviewCount: local.reviewCount ?? 0,
+            stock: local.stock ?? 0,
+            description: local.raw?.Description || local.raw?.description || '',
+            features: local.features || [],
+            specifications: local.specifications || {},
+            images: Array.isArray(local.image_urls) && local.image_urls.length ? local.image_urls.slice() : (Array.isArray(local.images) && local.images.length ? local.images.slice() : (local.imageUrl ? [local.imageUrl] : [])),
+            image_urls: Array.isArray(local.image_urls) ? local.image_urls.slice() : (Array.isArray(local.images) ? local.images.slice() : (local.imageUrl ? [local.imageUrl] : [])),
+            variants: local.variants || [],
+            reviews: [],
+            relatedProducts: [],
+            prime: !!local.prime,
+            freeShipping: !!local.freeShipping,
+            location: local.location || '',
+            seller: local.supplierName || local.seller || '',
+            returnPolicy: local.returnPolicy || '',
+            warranty: local.warranty || ''
+          };
+          setProduct(normalized);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        // ignore and fall back to Firestore
+        console.warn('publicProducts load failed', err);
+      }
+
+      // Fallback: try Firestore product document/query
+      try {
+        // First try by doc id
+        const q = query(collection(db, 'products'), where('id', '==', id));
+        const snap = await getDocs(q);
+        if (mounted && snap && !snap.empty) {
+          const doc = snap.docs[0];
+          setProduct({ id: doc.id, ...doc.data() });
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('Firestore product fetch failed', e);
+      }
+
+      // Last-resort: use mock product so UI doesn't crash
+      if (mounted) {
+        setProduct(mockProduct);
+        setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
   }, [id]);
 
   // Fetch reviews and Q&A from Firestore
@@ -232,23 +293,43 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = () => {
-    setIsInCart(true);
-    // Add to cart logic here
+    try {
+      if (!product) {
+        console.warn('handleAddToCart called without product');
+        return;
+      }
+      setIsInCart(true);
+      // Add to cart logic here - guard against missing cart context in consumer
+      const event = new CustomEvent('add-to-cart', { detail: { productId: product.id, quantity } });
+      window.dispatchEvent(event);
+    } catch (err) {
+      console.error('Error in handleAddToCart (ProductDetail):', err);
+    }
   };
 
   const handleBuyNow = () => {
-    // Save product and quantity to sessionStorage for checkout
-    if (product) {
-      const buyNowItem = {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        imageUrl: product.images?.[0] || '',
-        quantity: quantity,
-      };
-      sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+    try {
+      // Save product and quantity to sessionStorage for checkout
+      if (product) {
+        const buyNowItem = {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          imageUrl: (product.images?.[0] || product.image_urls?.[0] || product.image || ''),
+          quantity: quantity,
+          finalPrice: (() => {
+            const base = (product.price || 0) * quantity;
+            if (quantity >= 6) return Math.round(base * 0.99);
+            return Math.round(base);
+          })(),
+          hasBulkDiscount: quantity >= 6
+        };
+        try { sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem)); } catch (e) { console.error('Failed to save buyNowItem', e); }
+      }
+      navigate('/checkout');
+    } catch (err) {
+      console.error('Error in handleBuyNow (ProductDetail):', err);
     }
-    navigate('/checkout');
   };
 
   const handleWishlist = () => {
@@ -311,7 +392,12 @@ const ProductDetail = () => {
     <div className="product-detail">
       {/* Breadcrumb */}
       <div className="breadcrumb">
-        <button onClick={() => navigate(-1)} className="back-btn">
+        <button onClick={() => {
+          try { window.dispatchEvent(new Event('supabase_products_refresh')); } catch(e){}
+          // Close modals/overlays that may persist and block the refreshed UI
+          try { window.dispatchEvent(new Event('close-all-modals')); } catch(e) {}
+          navigate(-1);
+        }} className="back-btn">
           <ArrowLeft size={16} />
           Back
         </button>
@@ -334,7 +420,7 @@ const ProductDetail = () => {
         <div className="product-images">
           <div className="main-image">
             <img 
-              src={product.images[selectedImage]} 
+              src={(Array.isArray(product.image_urls) && product.image_urls.length>0) ? product.image_urls[selectedImage] : (Array.isArray(product.images) ? product.images[selectedImage] : (product.image_url || product.imageUrl || product.image || ''))}
               alt={product.name}
               onError={(e) => {
                 e.target.src = 'https://via.placeholder.com/500x500?text=Product+Image';
@@ -346,7 +432,7 @@ const ProductDetail = () => {
           </div>
           
           <div className="image-thumbnails">
-            {product.images.map((image, index) => (
+            {(Array.isArray(product.image_urls) && product.image_urls.length>0 ? product.image_urls : (Array.isArray(product.images) ? product.images : [])).map((image, index) => (
               <button
                 key={index}
                 className={`thumbnail ${selectedImage === index ? 'active' : ''}`}

@@ -1,21 +1,22 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { collection, getDocs, addDoc, getDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import BulkProductUpload from '../components/BulkProductUpload';
+import BulkProductUpdate from '../components/BulkProductUpload';
 import { toast } from 'react-hot-toast';
 import './AdminProductPanel.css';
 import { Link } from 'react-router-dom';
 import Modal from '../../components/ui/Modal';
 // import { FaSearch } from 'react-icons/fa'; // Unused for now
-import { uploadToCloudinary } from '../../utils/cloudinaryUpload';
+import { uploadImage } from '../../utils/cloudinary';
+import { addProductImage, removeProductImage, deleteProductRow } from '../../utils/supabaseAdmin';
+import { importProductsCsvText } from '../../utils/supabaseCsvImport';
 // import { sortByStock } from '../../utils/sortProducts'; // Unused for now
 import throttle from 'lodash/throttle';
-import { addProduct, updateProduct, deleteProduct, setProductStock } from '../../utils/productOperations';
-import { getMixedProductsChunk, searchProductsChunk, getProductsByCategoryChunk, getProductCount, applyStockOverridesToChunk } from '../../utils/optimizedProductOperations';
-import VirtualizedTable from '../../components/VirtualizedTable';
+import { addProduct, updateProduct, setProductStock } from '../../utils/productOperations';
+import publicProducts from '../../utils/publicProducts';
 import PowerSearch from '../../components/PowerSearch';
 
 const Products = () => {
@@ -24,13 +25,21 @@ const Products = () => {
   const [newCategory, setNewCategory] = useState('');
 
   // Products state - optimized for large datasets
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // full dataset loaded from Supabase
+  const [filteredProducts, setFilteredProducts] = useState([]); // filtered set for search/category/filters
+  const [products, setProducts] = useState([]); // currently visible page (100 rows)
   const [selectedCategory, setSelectedCategory] = useState('All Products');
   const [totalProductCount, setTotalProductCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const ITEMS_PER_PAGE = 50;
+  const PAGE_SIZE = 100; // show 100 visibly at once
+  const [showAllMode, setShowAllMode] = useState(true); // show all products in admin by default
+  const LOW_STOCK_THRESHOLD = 5;
+  const [lowStockCount, setLowStockCount] = useState(0);
+  const [noImageCount, setNoImageCount] = useState(0);
+  const [topCategories, setTopCategories] = useState([]);
+  const [topSuppliers, setTopSuppliers] = useState([]);
+  const [supabaseCount, setSupabaseCount] = useState(null);
+  const [allCountsMatch, setAllCountsMatch] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -85,6 +94,14 @@ const Products = () => {
   // Sticky header and bulk actions bar state
   const [isSticky, setIsSticky] = useState(false);
   const tableWrapperRef = useRef();
+  const tableScrollRef = useRef(null);
+  const ROW_HEIGHT = 56; // px per row approx
+  const VIRTUAL_BUFFER = 8; // rows
+  const [virtualStart, setVirtualStart] = useState(0);
+  const [virtualEnd, setVirtualEnd] = useState(20);
+  const CHUNK_SIZE = 1000;
+  const fetchingRef = useRef(false);
+
   const searchDebounceRef = useRef(null);
   useEffect(() => {
     const handleScroll = () => {
@@ -92,143 +109,196 @@ const Products = () => {
       const { top } = tableWrapperRef.current.getBoundingClientRect();
       setIsSticky(top <= 0);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    const deb = (e) => handleScroll(e);
+    window.addEventListener('scroll', deb, { passive: true });
+    return () => window.removeEventListener('scroll', deb);
+  }, [showAllMode]);
 
-  // Load initial batch of products (optimized)
+  // Load products from public snapshot (/data/products.json) for admin reads
   useEffect(() => {
-    const loadInitialProducts = async () => {
+    const loadInitial = async () => {
       setLoading(true);
       try {
-        // Get total count first
-        const totalCount = getProductCount();
-        setTotalProductCount(totalCount);
-        
-        // Load first chunk
-        const chunk = getMixedProductsChunk(0, ITEMS_PER_PAGE);
-        const chunkWithOverrides = applyStockOverridesToChunk(chunk);
-        
-        setProducts(chunkWithOverrides.products);
-        setFilteredProducts(chunkWithOverrides.products);
-        setHasMore(chunkWithOverrides.hasMore);
+        await publicProducts.ensureLoaded();
+        const all = publicProducts.getAllCached() || [];
+        const firstProducts = publicProducts.getChunk(0, PAGE_SIZE) || [];
+        setAllProducts(all.slice());
+        setFilteredProducts(all.slice());
+        setProducts(showAllMode ? all.slice() : firstProducts.slice(0, PAGE_SIZE));
         setCurrentPage(0);
+        const total = publicProducts.getTotalCount();
+        setTotalProductCount(total);
       } catch (error) {
-        console.error('Error loading products:', error);
+        // eslint-disable-next-line no-console
+        console.error('Error loading initial products from public snapshot:', error);
       } finally {
     setLoading(false);
       }
     };
-    
-    loadInitialProducts();
-  }, []);
+    loadInitial();
+  }, [showAllMode]);
 
-  // Optimized search with chunked loading
-  const handleSearch = useCallback(
-    throttle(async (term) => {
-      setSearchTerm(term);
-      setLoading(true);
-      
-      try {
-        let chunk;
-        if (!term.trim()) {
-          // Load all products in current category
-          if (selectedCategory === 'All Products') {
-            chunk = getMixedProductsChunk(0, ITEMS_PER_PAGE);
-          } else {
-            chunk = getProductsByCategoryChunk(selectedCategory, 0, ITEMS_PER_PAGE);
-          }
-        } else {
-          // Search products
-          chunk = searchProductsChunk(term, 0, ITEMS_PER_PAGE);
-        }
-        
-        const chunkWithOverrides = applyStockOverridesToChunk(chunk);
-        setFilteredProducts(chunkWithOverrides.products);
-        setHasMore(chunkWithOverrides.hasMore);
-        setCurrentPage(0);
-      } catch (error) {
-        console.error('Search error:', error);
-        toast.error('Search failed');
-      } finally {
-        setLoading(false);
+  // debug: log when products array changes
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.debug('[Admin Products] products state length:', products.length, 'filtered:', filteredProducts.length, 'all:', allProducts.length, 'showAllMode:', showAllMode);
+  }, [products.length, filteredProducts.length, allProducts.length, showAllMode]);
+
+  // derive low-stock and missing-image counts from full dataset
+  useEffect(() => {
+    if (!Array.isArray(allProducts)) {
+      setLowStockCount(0);
+      setNoImageCount(0);
+        return;
       }
-    }, 300),
-    [selectedCategory]
-  );
+    const low = allProducts.reduce((acc, p) => {
+      const s = Number(p.stock || p.Stock || 0);
+      return acc + (Number.isFinite(s) && s <= LOW_STOCK_THRESHOLD ? 1 : 0);
+    }, 0);
+    const noimg = allProducts.reduce((acc, p) => {
+      const hasImages = (Array.isArray(p.images) && p.images.length > 0) || (Array.isArray(p.image_urls) && p.image_urls.length > 0);
+      const hasImageUrl = Boolean(p.imageUrl || p.image_url || p.image);
+      return acc + (hasImages || hasImageUrl ? 0 : 1);
+    }, 0);
+    setLowStockCount(low);
+    setNoImageCount(noimg);
+    // compute out/low margins for diagnostics (not used directly)
+    /* eslint-disable no-unused-vars */
+    const _out = allProducts.reduce((acc, p) => acc + ((Number(p.stock || p.Stock || 0) <= 0) ? 1 : 0), 0);
+    // outOfStockCount previously tracked but not used; keep computation if needed later
+    const _lowm = allProducts.reduce((acc, p) => {
+      const price = Number(p.price || p.SP || 0);
+      const mrp = Number(p.mrp || p.MRP || price);
+      const margin = mrp > 0 ? ((mrp - price) / mrp) * 100 : 0;
+      return acc + (margin < 10 ? 1 : 0);
+    }, 0);
+    /* eslint-enable no-unused-vars */
+    // lowMarginCount previously tracked but not used
+    // compute top categories and suppliers
+    const catMap = new Map();
+    const supMap = new Map();
+    allProducts.forEach(p => {
+      const c = p.category || p['Group Name'] || 'Uncategorized';
+      const s = p.supplierName || p['Supplier Name'] || 'Unknown';
+      catMap.set(c, (catMap.get(c) || 0) + 1);
+      supMap.set(s, (supMap.get(s) || 0) + 1);
+    });
+    const cats = Array.from(catMap.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>({name:k,count:v}));
+    const sups = Array.from(supMap.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>({name:k,count:v}));
+    setTopCategories(cats);
+    setTopSuppliers(sups);
+    // compare supabase count
+    (async ()=>{
+      try{
+        // prefer public snapshot count
+        await publicProducts.ensureLoaded();
+        const cnt = publicProducts.getTotalCount();
+        setSupabaseCount(cnt);
+        setAllCountsMatch(cnt === allProducts.length);
+      }catch(e){
+        // ignore
+      }
+    })();
+  }, [allProducts]);
+
+  // Optimized search with chunked loading (debounced via lodash.throttle)
+  const handleSearch = useMemo(() => throttle((term) => {
+    setSearchTerm(term);
+    const t = (term || '').trim().toLowerCase();
+    const base = selectedCategory === 'All Products'
+      ? allProducts
+      : allProducts.filter((p) => (p.category || '').toLowerCase() === selectedCategory.toLowerCase());
+    const filtered = !t
+      ? base
+      : base.filter((p) => {
+          const hay = [p.name, p.itemCode, p.category, p.supplierName]
+            .map((x) => (x || '').toString().toLowerCase())
+            .join(' ');
+          return hay.includes(t);
+        });
+    setFilteredProducts(filtered);
+    setCurrentPage(0);
+    if (showAllMode) setProducts(filtered.slice()); else setProducts(filtered.slice(0, PAGE_SIZE));
+  }, 250), [allProducts, selectedCategory, showAllMode]);
 
   // Filter products by category (optimized)
   useEffect(() => {
-    const loadCategoryProducts = async () => {
-      if (searchTerm.trim()) return; // Don't reload if user is searching
-      
-      setLoading(true);
-      try {
-        let chunk;
-    if (selectedCategory === 'All Products') {
-          chunk = getMixedProductsChunk(0, ITEMS_PER_PAGE);
-    } else {
-          chunk = getProductsByCategoryChunk(selectedCategory, 0, ITEMS_PER_PAGE);
-        }
-        
-        const chunkWithOverrides = applyStockOverridesToChunk(chunk);
-        setFilteredProducts(chunkWithOverrides.products);
-        setHasMore(chunkWithOverrides.hasMore);
-        setCurrentPage(0);
-      } catch (error) {
-        console.error('Category filter error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadCategoryProducts();
-  }, [selectedCategory]);
+    if (searchTerm.trim()) return; // search effect will handle
+    const base = selectedCategory === 'All Products'
+      ? allProducts
+      : allProducts.filter((p) => (p.category || '').toLowerCase() === selectedCategory.toLowerCase());
+    setFilteredProducts(base);
+    setCurrentPage(0);
+    if (showAllMode) setProducts(base.slice()); else setProducts(base.slice(0, PAGE_SIZE));
+  }, [selectedCategory, allProducts, searchTerm, showAllMode]);
 
-  // Load more products
-  const loadMoreProducts = useCallback(async () => {
-    if (!hasMore || loading) return;
-    
-    setLoading(true);
-    try {
-      const nextPage = currentPage + 1;
-      const startIndex = nextPage * ITEMS_PER_PAGE;
-      
-      let chunk;
-      if (searchTerm.trim()) {
-        chunk = searchProductsChunk(searchTerm, startIndex, ITEMS_PER_PAGE);
-      } else if (selectedCategory === 'All Products') {
-        chunk = getMixedProductsChunk(startIndex, ITEMS_PER_PAGE);
-      } else {
-        chunk = getProductsByCategoryChunk(selectedCategory, startIndex, ITEMS_PER_PAGE);
-      }
-      
-      const chunkWithOverrides = applyStockOverridesToChunk(chunk);
-      
-      setFilteredProducts(prev => [...prev, ...chunkWithOverrides.products]);
-      setHasMore(chunkWithOverrides.hasMore);
-      setCurrentPage(nextPage);
-    } catch (error) {
-      console.error('Load more error:', error);
-    } finally {
-      setLoading(false);
+  // Keep selection while on panel; clear when unmounting (leaving panel)
+  useEffect(() => {
+    return () => setSelectedProducts([]);
+  }, []);
+
+  // Simple pagination: derive current page slice from filteredProducts
+  useEffect(() => {
+    if (showAllMode) {
+      setProducts(filteredProducts.slice());
+      return;
     }
-  }, [hasMore, loading, currentPage, searchTerm, selectedCategory]);
+    const start = currentPage * PAGE_SIZE;
+    setProducts(filteredProducts.slice(start, start + PAGE_SIZE));
+  }, [filteredProducts, currentPage, showAllMode]);
+
+  // Prevent linter warnings for edit-related state vars that are intentionally kept
+  useEffect(() => {
+    // mark as used to silence linter for intentionally-kept state
+    /* eslint-disable no-unused-expressions */
+    void editingProduct;
+    void editForm;
+    void editImageFile;
+    void setEditImageFile;
+    /* eslint-enable no-unused-expressions */
+  }, [editingProduct, editForm, editImageFile, setEditImageFile]);
+
+  // Load all visible products at once (helper removed - not used)
+
+  // CSV update: open file picker and import CSV to Supabase
+  const handleUpdateProductsClick = () => {
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const onCsvFileSelected = async (e) => {
+    const file = e && e.target && e.target.files && e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const text = await file.text();
+      // parse & import to Supabase
+      const res = await importProductsCsvText(text, { batchSize: 500 });
+      toast.success(`CSV import complete — inserted: ${res.inserted || 0}, updated: ${res.updated || 0}`);
+      // Refresh local product list from public snapshot
+      try {
+        await publicProducts.refresh();
+      } catch (_) {}
+      const all = publicProducts.getAllCached() || [];
+      setAllProducts(all);
+      setFilteredProducts(all);
+      setTotalProductCount(all.length);
+      setProducts(showAllMode ? all.slice() : all.slice(0, PAGE_SIZE));
+      // debug
+      // eslint-disable-next-line no-console
+      console.debug('[Admin Products] after CSV import, loaded', all.length, 'products');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('CSV import failed', err);
+      toast.error('CSV import failed: ' + (err && err.message ? err.message : String(err)));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   
 
-  // Table headers configuration
-  const tableHeaders = [
-    { label: 'Select', width: '40px' },
-    { label: 'Image', width: '60px' },
-    { label: 'Name', width: '2fr' },
-    { label: 'Price', width: '1fr' },
-    { label: 'Offer', width: '1fr' },
-    { label: 'Delivery Fee', width: '1fr' },
-    { label: 'Category', width: '1fr' },
-    { label: 'Stock', width: '1fr' },
-    { label: 'Actions', width: '1fr' }
-  ];
+  // Table headers configuration removed (unused)
 
   // Advanced filtering logic
   useEffect(() => {
@@ -328,7 +398,7 @@ const Products = () => {
   };
 
   // Inline editing for all fields (including image)
-  const handleInlineEdit = async (productId, field, value) => {
+  const handleInlineEdit = useCallback(async (productId, field, value) => {
     try {
       if (field === 'stock') {
         setProductStock(productId, value);
@@ -346,7 +416,7 @@ const Products = () => {
     } catch (error) {
       toast.error('Failed to update');
     }
-  };
+  }, []);
 
   // Bulk actions
   const handleBulkAction = (action) => {
@@ -356,8 +426,13 @@ const Products = () => {
     }
     switch (action) {
       case 'delete':
-        selectedProducts.forEach(productId => handleDeleteProduct(productId));
+        (async () => {
+          for (const productId of selectedProducts) {
+            // eslint-disable-next-line no-await-in-loop
+            await handleDeleteProduct(productId);
+          }
         setSelectedProducts([]);
+        })();
         break;
       case 'changeOffer':
         setShowChangeOfferModal(true);
@@ -400,48 +475,19 @@ const Products = () => {
   };
 
   // Edit product modal
-  const handleEditProduct = async (e) => {
-    e.preventDefault();
-    setUploading(true);
-    try {
-      const updates = {
-        name: editForm.name,
-        price: parseFloat(editForm.price),
-        description: editForm.description,
-        category: editForm.category,
-        deliveryFee: parseFloat(editForm.deliveryFee),
-        offer: editForm.offer,
-        stock: parseInt(editForm.stock),
-        imageUrl: editImageFile ? URL.createObjectURL(editImageFile) : editingProduct.imageUrl
-      };
-      updateProduct(editingProduct.id, updates);
-      // Update local state
-      setProducts(prev => prev.map(p => p.id === editingProduct.id ? {...p, ...updates} : p));
-      setShowEditModal(false);
-      setEditingProduct(null);
-      setEditForm({ name: '', price: '', description: '', category: '', deliveryFee: '', offer: '', stock: 0 });
-      setEditImageFile(null);
-      toast.success('Product updated!');
-    } catch (error) {
-      toast.error('Failed to update product');
-    } finally {
-      setUploading(false);
-    }
-  };
+  // handleEditProduct removed (unused) - inline edit handled elsewhere
 
   // Delete product
   const handleDeleteProduct = useCallback(async (productId) => {
     try {
-      const deleted = deleteProduct(productId);
-      if (deleted) {
-        // Update local state
-        setProducts(prev => prev.filter(p => p.id !== productId));
-        setFilteredProducts(prev => prev.filter(p => p.id !== productId));
+      await deleteProductRow(productId);
+      setAllProducts(prev => prev.filter(p => p.id !== productId));
+      setFilteredProducts(prev => prev.filter(p => p.id !== productId));
+      setProducts(prev => prev.filter(p => p.id !== productId));
       toast.success('Product deleted!');
-      } else {
-        toast.error('Cannot delete products from main database. Only custom products can be deleted.');
-      }
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Delete error:', error);
       toast.error('Failed to delete product');
     }
   }, []);
@@ -479,62 +525,7 @@ const Products = () => {
     setShowEditModal(true);
   }, []);
 
-  // Render function for virtualized table rows
-  const renderProductRow = useCallback((product) => {
-    return (
-      <div key={product.id} className="table-row" style={{ display: 'flex', minHeight: '50px', alignItems: 'center', borderBottom: '1px solid #e5e7eb' }}>
-        <div style={{ flex: '0 0 40px', padding: '8px' }}>
-          <input
-            type="checkbox"
-            checked={selectedProducts.includes(product.id)}
-            onChange={() => handleProductSelection(product.id)}
-            className="rounded border-gray-300"
-          />
-        </div>
-        <div style={{ flex: '0 0 60px', padding: '8px' }}>
-          {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="w-10 h-10 object-cover rounded border" loading="lazy" />
-          ) : (
-            <div className="w-10 h-10 bg-gray-200 rounded border flex items-center justify-center text-xs">No Img</div>
-          )}
-        </div>
-        <div style={{ flex: '2', padding: '8px', fontSize: '12px' }}>
-          <InlineEditableField product={product} field="name" />
-        </div>
-        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
-          <InlineEditableField product={product} field="price" type="number" />
-        </div>
-        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
-          <InlineEditableField product={product} field="offer" />
-        </div>
-        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
-          <InlineEditableField product={product} field="deliveryFee" type="number" />
-        </div>
-        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
-          <InlineEditableField product={product} field="category" />
-        </div>
-        <div style={{ flex: '1', padding: '8px', fontSize: '12px' }}>
-          <InlineEditableField product={product} field="stock" type="number" />
-        </div>
-        <div style={{ flex: '1', padding: '8px' }}>
-          <div className="action-buttons flex gap-1">
-            <button
-              className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-              onClick={() => openEditModal(product)}
-            >
-              Edit
-            </button>
-            <button
-              className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-              onClick={() => handleDeleteProduct(product.id)}
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }, [selectedProducts, handleProductSelection, openEditModal, handleDeleteProduct]);
+  // Removed virtualized div row renderer in favor of table rows below
 
   const handleInlineAddCategory = async () => {
     if (!newInlineCategory.trim()) return;
@@ -653,17 +644,63 @@ const Products = () => {
     );
   };
 
+  // Product row component (memoized) to avoid re-rendering the whole table
+  const ProductRow = React.memo(function ProductRow({ product, sn, isSelected, onSelect }) {
+    return (
+      <tr key={product.id} className="table-row">
+        <td className="px-3 py-2 text-sm text-gray-700">{sn}</td>
+        <td className="px-3 py-2">
+          <input type="checkbox" checked={isSelected} onChange={() => onSelect(product.id)} className="rounded border-gray-300" />
+        </td>
+        <td className="px-3 py-2">
+          {Array.isArray(product.images) && product.images.length > 0 ? (
+            <img src={product.images[0]} alt={product.name} className="w-10 h-10 object-cover rounded border" loading="lazy" />
+          ) : product.imageUrl ? (
+            <img src={product.imageUrl} alt={product.name} className="w-10 h-10 object-cover rounded border" loading="lazy" />
+          ) : (
+            <div className="w-10 h-10 bg-gray-200 rounded border flex items-center justify-center text-xs">No Img</div>
+          )}
+        </td>
+        <td className="px-3 py-2 text-sm">
+          <InlineEditableField product={product} field="name" />
+        </td>
+        <td className="px-3 py-2 text-sm">
+          <InlineEditableField product={product} field="price" type="number" />
+        </td>
+        <td className="px-3 py-2 text-sm">
+          <InlineEditableField product={product} field="offer" />
+        </td>
+        <td className="px-3 py-2 text-sm">
+          <InlineEditableField product={product} field="deliveryFee" type="number" />
+        </td>
+        <td className="px-3 py-2 text-sm">
+          <InlineEditableField product={product} field="category" />
+        </td>
+        <td className="px-3 py-2 text-right">
+          <div className="action-buttons flex gap-1 justify-end">
+            <button className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200" onClick={() => openEditModal(product)}>Edit</button>
+            <button className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200" onClick={() => handleOpenAddImageModal(product)}>Images</button>
+            <button className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200" onClick={() => handleDeleteProduct(product.id)}>Delete</button>
+          </div>
+        </td>
+      </tr>
+    );
+  });
+
   const [showAddImageModal, setShowAddImageModal] = useState(false);
   const [addImageProduct, setAddImageProduct] = useState(null);
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
-  const handleOpenAddImageModal = (product) => {
+  const [cameraActive, setCameraActive] = useState(false);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const handleOpenAddImageModal = useCallback((product) => {
     setAddImageProduct(product);
     setShowAddImageModal(true);
     setSelectedImageFile(null);
     setImagePreviewUrl('');
-  };
+  }, []);
   const handleCloseAddImageModal = () => {
     setShowAddImageModal(false);
     setAddImageProduct(null);
@@ -677,20 +714,85 @@ const Products = () => {
       setImagePreviewUrl(URL.createObjectURL(file));
     }
   };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        setCameraActive(true);
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Camera start failed', err);
+      toast.error('Camera access denied or not available');
+    }
+  };
+
+  const stopCamera = () => {
+    try {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks();
+        tracks.forEach(t => t.stop());
+        videoRef.current.srcObject = null;
+      }
+    } catch (_) {}
+    setCameraActive(false);
+  };
+
+  const captureFromCamera = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current || document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setSelectedImageFile(file);
+        setImagePreviewUrl(URL.createObjectURL(file));
+        stopCamera();
+      }
+    }, 'image/jpeg', 0.9);
+  };
   const handleUploadImage = async () => {
     if (!selectedImageFile || !addImageProduct) return;
     setUploadingImage(true);
     try {
-      const url = await uploadToCloudinary(selectedImageFile, 'image');
-      updateProduct(addImageProduct.id, { imageUrl: url });
-      // Update local state
-      setProducts(prev => prev.map(p => p.id === addImageProduct.id ? {...p, imageUrl: url} : p));
+      const uploaded = await uploadImage(selectedImageFile, { folder: 'products' });
+      // If a server endpoint is configured via REACT_APP_IMAGE_ENDPOINT, supabaseAdmin will call it.
+      await addProductImage(addImageProduct.id, uploaded.url);
+      // Update local state (append to images array)
+      setProducts(prev => prev.map(p => p.id === addImageProduct.id ? {
+        ...p,
+        imageUrl: uploaded.url,
+        images: Array.isArray(p.images) ? [...p.images, uploaded.url] : [uploaded.url]
+      } : p));
       toast.success('Image uploaded!');
       handleCloseAddImageModal();
     } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Upload error:', err);
       toast.error('Failed to upload image');
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = async (product, url) => {
+    try {
+      await removeProductImage(product.id, url);
+      setProducts(prev => prev.map(p => p.id === product.id ? {
+        ...p,
+        images: (p.images || []).filter(u => u !== url),
+        imageUrl: p.imageUrl === url ? null : p.imageUrl,
+      } : p));
+      toast.success('Image removed');
+    } catch (e) {
+      toast.error('Failed to remove image');
     }
   };
 
@@ -703,14 +805,14 @@ const Products = () => {
   }
 
   // Get unique suppliers for filter dropdown
-  const suppliers = Array.from(new Set(products.map(p => p.supplier || p['Supplier Name']).filter(Boolean)));
+  const suppliers = Array.from(new Set(allProducts.map(p => p.supplier || p['Supplier Name'] || p.supplierName || p['Supplier Name']).filter(Boolean)));
 
   // Build category list from products
-  const allProductCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  const allProductCategories = Array.from(new Set(allProducts.map(p => p.category).filter(Boolean)));
   const categories = ['All Products', ...allProductCategories];
   // Note: Removed groupedProducts logic for performance - using flat virtualized list instead
 
-  const csvTemplate = `itemCode,name,baseUnit,group,category,supplier,price,lastPurcMiti,lastPurcQty,salesQty\n1001,Sample Product,PCS,Group,Category,Supplier,100,2082/03/13,12,20`;
+  const csvTemplate = `Item Code,Description,Base Unit,Group ID,Group Name,Sub Group,Supplier Name,Last CP,Taxable CP,SP,Stock,Last Purc Miti,Last Purc Qty,Sales Qty,#,Margin %,MRP\n1001,Sample Product,PCS,1,Category A,Sub,Acme,90,95,110,25,2082/03/13,12,20,001,10,120`;
 
   function downloadCSVTemplate() {
     const blob = new Blob([csvTemplate], { type: 'text/csv' });
@@ -724,17 +826,7 @@ const Products = () => {
     URL.revokeObjectURL(url);
   }
 
-  function parseCSV(text) {
-    const lines = text.trim().split(/\r?\n/);
-    const headers = lines[0].split(',');
-    return lines.slice(1).map((line, idx) => {
-      const values = line.split(',');
-      const obj = {};
-      headers.forEach((h, i) => { obj[h.trim()] = (values[i] || '').trim(); });
-      obj._row = idx + 2;
-      return obj;
-    });
-  }
+  // parseCSV removed (unused) - using importProductsCsvText instead
 
   const handleCSVUpload = (e) => {
     setCsvErrors([]);
@@ -743,20 +835,9 @@ const Products = () => {
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const products = parseCSV(evt.target.result);
-        // Validate
-        const errors = [];
-        products.forEach((p, i) => {
-          if (!p.name || !p.price || !p.category) {
-            errors.push(`Row ${p._row}: Missing required field (name, price, or category)`);
-          } else if (isNaN(Number(p.price))) {
-            errors.push(`Row ${p._row}: Price must be a number`);
-          }
-        });
-        setCsvProducts(products);
-        setCsvErrors(errors);
+        setCsvProducts([{ _raw: String(evt.target.result || '') }]);
       } catch (err) {
-        setCsvErrors(['Failed to parse CSV.']);
+        setCsvErrors(['Failed to read CSV.']);
         setCsvProducts([]);
       }
     };
@@ -766,53 +847,33 @@ const Products = () => {
   const handleBulkUpload = async () => {
     setUploading(true);
     try {
-      const newProducts = [];
-      for (const p of csvProducts) {
-        if (!p.name || !p.price || !p.category || isNaN(Number(p.price))) continue;
-        const newProduct = addProduct({
-          name: p.name,
-          price: Number(p.price),
-          category: p.category,
-          description: p.description || '',
-          imageUrl: '',
-          stock: Number(p.stock) || 0,
-          deliveryFee: Number(p.deliveryFee) || 0
-        });
-        newProducts.push(newProduct);
-      }
-      // Update local state
-      setProducts(prev => [...prev, ...newProducts]);
+      const text = (csvProducts[0] && csvProducts[0]._raw) || '';
+      if (!text) throw new Error('No CSV loaded');
+      const res = await importProductsCsvText(text, { batchSize: 500 });
+      toast.success(`Import complete. Inserted ${res.inserted}, updated ${res.updated}.`);
       setShowBulkModal(false);
       setCsvProducts([]);
       setCsvErrors([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      alert('Bulk upload complete!');
+      // Optionally refresh the first page
+      setAllProducts([]);
+      setFilteredProducts([]);
+      setProducts([]);
     } catch (err) {
-      alert('Bulk upload failed.');
-    }
+      toast.error(`Bulk upload failed: ${err.message || err}`);
+    } finally {
     setUploading(false);
+    }
   };
 
-  // Analytics calculations
-  const totalProducts = products.length;
-  const outOfStock = products.filter(p => Number(p.stock || p['Stock']) === 0).length;
-  const lowMargin = products.filter(p => Number(p['Margin %'] || p.marginPercent) < 10).length;
-  const topCategories = (() => {
-    const counts = {};
-    products.forEach(p => {
-      const cat = p.category || p['Group Name'] || 'Uncategorized';
-      counts[cat] = (counts[cat] || 0) + 1;
-    });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  })();
-  const topSuppliers = (() => {
-    const counts = {};
-    products.forEach(p => {
-      const sup = p.supplier || p['Supplier Name'] || 'Unknown';
-      counts[sup] = (counts[sup] || 0) + 1;
-    });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  })();
+  // Analytics calculations (use full dataset)
+  const outOfStock = allProducts.filter(p => Number(p.stock || p['Stock'] || 0) === 0).length;
+  const lowMargin = allProducts.filter(p => {
+    const price = Number(p.price || p.SP || 0);
+    const mrp = Number(p.mrp || p.MRP || price) || price;
+    const margin = mrp > 0 ? ((mrp - price) / mrp) * 100 : 0;
+    return margin < 10;
+  }).length;
 
   return (
     <div className="admin-products-panel">
@@ -832,6 +893,11 @@ const Products = () => {
         <Card style={{ flex: 1, padding: 16 }}>
           <div style={{ fontSize: 13, color: '#888' }}>Total Products</div>
           <div style={{ fontSize: 24, fontWeight: 600 }}>{totalProductCount}</div>
+          {supabaseCount !== null && (
+            <div style={{ fontSize: 12, color: supabaseCount === allProducts.length ? '#15803d' : '#c2410c' }}>
+              Supabase: {supabaseCount} • Match: {allCountsMatch ? 'Yes' : 'No'}
+            </div>
+          )}
         </Card>
         <Card style={{ flex: 1, padding: 16 }}>
           <div style={{ fontSize: 13, color: '#888' }}>Out of Stock</div>
@@ -843,17 +909,17 @@ const Products = () => {
         </Card>
         <Card style={{ flex: 1, padding: 16 }}>
           <div style={{ fontSize: 13, color: '#888' }}>Top Categories</div>
-          <div style={{ fontSize: 15 }}>{topCategories.map(([cat, count]) => <div key={cat}>{cat}: {count}</div>)}</div>
+          <div style={{ fontSize: 15 }}>{topCategories.map(c => <div key={c.name}>{c.name}: {c.count}</div>)}</div>
         </Card>
         <Card style={{ flex: 1, padding: 16 }}>
           <div style={{ fontSize: 13, color: '#888' }}>Top Suppliers</div>
-          <div style={{ fontSize: 15 }}>{topSuppliers.map(([sup, count]) => <div key={sup}>{sup}: {count}</div>)}</div>
+          <div style={{ fontSize: 15 }}>{topSuppliers.map(s => <div key={s.name}>{s.name}: {s.count}</div>)}</div>
         </Card>
       </div>
       {/* Header */}
       <div className="admin-products-header-row" style={{ position: isSticky ? 'sticky' : 'static', top: 0, zIndex: 10, background: '#f8fafc' }}>
         <h1 className="text-2xl font-bold text-gray-900" style={{ margin: 0, fontSize: '1.2rem' }}>Products Management</h1>
-        <Button onClick={() => setShowBulkModal(true)} variant="primary">Bulk Upload</Button>
+        <Button onClick={() => setShowBulkModal(true)} variant="primary">Bulk Update</Button>
         <Button onClick={() => setShowAddCategoryModal(true)} variant="secondary">Add Category</Button>
         <Button onClick={() => setShowAddModal(true)} variant="success">Add Product</Button>
       </div>
@@ -934,7 +1000,7 @@ const Products = () => {
 
       {/* Bulk Actions */}
       {selectedProducts.length > 0 && (
-        <div className="sticky-bulk-actions-bar" style={{ position: isSticky ? 'fixed' : 'static', top: 0, left: 0, right: 0, zIndex: 30, background: '#f8fafc', boxShadow: isSticky ? '0 2px 8px #e0e7ef33' : 'none', padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="sticky-bulk-actions-bar" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 30, background: '#f8fafc', boxShadow: '0 -2px 8px #e0e7ef33', padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span className="text-sm text-gray-600">{selectedProducts.length} products selected</span>
           <div className="flex gap-2">
             <Button size="sm" variant="danger" onClick={() => handleBulkAction('delete')}>Delete Selected</Button>
@@ -948,36 +1014,133 @@ const Products = () => {
       <Card>
         <Card.Content className="p-0">
           <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div style={{ flex: '0 0 40px', padding: '8px', fontSize: 12, color: '#444' }}>S/N</div>
                           <input
                             type="checkbox"
-                checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0} 
-                onChange={handleSelectAll} 
+              checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+              onChange={handleSelectAll}
                             className="rounded border-gray-300"
                           />
+            <div style={{display:'flex', flexDirection:'column'}}>
               <span className="text-sm font-medium text-gray-700">
-                {filteredProducts.length} products • {selectedProducts.length} selected
+                {filteredProducts.length} products • Page {currentPage + 1} of {Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE))}
               </span>
+              <div style={{fontSize:12, color:'#555'}}>
+                <span style={{marginRight:12}}>Total: <strong>{allProducts.length}</strong></span>
+                <span style={{marginRight:12}}>Low stock (&le;{LOW_STOCK_THRESHOLD}): <strong>{lowStockCount}</strong></span>
+                <span>Missing image: <strong>{noImageCount}</strong></span>
                         </div>
-            {hasMore && (
-              <button 
-                onClick={loadMoreProducts} 
-                disabled={loading}
-                className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
-              >
-                {loading ? 'Loading...' : 'Load More'}
-              </button>
-            )}
+            </div>
+                        </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+              disabled={currentPage === 0}
+              className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => (p + 1 < Math.ceil(filteredProducts.length / PAGE_SIZE) ? p + 1 : p))}
+              disabled={(currentPage + 1) >= Math.ceil(filteredProducts.length / PAGE_SIZE)}
+              className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50"
+            >
+              Next
+            </button>
+            <label style={{display:'flex', alignItems:'center', gap:8}}>
+              <input type="checkbox" checked={showAllMode} onChange={(e)=>setShowAllMode(e.target.checked)} />
+              <span style={{fontSize:12}}>Show all</span>
+            </label>
           </div>
-          
-          <VirtualizedTable
-            data={filteredProducts}
-            itemHeight={50}
-            containerHeight={600}
-            renderItem={renderProductRow}
-            headers={tableHeaders}
-            className="admin-products-table"
-          />
+          <div style={{flex:1, display:'flex', justifyContent:'center'}}>
+            <div>
+              <input ref={fileInputRef} type="file" accept=".csv,text/csv" style={{display:'none'}} onChange={onCsvFileSelected} />
+              <button id="update-products-btn" onClick={handleUpdateProductsClick} className="px-5 py-3 bg-yellow-500 text-white rounded shadow font-bold" disabled={uploading}>
+                {uploading ? 'Updating...' : 'Update Products (CSV)'}
+              </button>
+            </div>
+          </div>
+          </div>
+          <div style={{ maxHeight: 600, overflowY: 'auto' }} ref={tableScrollRef} onScroll={() => {
+              const el = tableScrollRef.current;
+              if (!el) return;
+              const scrollTop = el.scrollTop;
+              const visibleRows = Math.ceil(el.clientHeight / ROW_HEIGHT);
+              const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - VIRTUAL_BUFFER);
+              const end = Math.min(products.length, start + visibleRows + VIRTUAL_BUFFER * 2);
+              if (start !== virtualStart || end !== virtualEnd) {
+                setVirtualStart(start);
+                setVirtualEnd(end);
+              }
+
+              // load more items when user scrolls near the end of currently loaded products
+              const nearEndThreshold = Math.max(0, products.length - Math.ceil(CHUNK_SIZE / 4));
+              if (end >= nearEndThreshold && products.length < (totalProductCount || Infinity) && !fetchingRef.current) {
+                (async () => {
+                  try {
+                    fetchingRef.current = true;
+                    const startIndex = products.length;
+                    const toFetch = Math.min(CHUNK_SIZE, (totalProductCount || CHUNK_SIZE) - startIndex);
+                    if (toFetch <= 0) return;
+                    await publicProducts.ensureLoaded();
+                    const newItems = publicProducts.getChunk(startIndex, toFetch) || [];
+                    if (newItems.length > 0) {
+                      setAllProducts(prev => [...prev, ...newItems]);
+                      setFilteredProducts(prev => [...prev, ...newItems]);
+                      setProducts(prev => showAllMode ? [...prev, ...newItems] : prev);
+                    }
+                  } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.warn('Failed to load more products', e);
+                  } finally {
+                    fetchingRef.current = false;
+                  }
+                })();
+              }
+            }}>
+            {/* spacer top for virtualized rows */}
+            <div style={{ height: virtualStart * ROW_HEIGHT }} />
+            <table className="min-w-full divide-y divide-gray-200" style={{ width: '100%' }}>
+              <colgroup>
+                <col style={{ width: '40px' }} />
+                <col style={{ width: '40px' }} />
+                <col style={{ width: '60px' }} />
+                <col />
+                <col style={{ width: '120px' }} />
+                <col style={{ width: '100px' }} />
+                <col style={{ width: '120px' }} />
+                <col style={{ width: '100px' }} />
+                <col style={{ width: '160px' }} />
+              </colgroup>
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S/N</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input type="checkbox" checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0} onChange={handleSelectAll} />
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Offer</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Fee</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {products.slice(virtualStart, virtualEnd).map((product, idx) => {
+                  const startIndex = showAllMode ? 0 : currentPage * PAGE_SIZE;
+                  const sn = startIndex + virtualStart + idx + 1;
+                  return (
+                    <ProductRow key={product.id} product={product} sn={sn} isSelected={selectedProducts.includes(product.id)} onSelect={handleProductSelection} />
+                  );
+                })}
+                {/* spacer bottom */}
+                <tr style={{ height: Math.max(0, (products.length - virtualEnd) * ROW_HEIGHT) }} />
+              </tbody>
+            </table>
+          </div>
           
           {filteredProducts.length === 0 && !loading && (
             <div className="text-center py-12">
@@ -988,7 +1151,7 @@ const Products = () => {
           {loading && (
             <div className="text-center py-4">
               <p className="text-blue-600">Loading products...</p>
-            </div>
+          </div>
           )}
         </Card.Content>
       </Card>
@@ -1062,28 +1225,40 @@ const Products = () => {
       </Modal>
       )}
 
-      {/* Edit Product Modal */}
-      <BulkProductUpload
+      {/* Bulk Update Modal (Edit Product Modal placeholder retained to avoid confusion) */}
+       <BulkProductUpdate
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         onSuccess={() => {/* Optionally reload products here */}}
       />
 
-      {/* Offer Modal */}
-      <BulkProductUpload
+      {/* Offer Modal using Bulk Update for batch price changes */}
+      <BulkProductUpdate
         isOpen={showOfferModal}
         onClose={() => setShowOfferModal(false)}
         onSuccess={() => {/* Optionally reload products here */}}
       />
 
-      {/* Bulk Upload Modal */}
+      {/* Bulk Update Modal */}
       {showBulkModal && (
-        <BulkProductUpload
-          isOpen={showBulkModal}
-          onClose={() => setShowBulkModal(false)}
-          onSuccess={() => {/* Optionally reload products here */}}
-          style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000 }}
-        />
+         <Modal isOpen={showBulkModal} onClose={() => setShowBulkModal(false)} title="Update Products via CSV">
+           <div className="space-y-3">
+             <div className="text-sm text-gray-600">Upload a CSV with headers matching your table (e.g., "Item Code", "Description", ...). We'll upsert by Item Code and insert new rows.</div>
+             <div className="flex gap-2 items-center">
+               <input type="file" accept=".csv,text/csv" ref={fileInputRef} onChange={handleCSVUpload} />
+               <Button size="sm" variant="outline" onClick={() => downloadCSVTemplate()}>Template</Button>
+             </div>
+             {csvErrors.length > 0 && (
+               <div className="text-sm text-red-600">
+                 {csvErrors.map((e, idx) => <div key={idx}>{e}</div>)}
+               </div>
+             )}
+             <div className="flex justify-end gap-2">
+               <Button size="sm" variant="secondary" onClick={() => setShowBulkModal(false)}>Cancel</Button>
+               <Button size="sm" variant="primary" onClick={handleBulkUpload} loading={uploading} disabled={csvProducts.length === 0}>Import</Button>
+             </div>
+           </div>
+         </Modal>
       )}
       {showChangeOfferModal && (
         <Modal isOpen={showChangeOfferModal} onClose={() => setShowChangeOfferModal(false)} title="Change Offer for Selected Products">
@@ -1092,15 +1267,38 @@ const Products = () => {
       )}
 
       {showAddImageModal && (
-        <Modal isOpen={showAddImageModal} onClose={handleCloseAddImageModal} title="Add Product Image">
+        <Modal isOpen={showAddImageModal} onClose={handleCloseAddImageModal} title="Manage Product Images">
           <div className="space-y-4">
+            {addImageProduct && Array.isArray(addImageProduct.images) && addImageProduct.images.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <div className="font-medium text-sm">Existing Images</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {addImageProduct.images.map((u) => (
+                    <div key={u} style={{ position: 'relative' }}>
+                      <img src={u} alt="" className="w-20 h-20 object-cover rounded border" />
+                      <button type="button" className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1" onClick={() => handleRemoveImage(addImageProduct, u)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               <label className="font-medium">Choose Image</label>
               <Input type="file" accept="image/*" onChange={handleImageFileChange} />
-              <Input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} id="cameraInput" onChange={handleImageFileChange} />
-              <Button size="sm" variant="outline" onClick={() => document.getElementById('cameraInput').click()}>
-                Use Camera
-              </Button>
+                <div style={{display:'flex', gap:8, alignItems:'center', marginTop:8}}>
+                  {!cameraActive ? (
+                    <Button size="sm" variant="outline" onClick={startCamera}>Open Camera</Button>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="outline" onClick={captureFromCamera}>Capture</Button>
+                      <Button size="sm" variant="secondary" onClick={stopCamera}>Stop</Button>
+                    </>
+                  )}
+                </div>
+                <div style={{marginTop:8}}>
+                  <video ref={videoRef} style={{width:220, height:160, background:'#000'}} autoPlay muted />
+                  <canvas ref={canvasRef} style={{display:'none'}} />
+                </div>
             </div>
             {imagePreviewUrl && (
               <div className="flex flex-col items-center gap-2">

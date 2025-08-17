@@ -2,7 +2,7 @@ import React from 'react';
 import { Calendar, DollarSign } from 'lucide-react';
 import './OrdersPage.css';
 
-const OrderList = ({ orders, loading, onOrderClick }) => {
+const OrderList = ({ orders, loading, onOrderClick, onCancel }) => {
   if (loading) {
     return (
       <div className="loading-orders">
@@ -26,8 +26,9 @@ const OrderList = ({ orders, loading, onOrderClick }) => {
         {orders.map((order, index) => (
           <div 
             key={order.id} 
-            className="order-card hoverable"
+            className={`order-card hoverable ${String(order.status || '').toLowerCase() === 'cancelled' ? 'order-cancelled' : ''}`}
             onClick={() => onOrderClick(order)}
+            style={String(order.status || '').toLowerCase() === 'cancelled' ? { textDecoration: 'line-through', opacity: 0.6 } : {}}
           >
             <div className="order-header">
               <div className="order-info">
@@ -55,7 +56,17 @@ const OrderList = ({ orders, loading, onOrderClick }) => {
               </div>
               <div className="order-total">
                 <DollarSign size={16} />
-                <span>Rs. {order.totalAmount?.toLocaleString() || order.price?.toLocaleString() || '0.00'}</span>
+                <span>
+                  Rs. {
+                    (() => {
+                      const total = order.total || order.totalAmount;
+                      if (total) return Number(total).toLocaleString();
+                      if (order.price && order.quantity) return (Number(order.price) * Number(order.quantity)).toLocaleString();
+                      if (order.price) return Number(order.price).toLocaleString();
+                      return '0.00';
+                    })()
+                  }
+                </span>
               </div>
             </div>
             {/* Cancel Order Button */}
@@ -66,7 +77,9 @@ const OrderList = ({ orders, loading, onOrderClick }) => {
                   onClick={e => {
                     e.stopPropagation();
                     if (window.confirm('Are you sure you want to cancel this order?')) {
-                      if (order.onCancel) {
+                      if (typeof onCancel === 'function') {
+                        onCancel(order.id);
+                      } else if (order.onCancel) {
                         order.onCancel(order.id);
                       }
                     }

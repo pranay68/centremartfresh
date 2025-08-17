@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from './ProductCard';
+import publicProducts from '../../utils/publicProducts';
 import { sortByStock } from '../../utils/sortProducts';
 import './CategoryPanel.css';
 
@@ -40,6 +41,7 @@ const CategoryPanel = ({ title = '', products = [], onProductClick, onAuthRequir
         <Link 
           to={`/category/${encodeURIComponent(title.toLowerCase())}`} 
           className="see-all-link"
+          onClick={() => { try { publicProducts.ensureLoaded(); } catch (e) { /* ignore */ } }}
         >
           <span>View All</span>
           <svg className="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -61,6 +63,7 @@ const CategoryPanel = ({ title = '', products = [], onProductClick, onAuthRequir
           <Link 
             to={`/category/${encodeURIComponent(title.toLowerCase())}`} 
             className="view-more-btn"
+            onClick={() => { try { publicProducts.ensureLoaded(); } catch (e) { /* ignore */ } }}
           >
             View All {products.length} {title} Products
           </Link>

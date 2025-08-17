@@ -6,7 +6,7 @@ import Card from '../../components/ui/Card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
-import { getAllProductsIncludingCustom } from '../../utils/productOperations';
+import { getAllSupabaseProducts } from '../../utils/supabaseProducts';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -22,18 +22,18 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load products from local database
-    const loadProducts = () => {
+    // Load products from Supabase
+    (async () => {
       try {
-        const products = getAllProductsIncludingCustom();
+        const products = await getAllSupabaseProducts(5000);
         const totalProducts = products.length;
         setStats(prev => ({ ...prev, totalProducts }));
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Products loading error:', error);
         setLoading(false);
       }
-    };
-    loadProducts();
+    })();
     // Real-time orders
     const unsubOrders = onSnapshot(
       collection(db, 'orders'),

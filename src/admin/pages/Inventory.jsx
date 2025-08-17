@@ -5,7 +5,9 @@ import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
 import "../AdminPanel.css";
-import { getAllProductsWithOverrides, setProductStock } from '../../utils/productOperations';
+// Switch inventory read to Supabase; keep local stock override setter for now
+import publicProducts from '../../utils/publicProducts';
+import { setProductStock } from '../../utils/productOperations';
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
@@ -22,14 +24,19 @@ const Inventory = () => {
   ];
 
   useEffect(() => {
-    try {
-      const data = getAllProductsWithOverrides();
-      setProducts(data);
-    } catch (e) {
-      console.error('Error loading inventory products', e);
-    } finally {
-      setLoading(false);
-    }
+    (async () => {
+      setLoading(true);
+      try {
+        await publicProducts.ensureLoaded();
+        const data = publicProducts.getAllCached().slice(0, 5000);
+        setProducts(data);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Error loading inventory products', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const updateStock = async () => {

@@ -7,6 +7,7 @@ export {
     getProductsByCategory,
     searchProducts,
     getTopSellingProducts,
-    getAllCategories
+    getAllCategories,
+    getProductsByIds
 }
 from '../utils/productOperations';

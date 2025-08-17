@@ -50,26 +50,53 @@ const ProductDetailPanel = ({ product, onClose }) => {
 
   if (!product) return null;
 
-  const images = [product.imageUrl, ...(product.additionalImages || [])];
+  // Build images list preferring image_urls, images, image_url, imageUrl, image
+  const images = (Array.isArray(product.image_urls) && product.image_urls.length > 0)
+    ? product.image_urls
+    : (Array.isArray(product.images) && product.images.length > 0)
+      ? product.images
+      : (product.image_url ? [product.image_url] : (product.imageUrl ? [product.imageUrl] : (product.image ? [product.image] : [])));
 
   const handleAddToCart = () => {
-    addToCart(product, quantity);
+    try {
+      if (!product) {
+        console.warn('handleAddToCart called without product');
+        return;
+      }
+      if (!addToCart) {
+        console.warn('addToCart not available from CartContext');
+        return;
+      }
+      addToCart(product, quantity);
+    } catch (err) {
+      console.error('Error in handleAddToCart:', err);
+    }
   };
 
   const handleBuyNow = () => {
-    const finalPrice = Math.round(calculatePrice(quantity));
-    navigate('/checkout', { 
-      state: { 
-        product: { 
-          ...product, 
-          quantity,
-          finalPrice,
-          hasBulkDiscount: quantity >= 6,
-          originalTotal: product.price * quantity,
-          savings: quantity >= 6 ? Math.round(product.price * quantity * 0.01) : 0
-        } 
-      } 
-    });
+    try {
+      if (!product) {
+        console.warn('handleBuyNow called without product');
+        return;
+      }
+      const finalPrice = Math.round(calculatePrice(quantity));
+      const checkoutProduct = {
+        ...product,
+        quantity,
+        finalPrice,
+        hasBulkDiscount: quantity >= 6,
+        originalTotal: (product.price || 0) * quantity,
+        savings: quantity >= 6 ? Math.round((product.price || 0) * quantity * 0.01) : 0
+      };
+      try {
+        sessionStorage.setItem('buyNowItem', JSON.stringify(checkoutProduct));
+      } catch (e) {
+        console.error('Failed to save buyNowItem to sessionStorage', e);
+      }
+      navigate('/checkout', { state: { product: checkoutProduct } });
+    } catch (err) {
+      console.error('Error in handleBuyNow:', err);
+    }
   };
 
   const calculatePrice = (qty) => {

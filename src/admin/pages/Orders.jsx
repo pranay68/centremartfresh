@@ -17,6 +17,8 @@ const Orders = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedOrders, setSelectedOrders] = useState(new Set());
   const [updating, setUpdating] = useState(false);
+  const [showOrderDetail, setShowOrderDetail] = useState(false);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
   const [dateRange, setDateRange] = useState('all');
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
@@ -39,6 +41,16 @@ const Orders = () => {
     setStockSummary({ total: products.length, low, out });
   }, []);
 
+  // prevent background scroll and make overlay opaque when modal open
+  useEffect(() => {
+    if (showOrderDetail) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [showOrderDetail]);
+
   const fetchOrders = async () => {
     try {
       const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
@@ -60,6 +72,19 @@ const Orders = () => {
   const computeAmount = (order) => {
     const base = order.totalAmount || (order.price * (order.quantity || 1)) || order.price || 0;
     return Number(base) || 0;
+  };
+
+  const getOrderItems = (order) => {
+    if (!order) return [];
+    if (Array.isArray(order.items) && order.items.length) return order.items;
+    if (Array.isArray(order.lineItems) && order.lineItems.length) return order.lineItems;
+    // fallback to single-item shape
+    return [{ name: order.productName || order.product || 'Product', quantity: order.quantity || 1, price: order.price || order.unitPrice || 0 }];
+  };
+
+  const computeSubtotal = (order) => {
+    const items = getOrderItems(order);
+    return items.reduce((sum, it) => sum + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
@@ -161,7 +186,7 @@ const Orders = () => {
 
   // Filters
   const filteredOrders = orders.filter(order => {
-    const matchesSearch =
+    const matchesSearch = 
       (order.productName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (order.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (order.phone || '').includes(searchTerm) ||
@@ -383,6 +408,7 @@ const Orders = () => {
           <div className="admin-table-scroll-wrapper" style={{ width: '100%', overflowX: 'scroll', overflowY: 'hidden' }}>
             <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '1400px' }}>
                 <colgroup>
+                <col style={{ width: '40px' }} />
                   <col style={{ width: '40px' }} />
                   <col style={{ width: '60px' }} />
                   <col style={{ minWidth: '180px', width: '220px' }} />
@@ -403,6 +429,7 @@ const Orders = () => {
                       className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
                   </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S/N</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
@@ -414,7 +441,7 @@ const Orders = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedOrders.map((order) => (
+                {sortedOrders.map((order, idx) => (
                     <tr key={order.id} className="order-row">
                       <td className="order-cell">
                       <input
@@ -424,6 +451,7 @@ const Orders = () => {
                         className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
                     </td>
+                      <td className="order-cell">{idx + 1}</td>
                       <td className="order-img-col order-cell">
                         <img
                           src={order.productImageURL || 'https://via.placeholder.com/60'}
@@ -458,6 +486,14 @@ const Orders = () => {
                               <span className="icon">✔️</span> Mark as Delivered
                             </button>
                           )}
+                          <button
+                            className="admin-btn"
+                            title="Full detail"
+                            onClick={() => { setSelectedOrderDetail(order); setShowOrderDetail(true); }}
+                            style={{ minWidth: 100, padding: '8px 12px', fontSize: '0.9rem', marginLeft: 6 }}
+                          >
+                            Full detail
+                          </button>
                       <select
                         value={order.status}
                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
@@ -511,6 +547,55 @@ const Orders = () => {
         </div>
       )}
       </div>
+
+      {/* Full Order Detail modal / panel */}
+      {showOrderDetail && selectedOrderDetail && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: '#ffffff', zIndex: 9999, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ width: '90%', maxWidth: 1000, maxHeight: '100%', overflowY: 'auto', backgroundColor: '#ffffff', border: '1px solid #e6e6e6', margin: '28px auto', padding: 24, boxShadow: '0 6px 24px rgba(0,0,0,0.12)', color: '#000', position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0 }}>Order Details — {selectedOrderDetail.id}</h2>
+              <button onClick={() => setShowOrderDetail(false)} style={{ fontSize: 20 }}>✕</button>
+            </div>
+            <div style={{ display: 'flex', gap: 16, marginTop: 12, color: '#111' }}>
+              <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 6, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                <h3 style={{ marginTop: 0 }}>Customer</h3>
+                <div style={{ marginBottom: 6 }}><strong>Name:</strong> {selectedOrderDetail.customerName}</div>
+                <div style={{ marginBottom: 6 }}><strong>Phone:</strong> {selectedOrderDetail.phone}</div>
+                <div style={{ marginBottom: 6 }}><strong>Email:</strong> {selectedOrderDetail.email}</div>
+                <div style={{ marginBottom: 6 }}><strong>Address:</strong> {selectedOrderDetail.address}</div>
+                <div style={{ marginTop: 8 }}>
+                  <h4 style={{ margin: '8px 0' }}>Items</h4>
+                  {getOrderItems(selectedOrderDetail).map((it, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+                      <div><strong style={{ fontSize: 14 }}>{it.name}</strong><div style={{ fontSize: 12, color: '#555' }}>{it.sku ? `SKU: ${it.sku}` : null}</div></div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 14 }}>x{it.quantity}</div>
+                        <div style={{ fontSize: 14 }}>Rs. {(Number(it.price) || 0).toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ width: 360, background: '#fff', padding: 12, borderRadius: 6, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                <h3 style={{ marginTop: 0 }}>Billing</h3>
+                <div style={{ marginBottom: 6 }}><strong>Subtotal:</strong> Rs. {computeSubtotal(selectedOrderDetail).toLocaleString()}</div>
+                <div style={{ marginBottom: 6 }}><strong>Discount:</strong> Rs. {(selectedOrderDetail.discountAmount || selectedOrderDetail.discount || 0).toLocaleString()}</div>
+                <div style={{ marginBottom: 6 }}><strong>Offer:</strong> {selectedOrderDetail.offer || '—'}</div>
+                <div style={{ marginBottom: 6 }}><strong>Tax:</strong> Rs. {(selectedOrderDetail.tax || 0).toLocaleString()}</div>
+                <div style={{ marginBottom: 6 }}><strong>Delivery Method:</strong> {selectedOrderDetail.deliveryMethod || selectedOrderDetail.delivery || 'Standard'}</div>
+                <div style={{ marginBottom: 6 }}><strong>Delivery Fee:</strong> Rs. {(selectedOrderDetail.deliveryFee || 0).toLocaleString()}</div>
+                <div style={{ marginTop: 12, fontSize: 18, fontWeight: 700 }}>Total: Rs. {((computeSubtotal(selectedOrderDetail) - Number(selectedOrderDetail.discountAmount || selectedOrderDetail.discount || 0) + Number(selectedOrderDetail.tax || 0) + Number(selectedOrderDetail.deliveryFee || 0)).toLocaleString())}</div>
+                <div style={{ marginTop: 10 }}><strong>Payment:</strong> {selectedOrderDetail.paymentMethod || '—'}</div>
+                <div style={{ marginTop: 6 }}><strong>Transaction ID:</strong> {selectedOrderDetail.transactionId || selectedOrderDetail.paymentId || '—'}</div>
+              </div>
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <h3>Order Notes / Meta</h3>
+              <pre style={{ whiteSpace: 'pre-wrap', background: '#f8fafc', padding: 12 }}>{JSON.stringify(selectedOrderDetail, null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Modal from '../../components/ui/Modal';
 import { addProduct, getAllProductsIncludingCustom } from '../../utils/productOperations';
+import { db } from '../../firebase/config';
+import { doc, getDoc, writeBatch, collection, serverTimestamp } from 'firebase/firestore';
 
 // Updated CSV template for download (matches Excel columns)
 const csvTemplate = `Item Code,Description,Base Unit,Group ID,Group Name,Sub Group,Supplier Name,Last CP,Taxable CP,SP,Stock,Last Purc Miti,Last Purc Qty,Sales Qty,#,Margin %,MRP,Location1,Location2,Location3,Location4,Location5\n`;
@@ -53,7 +55,7 @@ const DUPLICATE_ACTIONS = [
   { value: 'log', label: 'Log Conflict Only' },
 ];
 
-const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
+const BulkProductUpdate = ({ isOpen, onClose, onSuccess }) => {
   const [csvProducts, setCsvProducts] = useState([]);
   const [csvErrors, setCsvErrors] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -106,82 +108,135 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
     reader.readAsText(file);
   };
 
+  function normalizeRowForFirestore(row) {
+    const num = (v) => {
+      const n = Number(String(v == null ? '' : v).trim());
+      return isNaN(n) ? 0 : n;
+    };
+    return {
+      id: row['Item Code'] || row.id || row.ID || row.Id || '',
+      'Item Code': row['Item Code'] || '',
+      Description: row['Description'] || '',
+      'Base Unit': row['Base Unit'] || '',
+      'Group ID': row['Group ID'] || '',
+      'Group Name': row['Group Name'] || '',
+      'Sub Group': row['Sub Group'] || '',
+      'Supplier Name': row['Supplier Name'] || '',
+      'Last CP': num(row['Last CP']),
+      'Taxable CP': num(row['Taxable CP']),
+      SP: num(row['SP']),
+      Stock: num(row['Stock']),
+      'Last Purc Miti': row['Last Purc Miti'] || '',
+      'Last Purc Qty': num(row['Last Purc Qty']),
+      'Sales Qty': num(row['Sales Qty']),
+      '#': row['#'] || '',
+      'Margin %': num(row['Margin %']),
+      MRP: num(row['MRP']),
+      Location1: row['Location1'] || '',
+      Location2: row['Location2'] || '',
+      Location3: row['Location3'] || '',
+      Location4: row['Location4'] || '',
+      Location5: row['Location5'] || '',
+      createdAt: new Date(),
+    };
+  }
+
+  async function uploadViaHttpsFunction(file) {
+    const text = await file.text();
+    const baseUrl = process.env.REACT_APP_FUNCTIONS_URL || '';
+    const endpoint = `${baseUrl}/uploadProductsCsv`;
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: text,
+    });
+    if (!resp.ok) throw new Error(`CSV function failed (${resp.status})`);
+    return resp.json();
+  }
+
+  async function uploadViaClientFirestore(validRows) {
+    const ts = Date.now();
+    const collectionName = `products_snapshot_${ts}`;
+    const items = validRows.map(normalizeRowForFirestore).filter(r => r['Item Code']);
+    const chunkSize = 400;
+    const chunks = (a, size) => a.reduce((acc, _, i) => (i % size ? acc : [...acc, a.slice(i, i + size)]), []);
+    const parts = chunks(items, chunkSize);
+    for (let i = 0; i < parts.length; i++) {
+      const batch = writeBatch(db);
+      for (let j = 0; j < parts[i].length; j++) {
+        const p = parts[i][j];
+        const id = String(p.id || p['Item Code'] || `${ts}_${i}_${j}`);
+        batch.set(doc(collection(db, collectionName), id), p);
+      }
+      await batch.commit();
+      setProgress(Math.min(95, Math.round(((i + 1) / parts.length) * 95)));
+    }
+    await (async () => {
+      const pointerRef = doc(db, 'system/productsSnapshot');
+      // Using set with merge false to replace
+      await import('firebase/firestore').then(({ setDoc }) => setDoc(pointerRef, {
+        version: ts,
+        collection: collectionName,
+        total: items.length,
+        createdAt: serverTimestamp(),
+      }));
+    })();
+    return { version: ts, collection: collectionName, total: items.length };
+  }
+
   const handleBulkUpload = async () => {
+    // New flow: send raw CSV to HTTPS function, it creates a new collection and pointer
+    if (!fileInputRef.current?.files?.[0]) {
+      setCsvErrors(['Please choose a CSV file']);
+      return;
+    }
+
     setUploading(true);
     setProgress(0);
     setErrorLog([]);
     setSummary(null);
-    let successCount = 0;
-    let failCount = 0;
-    let skipCount = 0;
-    const errors = [];
-    const existingProducts = getAllProductsIncludingCustom();
-    
-    for (let i = 0; i < csvProducts.length; i++) {
-      const p = csvProducts[i];
-      if (alreadyUploadedMap[p._row]) {
-        skipCount++;
-        setProgress(Math.round(((i + 1) / csvProducts.length) * 100));
-        continue;
-      }
-      if (p._errors && p._errors.length > 0) {
-        skipCount++;
-        setProgress(Math.round(((i + 1) / csvProducts.length) * 100));
-        continue;
-      }
+
+    try {
+      const file = fileInputRef.current.files[0];
+      let result = null;
       try {
-        const itemCode = p['Item Code'];
-        
-        // Check for duplicate in local database
-        const existingProduct = existingProducts.find(existing => 
-          existing.name === p['Description'] && existing.category === p['Group Name']
-        );
-        
-        if (existingProduct) {
-          if (duplicateAction === 'skip') {
-            skipCount++;
-            errors.push({ row: p._row, itemCode, error: 'Duplicate: Skipped' });
-            continue;
-          } else if (duplicateAction === 'update') {
-            // For local database, we can't update JSON products, only custom ones
-            skipCount++;
-            errors.push({ row: p._row, itemCode, error: 'Cannot update existing products from JSON database' });
-            continue;
-          } else if (duplicateAction === 'log') {
-            skipCount++;
-            errors.push({ row: p._row, itemCode, error: 'Duplicate: Logged' });
-            continue;
-          }
-        } else {
-          // Add new product to local database
-          addProduct({
-            name: p['Description'],
-            category: p['Group Name'],
-            price: Number(p['SP']) || 0,
-            stock: Number(p['Stock']) || 0,
-            description: p['Description'] || '',
-            itemCode: p['Item Code'],
-            supplier: p['Supplier Name'],
-            unit: p['Base Unit'],
-            mrp: Number(p['MRP']) || 0,
-            margin: Number(p['Margin %']) || 0,
-            deliveryFee: 0,
-            offer: '',
-            imageUrl: 'https://via.placeholder.com/40'
-          });
-          successCount++;
-        }
-      } catch (err) {
-        failCount++;
-        errors.push({ row: p._row, itemCode: p['Item Code'], error: err.message });
+        // Try cloud function first (works on hosting/emulator)
+        result = await uploadViaHttpsFunction(file);
+      } catch (fnErr) {
+        // Fallback: do it entirely on client (localhost friendly)
+        const validRows = csvProducts.filter(p => !p._errors || p._errors.length === 0);
+        if (validRows.length === 0) throw new Error('No valid rows to upload');
+        result = await uploadViaClientFirestore(validRows);
       }
-      setProgress(Math.round(((i + 1) / csvProducts.length) * 100));
-    }
-    
-    setSummary({ success: successCount, failed: failCount, skipped: skipCount });
-    setErrorLog(errors);
+
+      // Poll current snapshot pointer to display status
+      const start = Date.now();
+      let lastVersion = null;
+      try {
+        const currentDoc = await getDoc(doc(db, 'system/productsSnapshot'));
+        lastVersion = currentDoc.exists() ? currentDoc.data().version : null;
+      } catch (_e) {}
+
+      // Simple polling loop (up to ~30s) to see if Cloud Function updated the pointer
+      let newVersion = lastVersion;
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        setProgress(Math.min(95, Math.round(((i + 1) / 30) * 100)));
+        const snap = await getDoc(doc(db, 'system/productsSnapshot'));
+        if (snap.exists() && snap.data().version && snap.data().version !== lastVersion) {
+          newVersion = snap.data().version;
+          break;
+        }
+      }
+
+      setSummary({ success: 1, failed: 0, skipped: 0, version: newVersion || lastVersion });
+      } catch (err) {
+      setErrorLog([{ row: '-', itemCode: '-', error: err.message }]);
+    } finally {
     setUploading(false);
+      setProgress(100);
     if (onSuccess) onSuccess();
+    }
   };
 
   function downloadErrorLog() {
@@ -199,7 +254,7 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Bulk Upload Products" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Bulk Update Products" size="md">
       <div style={{ marginBottom: 16 }}>
         <button className="admin-btn secondary" onClick={downloadCSVTemplate}>Download CSV Template</button>
       </div>
@@ -265,4 +320,4 @@ const BulkProductUpload = ({ isOpen, onClose, onSuccess }) => {
   );
 };
 
-export default BulkProductUpload; 
+export default BulkProductUpdate; 

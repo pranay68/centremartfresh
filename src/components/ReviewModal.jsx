@@ -46,9 +46,16 @@ const ReviewModal = () => {
   };
 
   useEffect(() => {
-    const openReviewsListener = () => handleOpenReviews();
-    window.addEventListener('open-reviews-modal', openReviewsListener);
-    return () => window.removeEventListener('open-reviews-modal', openReviewsListener);
+    const safeOpenReviewsListener = async () => {
+      try {
+        await handleOpenReviews();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Error in open-reviews-modal listener:', err);
+      }
+    };
+    window.addEventListener('open-reviews-modal', safeOpenReviewsListener);
+    return () => window.removeEventListener('open-reviews-modal', safeOpenReviewsListener);
     // eslint-disable-next-line
   }, [user]);
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getAllProducts } from '../utils/productOperations';
+import publicProducts from '../utils/publicProducts';
 import './AdminMobilePanel.css';
 
 import { useEffect, useState } from 'react';
@@ -8,7 +8,16 @@ const AdminMobilePanel = () => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    setProducts(getAllProducts());
+    (async () => {
+      try {
+        await publicProducts.ensureLoaded();
+        const all = publicProducts.getAllCached().slice(0, 2000);
+        setProducts(all);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('AdminMobilePanel load error:', e);
+      }
+    })();
   }, []);
 
   return (

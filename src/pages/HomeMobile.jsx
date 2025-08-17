@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Heart, ShoppingCart, Bell, User, Home, MessageCircle } from 'lucide-react';
+import { Search, Heart, ShoppingCart, Bell, User, Home as HomeIcon } from 'lucide-react';
 import { useMediaQuery } from 'react-responsive';
 import './HomeMobile.css';
-import { getAllProducts } from '../utils/productData';
+import publicProducts from '../utils/publicProducts';
 
-// const PRODUCTS_PER_PAGE = 10; // Removed as it is unused
 const BUFFER_SIZE = 30; // Maximum products to keep in memory
 const SCROLL_THRESHOLD = 0.8; // Load more when 80% scrolled
 
@@ -22,12 +21,14 @@ const HomeMobile = () => {
   
   // Refs
   const scrollRef = useRef(null);
-  const loadingRef = useRef(false);
-  // Fetch all products from local data
-  const fetchProducts = useCallback(() => {
+  const productCache = useRef({});
+
+  // Fetch all products from Supabase
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const allProducts = getAllProducts();
+      await publicProducts.ensureLoaded();
+      const allProducts = publicProducts.getAllCached();
       setProducts(allProducts);
       // Set product positions for virtualization
       const positions = {};
@@ -39,7 +40,6 @@ const HomeMobile = () => {
       console.error('Error loading products:', error);
     } finally {
       setLoading(false);
-      loadingRef.current = false;
     }
   }, []);
 
@@ -51,49 +51,23 @@ const HomeMobile = () => {
     }
   };
 
-  // Initialize scroll observer
-  useEffect(() => {
-    const options = {
-      root: null,
-      rootMargin: '100px',
-      threshold: 0.1
-    };
-
-    const observer = new IntersectionObserver(entries => {
-      const target = entries[0];
-      if (target.isIntersecting && hasMore && !loadingRef.current) {
-        fetchProducts(lastDoc);
-      }
-    }, options);
-
-    const loadingElement = document.querySelector('.loading-trigger');
-    if (loadingElement) {
-      observer.observe(loadingElement);
-    }
-
-    return () => observer.disconnect();
-  }, [fetchProducts, hasMore, lastDoc]);
-
   // Handle scroll position and memory management
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-    
-    // Calculate visible range based on scroll position
     const totalProducts = products.length;
-    const currentIndex = Math.floor((scrollTop / scrollHeight) * totalProducts);
-    
-    let start = Math.max(0, currentIndex - BUFFER_SIZE / 2);
-    let end = Math.min(totalProducts, currentIndex + BUFFER_SIZE / 2);
-    
-    // Update visible range
+    if (totalProducts === 0) return;
+
+    const currentIndex = Math.floor((scrollTop / Math.max(1, scrollHeight - clientHeight)) * totalProducts);
+    let start = Math.max(0, currentIndex - Math.floor(BUFFER_SIZE / 2));
+    let end = Math.min(totalProducts, start + BUFFER_SIZE);
+    if (end - start < BUFFER_SIZE) start = Math.max(0, end - BUFFER_SIZE);
+
     if (start !== visibleRange.start || end !== visibleRange.end) {
       setVisibleRange({ start, end });
-      
-      // Cache products that will be removed
-      const newCache = {...productCache.current};
+      // Cache products that are outside the visible window
+      const newCache = { ...productCache.current };
       products.forEach((product, idx) => {
         if (idx < start || idx > end) {
           newCache[product.id] = product;
@@ -101,27 +75,20 @@ const HomeMobile = () => {
       });
       productCache.current = newCache;
     }
-    
-    // Check if we need to load more
-    if (scrollPercentage > SCROLL_THRESHOLD && hasMore && !loadingRef.current) {
-      fetchProducts(lastDoc);
-    }
-  }, [products, hasMore, lastDoc, fetchProducts, visibleRange]);
-
-  // Restore products when scrolling up
-  const restoreProducts = useCallback((start) => {
-    if (start === 0 || !productCache.current) return;
-    
-    const productsToRestore = Object.values(productCache.current)
-      .filter(p => productPositions[p.id] < start)
-      .sort((a, b) => productPositions[a.id] - productPositions[b.id]);
-    
-    if (productsToRestore.length > 0) {
+  }, [products, visibleRange.start, visibleRange.end]);
 
   // Initial load
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // Attach scroll handler
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    node.addEventListener('scroll', handleScroll, { passive: true });
+    return () => node.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   // Get visible products
   const visibleProducts = products.slice(visibleRange.start, visibleRange.end);
@@ -173,7 +140,7 @@ const HomeMobile = () => {
               key={product.id}
               className="mobile-product-card"
               style={{
-                transform: `translateY(${productPositions[product.id] * 100}%)`
+                transform: `translateY(${(productPositions[product.id] || 0) * 100}%)`
               }}
             >
               <div className="mobile-product-image-wrapper">
@@ -183,29 +150,14 @@ const HomeMobile = () => {
                   loading="lazy"
                   className="mobile-product-image"
                 />
-                {product.discount && (
-                  <span className="mobile-product-discount">
-                    -{product.discount}%
-                  </span>
-                )}
               </div>
               <div className="mobile-product-info">
                 <h3>{product.name}</h3>
                 <div className="mobile-product-price">
                   <span className="current-price">
-                    ${product.price.toFixed(2)}
+                    ${Number(product.price || product.sp || 0).toFixed(2)}
                   </span>
-                  {product.originalPrice && (
-                    <span className="original-price">
-                      ${product.originalPrice.toFixed(2)}
-                    </span>
-                  )}
                 </div>
-                {product.rating && (
-                  <div className="mobile-product-rating">
-                    ⭐ {product.rating} ({product.reviews || 0})
-                  </div>
-                )}
               </div>
             </Link>
           ))}
@@ -221,7 +173,7 @@ const HomeMobile = () => {
         {/* Bottom Navigation */}
         <nav className="mobile-nav">
           <Link to="/" className="mobile-nav-item active">
-            <Home size={24} />
+            <HomeIcon size={24} />
             <span>Home</span>
           </Link>
           <Link to="/cart" className="mobile-nav-item">
@@ -246,6 +198,4 @@ const HomeMobile = () => {
   );
 };
 
-}
-}
 export default HomeMobile;

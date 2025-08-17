@@ -1,12 +1,42 @@
-import products from '../data/products.json';
+// Runtime product loader: prefer public snapshot at /data/products.json
+let productArray = [];
+// placeholder flag if needed later
+let productsLoaded = false;
 
-// Ensure products is an array
-const productArray = Array.isArray(products) ? products :
-    Array.isArray(products.products) ? products.products : [];
+async function fetchPublicProducts() {
+    try {
+        const res = await fetch('/data/products.json', { cache: 'no-cache' });
+        if (!res.ok) throw new Error('Failed to fetch public products');
+        const json = await res.json();
+        const arr = Array.isArray(json) ? json : (Array.isArray(json.products) ? json.products : []);
+        productArray = arr;
+        productsLoaded = true;
+        return arr;
+    } catch (e) {
+        // Fallback to local bundled JSON if present
+        try {
+            // eslint-disable-next-line global-require, import/no-dynamic-require
+            // eslint-disable-next-line no-undef
+            const fallback = require('../data/products.json');
+            const arr = Array.isArray(fallback) ? fallback : (Array.isArray(fallback.products) ? fallback.products : []);
+            productArray = arr;
+            productsLoaded = true;
+            return arr;
+        } catch (_) {
+            productArray = [];
+            productsLoaded = true;
+            return [];
+        }
+    }
+}
+
+// start loading immediately (best-effort)
+void fetchPublicProducts();
 
 // Process the products and normalize the data
 export const getAllProducts = () => {
-    return productArray.map(product => ({
+    const arr = productArray || [];
+    return arr.map(product => ({
         id: product.id,
         name: product.Description,
         price: Math.round(Number(product["Last CP"])) || 0,
@@ -25,7 +55,8 @@ export const getAllProducts = () => {
 };
 
 export const getProductById = (productId) => {
-    const product = productArray.find(p => p.id === productId);
+    const arr = productArray || [];
+    const product = arr.find(p => p.id === productId);
     if (!product) return null;
 
     return {
@@ -47,7 +78,8 @@ export const getProductById = (productId) => {
 };
 
 export const getProductsByCategory = (categoryName) => {
-    return productArray
+    const arr = productArray || [];
+    return arr
         .filter(product => product["Group Name"] === categoryName)
         .map(product => ({
             id: product.id,
@@ -68,8 +100,9 @@ export const getProductsByCategory = (categoryName) => {
 };
 
 export const searchProducts = (searchTerm) => {
-    const term = searchTerm.toLowerCase();
-    return productArray
+    const term = (searchTerm || '').toLowerCase();
+    const arr = productArray || [];
+    return arr
         .filter(product =>
             product.Description.toLowerCase().includes(term) ||
             product["Group Name"].toLowerCase().includes(term) ||
@@ -94,7 +127,8 @@ export const searchProducts = (searchTerm) => {
 };
 
 export const getTopSellingProducts = (limit = 10) => {
-    return products
+    const arr = productArray || [];
+    return arr
         .sort((a, b) => Number(b["Sales Qty"]) - Number(a["Sales Qty"]))
         .slice(0, limit)
         .map(product => ({
@@ -116,7 +150,8 @@ export const getTopSellingProducts = (limit = 10) => {
 };
 
 export const getAllCategories = () => {
-    return [...new Set(products.map(product => product["Group Name"]))];
+    const arr = productArray || [];
+    return [...new Set(arr.map(product => product["Group Name"]))];
 };
 
 export const getProductsByIds = (ids) => {
@@ -126,7 +161,8 @@ export const getProductsByIds = (ids) => {
 
 // Get products with low stock (less than or equal to 5)
 export const getLowStockProducts = () => {
-    return products
+    const arr = productArray || [];
+    return arr
         .filter(product => Number(product.Stock) <= 5)
         .map(product => ({
             id: product.id,
@@ -148,7 +184,8 @@ export const getLowStockProducts = () => {
 
 // Get products with high margin (greater than 30%)
 export const getHighMarginProducts = () => {
-    return products
+    const arr = productArray || [];
+    return arr
         .filter(product => Number(product["Margin %"]) > 30)
         .map(product => ({
             id: product.id,

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Fuse from 'fuse.js';
-import { Search, Mic, TrendingUp, Clock, X, Filter, Keyboard } from 'lucide-react';
+import { Search, Mic, X, Filter } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+// firebase helpers not used here
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { semanticSearch } from '../utils/semanticSearch';
+import publicProducts from '../utils/publicProducts';
 
-const PowerSearch = ({ products, onSearch, searchTerm, setSearchTerm }) => {
+const PowerSearch = ({ products, onSearch, searchTerm, setSearchTerm, navigateOnSearch = true }) => {
   const navigate = useNavigate();
+  const [localProducts, setLocalProducts] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     category: '',
@@ -17,7 +19,9 @@ const PowerSearch = ({ products, onSearch, searchTerm, setSearchTerm }) => {
     rating: ''
   });
   const [isListening, setIsListening] = useState(false);
+  // reserved for future keyboard shortcut UI (placeholder)
   const [showShortcuts, setShowShortcuts] = useState(false);
+  void showShortcuts;
   const [loading, setLoading] = useState(false);
   const searchRef = useRef(null);
   useEffect(() => {
@@ -30,7 +34,8 @@ const PowerSearch = ({ products, onSearch, searchTerm, setSearchTerm }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
   const inputRef = useRef(null);
-  const { user } = useAuth();
+  // user context available if needed by advanced search features (placeholder)
+  const { user } = useAuth(); void user;
 
   // Fuse.js configuration for fuzzy search
   const fuseOptions = useMemo(() => ({
@@ -44,57 +49,132 @@ const PowerSearch = ({ products, onSearch, searchTerm, setSearchTerm }) => {
     includeMatches: true
   }), []);
 
+  const usedProducts = useMemo(() => (products && Array.isArray(products) && products.length ? products : localProducts), [products, localProducts]);
+
   const fuse = useMemo(() => {
-    if (!products || !Array.isArray(products)) {
-      return new Fuse([], fuseOptions);
-    }
-    return new Fuse(products, fuseOptions);
-  }, [products, fuseOptions]);
+    if (!usedProducts || !Array.isArray(usedProducts)) return new Fuse([], fuseOptions);
+    return new Fuse(usedProducts, fuseOptions);
+  }, [usedProducts, fuseOptions]);
 
   // Get unique categories for filters
   const categories = useMemo(() => {
-    if (!products || !Array.isArray(products)) {
-      return [];
-    }
-    return [...new Set(products.map(p => p.category).filter(Boolean))];
-  }, [products]);
+    if (!usedProducts || !Array.isArray(usedProducts)) return [];
+    return [...new Set(usedProducts.map(p => p.category).filter(Boolean))];
+  }, [usedProducts]);
 
   // Main search logic: fuzzy, then semantic
+  const lastTriggeredRef = useRef('');
+
   const handleSearch = useCallback(async (term) => {
+    // avoid re-triggering the same term repeatedly
+    const trimmed = (term || '').trim();
+    if (lastTriggeredRef.current === trimmed) return;
+    lastTriggeredRef.current = trimmed;
+
+    // If header/global search wants to navigate, require signed-in user
+    if (navigateOnSearch && !user) {
+      toast.error('Please sign in to search.');
+      return;
+    }
+
     setSearchTerm(term);
     setLoading(true);
-    let filteredProducts = products;
-    if (term.trim()) {
-      // Fuzzy search first
-      const results = fuse.search(term);
-      filteredProducts = results.map(r => r.item);
-      // If no fuzzy results, try semantic search
-      if (filteredProducts.length === 0) {
-        filteredProducts = await semanticSearch(term, 50);
+    let filteredProducts = usedProducts;
+    try {
+      if (term.trim()) {
+        // Fuzzy search first
+        const results = fuse.search(term);
+        filteredProducts = results.map(r => r.item);
+        // If no fuzzy results, try semantic search (best-effort)
+        if (filteredProducts.length === 0) {
+          try {
+            filteredProducts = await semanticSearch(term, 50);
+          } catch (e) {
+            console.warn('semanticSearch failed:', e);
+            filteredProducts = [];
+          }
+        }
+      }
+      // Apply filters
+      if (filters.category) {
+        filteredProducts = filteredProducts.filter(p => p.category === filters.category);
+      }
+      if (filters.minPrice) {
+        filteredProducts = filteredProducts.filter(p => p.price >= parseFloat(filters.minPrice));
+      }
+      if (filters.maxPrice) {
+        filteredProducts = filteredProducts.filter(p => p.price <= parseFloat(filters.maxPrice));
+      }
+      if (filters.rating) {
+        filteredProducts = filteredProducts.filter(p => (p.rating || 0) >= parseFloat(filters.rating));
+      }
+
+      onSearch(term, filteredProducts);
+      if (navigateOnSearch) navigate(`/search?query=${encodeURIComponent(term)}`);
+    } catch (err) {
+      console.error('PowerSearch handleSearch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [setSearchTerm, onSearch, fuse, filters, navigate, navigateOnSearch, usedProducts, user]);
+
+  // Load products from public snapshot when none passed via props
+  useEffect(() => {
+    let mounted = true;
+    async function fetch() {
+      if (products && Array.isArray(products) && products.length) return;
+      try {
+        setLoading(true);
+        await publicProducts.ensureLoaded();
+        const all = publicProducts.getAllCached();
+        if (!mounted) return;
+        setLocalProducts(all || []);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('PowerSearch public snapshot load failed', e);
+      } finally {
+        if (mounted) setLoading(false);
       }
     }
-    // Apply filters
-    if (filters.category) {
-      filteredProducts = filteredProducts.filter(p => p.category === filters.category);
-    }
-    if (filters.minPrice) {
-      filteredProducts = filteredProducts.filter(p => p.price >= parseFloat(filters.minPrice));
-    }
-    if (filters.maxPrice) {
-      filteredProducts = filteredProducts.filter(p => p.price <= parseFloat(filters.maxPrice));
-    }
-    if (filters.rating) {
-      filteredProducts = filteredProducts.filter(p => (p.rating || 0) >= parseFloat(filters.rating));
-    }
-    onSearch(term, filteredProducts);
-    setLoading(false);
-    navigate(`/search?query=${encodeURIComponent(term)}`);
-  }, [setSearchTerm, products, onSearch, fuse, filters, navigate]);
+    fetch();
+    // Listen for cross-tab/product-image updates and reload local products
+    const onRefresh = async () => {
+      try {
+        setLoading(true);
+        await publicProducts.refresh();
+        const all = publicProducts.getAllCached();
+        if (mounted) setLocalProducts(all || []);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('PowerSearch reload after product change failed', e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    window.addEventListener('supabase_products_refresh', onRefresh);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'supabase_products_refresh_signal') onRefresh();
+    });
+    return () => { mounted = false; };
+  }, [products]);
 
   // Handle input change
   const handleInputChange = useCallback((value) => {
-    setSearchTerm(value);
+    // Prevent accidental placeholder-like text being set (e.g., auto-fill of 'searching')
+    const cleaned = (value || '').replace(/searchi+ng/gi, '').trimStart();
+    setSearchTerm(cleaned);
   }, [setSearchTerm]);
+
+  // Auto-run search as user types (debounced) only when embedded (navigateOnSearch=false)
+  useEffect(() => {
+    if (navigateOnSearch) return; // do not auto-run for header/global search which should navigate
+    const term = searchTerm || '';
+    const timer = setTimeout(() => {
+      // only trigger if there's a change
+      handleSearch(term);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm, handleSearch, navigateOnSearch]);
 
   // Voice search
   const handleVoiceSearch = useCallback(() => {
@@ -195,7 +275,7 @@ const PowerSearch = ({ products, onSearch, searchTerm, setSearchTerm }) => {
             <Filter size={18} />
           </button>
         </div>
-        <button className="search-submit-btn" onClick={() => onSearch(searchTerm)} style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white', border: 'none', padding: '16px 24px', borderRadius: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 4px 12px rgba(59,130,246,0.3)' }}>
+        <button className="search-submit-btn" onClick={() => handleSearch(searchTerm)} style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white', border: 'none', padding: '16px 24px', borderRadius: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 4px 12px rgba(59,130,246,0.3)' }}>
           {loading ? 'Searching...' : 'Search'}
         </button>
       </div>

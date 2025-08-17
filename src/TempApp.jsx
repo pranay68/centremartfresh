@@ -38,20 +38,23 @@ const TempApp = () => {
           <WishlistProvider>
             <Router>
               <>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/wishlist" element={<Wishlist />} />
-                  <Route path="/account" element={<Account />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/returns" element={<Returns />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/order-success" element={<OrderSuccess />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/admin/*" element={<Admin />} />
-                  <Route path="/category/:category" element={<CategoryPage />} />
-                  <Route path="/search" element={<SearchResults />} />
-                </Routes>
+                {/* Wrap app routes with an error boundary to prevent whole-app crashes */}
+                <React.Suspense fallback={<div>Loading...</div>}>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/wishlist" element={<Wishlist />} />
+                    <Route path="/account" element={<Account />} />
+                    <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/returns" element={<Returns />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/order-success" element={<OrderSuccess />} />
+                    <Route path="/orders" element={<Orders />} />
+                    <Route path="/admin/*" element={<Admin />} />
+                    <Route path="/category/:category" element={<CategoryPage />} />
+                    <Route path="/search" element={<SearchResults />} />
+                  </Routes>
+                </React.Suspense>
                 <ReviewModal />
                 {/* Toast notifications */}
                 <Toaster position="top-right" />

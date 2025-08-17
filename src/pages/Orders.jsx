@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { collection, query, where, orderBy, getDocs, updateDoc, doc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, updateDoc, doc, onSnapshot, getDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { safeTimestamp, formatDate } from '../utils/dateUtils';
 import { 
@@ -57,7 +57,46 @@ const Orders = () => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
     setCanceling(true);
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled' });
+      await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled', cancelledAt: serverTimestamp() });
+      // Also freeze associated product(s) so admin sees it as frozen
+      try {
+        const orderSnap = await getDoc(doc(db, 'orders', orderId));
+        if (orderSnap.exists()) {
+          const ord = orderSnap.data();
+          const productIds = [];
+          if (ord.productId) productIds.push(ord.productId);
+          if (Array.isArray(ord.items)) {
+            ord.items.forEach(it => {
+              if (it.productId) productIds.push(it.productId);
+              if (it.id) productIds.push(it.id);
+            });
+          }
+          for (const pid of Array.from(new Set(productIds))) {
+            try {
+              await updateDoc(doc(db, 'products', String(pid)), { frozen: true, frozenAt: serverTimestamp() });
+            } catch (e) {
+              // ignore per-product failures
+              console.warn('Failed to freeze product', pid, e);
+            }
+            try {
+              // create admin notification about frozen product
+              await addDoc(collection(db, 'notifications'), {
+                title: 'Product frozen',
+                message: `Order ${orderId} cancelled — product ${pid} has been frozen`,
+                productId: pid,
+                orderId: orderId,
+                createdAt: serverTimestamp(),
+                read: false,
+                type: 'product_frozen'
+              });
+            } catch (e) {
+              console.warn('Failed to create notification for frozen product', pid, e);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch order for freeze step', e);
+      }
       // No need to call loadOrders here, as onSnapshot handles updates
       setSelectedOrder(null);
     } catch (error) {
@@ -87,7 +126,7 @@ const Orders = () => {
   // Using formatDate from dateUtils
 
   const calculateTotal = (items) => {
-    return (items || []).reduce((total, item) => total + (item.price * item.quantity), 0);
+    return (items || []).reduce((total, item) => total + ((Number(item.price) || 0) * (Number(item.quantity) || 1)), 0);
   };
 
   // Filtered orders
@@ -129,6 +168,7 @@ const Orders = () => {
           orders={filteredOrders}
           loading={loading}
           onOrderClick={setSelectedOrder}
+          onCancel={handleCancelOrder}
         />
         <OrderDetailModal
           order={selectedOrder}

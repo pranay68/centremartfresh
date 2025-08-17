@@ -3,6 +3,8 @@ import './OrderPanel.css';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import toast from 'react-hot-toast';
+import { getPrimaryImageOrPlaceholder } from '../utils/imageHelper';
+import getUnitPrice from '../utils/priceUtils';
 
 const OrderPanel = ({ product, onClose }) => {
   const [name, setName] = useState('');
@@ -47,8 +49,8 @@ const OrderPanel = ({ product, onClose }) => {
       await addDoc(collection(db, 'orders'), {
         productId: product.id,
         productName: product.name,
-        productImageURL: product.imageUrl,
-        price: product.price,
+        productImageURL: getPrimaryImageOrPlaceholder(product),
+        price: getUnitPrice(product) || product.price || 0,
         deliveryCharge: 0,
         customerName: name.trim(),
         address: location.trim(),
@@ -81,7 +83,7 @@ const OrderPanel = ({ product, onClose }) => {
     <div className="order-panel-backdrop">
       <div className="order-panel-modal">
         <h2>🚀 Order: <span className="product-name">{product.name}</span></h2>
-        <img src={product.imageUrl} alt={product.name} className="order-img" />
+        <img src={getPrimaryImageOrPlaceholder(product)} alt={product.name} className="order-img" />
         <p className="price-tag">💸 Price: <strong>Rs. {product.price.toLocaleString()}</strong></p>
 
         <input

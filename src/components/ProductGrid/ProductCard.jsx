@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -22,6 +23,7 @@ import './ProductCard.css';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { getStockStatus } from '../../utils/sortProducts';
+import { getPrimaryImageOrPlaceholder } from '../../utils/imageHelper';
 
 const ProductCard = ({ 
   product, 
@@ -39,30 +41,29 @@ const ProductCard = ({
 }) => {
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showLocation, setShowLocation] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('default');
+  const [currentTheme] = useState('default');
   const [isHovered, setIsHovered] = useState(false);
   const [avgRating, setAvgRating] = useState(null);
   const [reviewCount, setReviewCount] = useState(0);
 
+  // Avoid attaching a Firestore realtime listener per card (can cause severe performance issues
+  // when rendering many products). Use pre-computed values from product if available, otherwise
+  // leave reviews info empty. Detailed review fetch will happen in product detail panel.
   useEffect(() => {
-    if (!product?.id) return;
-    const reviewsQuery = query(
-      collection(db, 'productReviews'),
-      where('productId', '==', product.id)
-    );
-    const unsub = onSnapshot(reviewsQuery, (snap) => {
-      const reviews = snap.docs.map(doc => doc.data());
-      setReviewCount(reviews.length);
-      if (reviews.length) {
-        const avg = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
-        setAvgRating(avg.toFixed(1));
-      } else {
-        setAvgRating(null);
-      }
-    });
-    return () => unsub();
-  }, [product?.id]);
+    if (!product) return;
+    if (product.reviewCount || product.review_count) {
+      setReviewCount(product.reviewCount || product.review_count || 0);
+    } else {
+      setReviewCount(0);
+    }
+    if (product.avgRating || product.avg_rating) {
+      setAvgRating((product.avgRating || product.avg_rating).toFixed ? (product.avgRating || product.avg_rating).toFixed(1) : String(product.avgRating || product.avg_rating));
+    } else {
+      setAvgRating(null);
+    }
+  }, [product]);
 
   const themes = {
     default: { bg: '#667eea', text: 'white' },
@@ -79,6 +80,8 @@ const ProductCard = ({
     }
   };
 
+  const invokedRef = useRef(false);
+
   const handleAddToCart = (e) => {
     e.stopPropagation();
     
@@ -88,80 +91,98 @@ const ProductCard = ({
     }
 
     if (product) {
+      // Call callbacks asynchronously and guard them to avoid throwing
       if (onQuickAdd) {
-        onQuickAdd(product);
+        setTimeout(() => {
+          try { onQuickAdd(product); } catch (err) { console.error('onQuickAdd error', err); }
+        }, 0);
       } else {
-        addToCart(product);
-        toast.success('Added to cart!');
+        setTimeout(() => {
+          try { if (addToCart) { addToCart(product); toast.success('Added to cart!'); } else { console.warn('addToCart not available'); } } catch (err) { console.error('addToCart error', err); }
+        }, 0);
       }
     }
   };
 
-  const handleWishlist = (e) => {
-    e.stopPropagation();
-    
-    if (!user) {
-      handleAuthRequired();
-      return;
-    }
-
-    if (product && onWishlist) {
-      onWishlist(product);
-    }
-  };
-
-  const handleCompare = (e) => {
-    e.stopPropagation();
-    
-    if (!user) {
-      handleAuthRequired();
-      return;
-    }
-
-    if (product && onCompare) {
-      onCompare(product);
-    }
-  };
-
-  const handleQuickView = (e) => {
-    e.stopPropagation();
-    
-    if (!user) {
-      handleAuthRequired();
-      return;
-    }
-
-    if (product && onQuickView) {
-      onQuickView(product);
-    }
-  };
+  // Note: wishlist/compare/quickView handlers removed because they were not
+  // used in this card markup. Reintroduce only if the UI adds buttons that
+  // call these props to avoid unused-definition lint errors.
 
   const handleBuyNow = (e) => {
     e.stopPropagation();
-    
+
     if (!user) {
       handleAuthRequired();
       return;
     }
 
-    if (product && onProductClick) {
-      onProductClick(product);
+    if (!product) return;
+
+    // Save buy-now item to sessionStorage so Checkout can read it
+    try {
+      const buyNowItem = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.images?.[0] || product.image_urls?.[0] || product.image || '',
+        quantity: 1
+      };
+      sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+    } catch (err) {
+      console.error('Failed to save buyNowItem to sessionStorage', err);
+    }
+
+    // Navigate to checkout and pass state as well for robustness
+    try {
+      navigate('/checkout', { state: { product } });
+    } catch (err) {
+      // fallback: set location
+      try { window.location.href = '/checkout'; } catch (e) { console.error(e); }
     }
   };
 
-  const handleThemeChange = (e) => {
-    e.stopPropagation();
-    const themeKeys = Object.keys(themes);
-    const currentIndex = themeKeys.indexOf(currentTheme);
-    const nextIndex = (currentIndex + 1) % themeKeys.length;
-    setCurrentTheme(themeKeys[nextIndex]);
+  // Fast pointerdown handler to give instant response when tapping/clicking the card
+  const handlePointerDownProduct = (e) => {
+    try {
+      // if pointerdown originated from action buttons, skip (they handle their own actions)
+      if (e.target && e.target.closest && e.target.closest('.product-actions')) return;
+      if (!product || !onProductClick) return;
+      if (invokedRef.current) return;
+      invokedRef.current = true;
+      try { onProductClick(product); } catch (err) { console.error('onProductClick (pointerdown) error', err); }
+      // reset shortly to allow other interactions
+      setTimeout(() => { invokedRef.current = false; }, 400);
+    } catch (err) {
+      // ignore
+    }
   };
+
+  // Theme change control removed from this compact card — keep state but
+  // change via parent if needed.
 
   const handleProductClick = () => {
-    if (product && onProductClick) {
-      onProductClick(product);
+    try {
+      if (product && onProductClick) {
+        // call asynchronously to avoid blocking the UI stack
+        setTimeout(() => {
+          try { onProductClick(product); } catch (err) { console.error('onProductClick handler error', err); }
+        }, 0);
+      }
+    } catch (err) {
+      // swallow any unexpected errors to avoid crashing the whole page
+      console.error('handleProductClick error', err);
     }
   };
+
+  // When navigating back to the home/list, ensure the products snapshot refreshes
+  // to avoid stale UI artifacts. Parent/listener responds to this event.
+  useEffect(() => {
+    const unlisten = () => {};
+    return () => { try { window.dispatchEvent(new Event('supabase_products_refresh')); } catch(e) {} };
+  }, []);
+
+  // Show 'frozen' badge if product is frozen
+  const isFrozen = product?.frozen || false;
 
   if (loading) {
     return (
@@ -183,9 +204,7 @@ const ProductCard = ({
   const discountPercentage = isOnSale 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
-  const isLowStock = product.stock && product.stock <= 5 && product.stock > 0;
   const isOutOfStock = product.stock === 0;
-  const hasFreeShipping = product.freeShipping || product.price > 1000;
   const isPrime = product.prime || product.fastDelivery;
   const stockStatus = getStockStatus(product.stock);
 
@@ -194,12 +213,18 @@ const ProductCard = ({
       className={`product-card ${isOnSale ? 'on-sale' : ''} ${isOutOfStock ? 'out-of-stock' : ''} ${isPrime ? 'prime' : ''} ${stockStatus}`}
       style={{ '--theme-bg': theme.bg, '--theme-text': theme.text }}
       onClick={handleProductClick}
+      onPointerDown={handlePointerDownProduct}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {isFrozen && (
+        <div className="frozen-badge" style={{ position: 'absolute', top: 8, left: 8, background: '#ef4444', color: 'white', padding: '4px 8px', borderRadius: 6, fontSize: 12 }}>
+          Frozen
+        </div>
+      )}
       <div className="product-image-container">
         <img 
-          src={product.imageUrl || product.image} 
+          src={(function(){ try { return getPrimaryImageOrPlaceholder(product); } catch(e){ console.error('image helper failed', e); return null; } })() || 'https://via.placeholder.com/300x200?text=Product+Image'}
           alt={product.name} 
           className="product-image"
           onError={(e) => {

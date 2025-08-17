@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { addDoc, collection, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import getUnitPrice from '../utils/priceUtils';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -50,6 +51,18 @@ const Checkout = () => {
     if (location.state && location.state.product) {
       setProduct(location.state.product);
     } else {
+      // Fallback: try sessionStorage 'buyNowItem' (ProductDetail may save there)
+      try {
+        const raw = sessionStorage.getItem('buyNowItem');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setProduct(parsed);
+          // don't clear immediately — keep for recoverability
+          return;
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
       setProduct(null);
     }
   }, [location.state]);
@@ -167,11 +180,23 @@ const Checkout = () => {
     }
     setLoading(true);
     try {
-      const orderRef = await addDoc(collection(db, 'orders'), cleanUndefined({
+      const qty = (product.quantity && Number(product.quantity)) || 1;
+      const unitPrice = getUnitPrice(product) || 0;
+      const subtotal = Math.round(unitPrice * qty);
+      const discount = qty >= 6 ? Math.round(subtotal * 0.01) : 0;
+      const deliveryFee = selectedDelivery?.fee || 0;
+      const totalAmount = Math.round(subtotal - discount + deliveryFee);
+
+      await addDoc(collection(db, 'orders'), cleanUndefined({
         productId: product.id,
         productName: product.name,
         productImageURL: product.imageUrl || product.productImageURL || product.image || '',
-        price: product.price,
+        unitPrice,
+        quantity: qty,
+        subtotal,
+        discount,
+        deliveryFee,
+        total: totalAmount,
         customerName: formData.name,
         phone: formData.phone,
         addressType: formData.addressType,
@@ -179,7 +204,6 @@ const Checkout = () => {
         additionalInfo: formData.additionalInfo,
         invoiceEmail: formData.invoiceEmail,
         deliveryOption: selectedDelivery.label,
-        deliveryFee: selectedDelivery.fee,
         deliveryLocation: selectedLocation || '',
         status: 'Pending',
         createdAt: serverTimestamp(),
@@ -357,16 +381,43 @@ const Checkout = () => {
               <span>{product.name}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span>Price</span>
+              <span>Unit Price</span>
               <span>Rs. {product.price}</span>
             </div>
+            <div className="flex justify-between items-center">
+              <span>Quantity</span>
+              <span>{(product.quantity && Number(product.quantity)) || 1}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Subtotal</span>
+              <span>Rs. {(() => {
+                const qty = (product.quantity && Number(product.quantity)) || 1;
+                return Math.round((product.price || 0) * qty);
+              })()}</span>
+            </div>
+            {((product.quantity && Number(product.quantity)) || 1) >= 6 && (
+              <div className="flex justify-between items-center">
+                <span>Bulk discount (1%)</span>
+                <span>Rs. {(() => {
+                  const qty = (product.quantity && Number(product.quantity)) || 1;
+                  const subtotal = Math.round((product.price || 0) * qty);
+                  return Math.round(subtotal * 0.01);
+                })()}</span>
+              </div>
+            )}
             <div className="flex justify-between items-center">
               <span>Delivery Fee</span>
               <span>Rs. {selectedDelivery?.fee || 0}</span>
             </div>
             <div className="flex justify-between items-center">
               <span>Total</span>
-              <span>Rs. {(product.price + (selectedDelivery?.fee || 0)).toFixed(2)}</span>
+              <span>Rs. {(() => {
+                const qty = (product.quantity && Number(product.quantity)) || 1;
+                const subtotal = Math.round((product.price || 0) * qty);
+                const discount = qty >= 6 ? Math.round(subtotal * 0.01) : 0;
+                const delivery = selectedDelivery?.fee || 0;
+                return Math.round(subtotal - discount + delivery);
+              })()}</span>
             </div>
           </div>
           <div className="flex items-center mt-4 mb-2">
