@@ -346,6 +346,30 @@ const ProductDetail = () => {
     }
   };
 
+  const handleBack = async () => {
+    try { window.dispatchEvent(new Event('close-all-modals')); } catch (e) {}
+    try { await publicProducts.refresh(); } catch (e) {}
+    try {
+      // Use history.back and reload once the popstate fires to guarantee a clean UI
+      let popped = false;
+      const onPop = () => {
+        popped = true;
+        try { window.location.reload(); } catch (e) {}
+      };
+      window.addEventListener('popstate', onPop, { once: true });
+      // Go back in history
+      window.history.back();
+      // Fallback: if popstate didn't fire in 700ms, reload anyway
+      setTimeout(() => {
+        if (!popped) {
+          try { window.location.reload(); } catch (e) {}
+        }
+      }, 700);
+    } catch (e) {
+      try { window.location.href = '/'; } catch (err) {}
+    }
+  };
+
   const handleVariantSelect = (variant) => {
     setSelectedVariant(variant);
   };
@@ -392,12 +416,7 @@ const ProductDetail = () => {
     <div className="product-detail">
       {/* Breadcrumb */}
       <div className="breadcrumb">
-        <button onClick={() => {
-          try { window.dispatchEvent(new Event('supabase_products_refresh')); } catch(e){}
-          // Close modals/overlays that may persist and block the refreshed UI
-          try { window.dispatchEvent(new Event('close-all-modals')); } catch(e) {}
-          navigate(-1);
-        }} className="back-btn">
+        <button onClick={handleBack} className="back-btn">
           <ArrowLeft size={16} />
           Back
         </button>

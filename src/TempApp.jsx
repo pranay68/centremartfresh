@@ -59,6 +59,15 @@ const TempApp = () => {
               // ignore
             }
             try { window.dispatchEvent(new Event('supabase_products_refresh')); } catch (e) {}
+            // If navigation type is a browser back (POP), do a full reload to ensure no old UI remains
+            try {
+              if (navType === 'POP') {
+                // small timeout to allow events to flush
+                setTimeout(() => {
+                  try { window.location.reload(); } catch (e) { /* ignore */ }
+                }, 50);
+              }
+            } catch (e) {}
           })();
         }
       } catch (e) {
