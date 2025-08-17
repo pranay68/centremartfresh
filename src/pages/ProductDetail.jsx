@@ -349,25 +349,8 @@ const ProductDetail = () => {
   const handleBack = async () => {
     try { window.dispatchEvent(new Event('close-all-modals')); } catch (e) {}
     try { await publicProducts.refresh(); } catch (e) {}
-    try {
-      // Use history.back and reload once the popstate fires to guarantee a clean UI
-      let popped = false;
-      const onPop = () => {
-        popped = true;
-        try { window.location.reload(); } catch (e) {}
-      };
-      window.addEventListener('popstate', onPop, { once: true });
-      // Go back in history
-      window.history.back();
-      // Fallback: if popstate didn't fire in 700ms, reload anyway
-      setTimeout(() => {
-        if (!popped) {
-          try { window.location.reload(); } catch (e) {}
-        }
-      }, 700);
-    } catch (e) {
-      try { window.location.href = '/'; } catch (err) {}
-    }
+    // HARD REDIRECT to home to guarantee a clean UI (loses history state)
+    try { window.location.href = '/'; } catch (e) { /* ignore */ }
   };
 
   const handleVariantSelect = (variant) => {

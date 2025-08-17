@@ -76,7 +76,44 @@ const TempApp = () => {
       prevPathRef.current = cur;
     }, [location.pathname, navType]);
 
+    // Global popstate handler: if user navigates back to the root homepage, force a hard reload
+    React.useEffect(() => {
+      const popHandler = () => {
+        try {
+          if (window.location && window.location.pathname === '/') {
+            // use replace to avoid adding new history entry
+            window.location.replace('/');
+          }
+        } catch (e) {
+          // ignore
+        }
+      };
+      window.addEventListener('popstate', popHandler);
+      return () => window.removeEventListener('popstate', popHandler);
+    }, []);
+
     return null;
+  };
+
+  // Render routes with a key based on location so Home (and others) remount on navigation.
+  const AppRoutes = () => {
+    const location = useLocation();
+    return (
+      <Routes key={location.key || location.pathname}>
+        <Route path="/" element={<Home />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/account" element={<Account />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/returns" element={<Returns />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/admin/*" element={<Admin />} />
+        <Route path="/category/:category" element={<CategoryPage />} />
+        <Route path="/search" element={<SearchResults />} />
+      </Routes>
+    );
   };
   return (
     <ThemeProvider>
@@ -88,20 +125,7 @@ const TempApp = () => {
                 {/* Wrap app routes with an error boundary to prevent whole-app crashes */}
                 <React.Suspense fallback={<div>Loading...</div>}>
                   <RouteListener />
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/wishlist" element={<Wishlist />} />
-                    <Route path="/account" element={<Account />} />
-                    <Route path="/notifications" element={<Notifications />} />
-                    <Route path="/returns" element={<Returns />} />
-                    <Route path="/checkout" element={<Checkout />} />
-                    <Route path="/order-success" element={<OrderSuccess />} />
-                    <Route path="/orders" element={<Orders />} />
-                    <Route path="/admin/*" element={<Admin />} />
-                    <Route path="/category/:category" element={<CategoryPage />} />
-                    <Route path="/search" element={<SearchResults />} />
-                  </Routes>
+                  <AppRoutes />
                 </React.Suspense>
                 <ReviewModal />
                 {/* Toast notifications */}
