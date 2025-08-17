@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, query, orderBy, deleteDoc, onSnapshot, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -54,13 +54,41 @@ const Orders = () => {
   const fetchOrders = async () => {
     try {
       const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : doc.data().createdAt
-      }));
-      setOrders(ordersData);
+      // realtime listener so admin UI reacts to external status changes immediately
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const ordersData = snapshot.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : d.data().createdAt }));
+        setOrders(ordersData);
+        // Process any newly-cancelled orders (docChanges)
+        snapshot.docChanges().forEach(async (change) => {
+          try {
+            if (change.type === 'modified') {
+              const data = change.doc.data();
+              if (String(data.status || '').toLowerCase() === 'cancelled') {
+                // run same cancel processing to freeze products and notify
+                const ord = data;
+                const orderId = change.doc.id;
+                const productIds = [];
+                if (ord.productId) productIds.push(ord.productId);
+                if (Array.isArray(ord.items)) {
+                  ord.items.forEach(it => {
+                    if (it.productId) productIds.push(it.productId);
+                    if (it.id) productIds.push(it.id);
+                  });
+                }
+                for (const pid of Array.from(new Set(productIds))) {
+                  try { await updateDoc(doc(db, 'products', String(pid)), { frozen: true, frozenAt: serverTimestamp() }); } catch (e) { console.warn('Failed to freeze product', pid, e); }
+                  try { await addDoc(collection(db, 'notifications'), { title: 'Product frozen', message: `Order ${orderId} cancelled — product ${pid} has been frozen`, productId: pid, orderId, createdAt: serverTimestamp(), read: false, type: 'product_frozen' }); } catch (e) { console.warn('Failed to create notification for frozen product', pid, e); }
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Error processing order change:', e);
+          }
+        });
+      });
+      // store unsubscribe so we can cleanup on unmount
+      // save to state so fetchOrders remains simple; here we just return unsubscribe
+      return unsubscribe;
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Failed to fetch orders');
@@ -89,13 +117,56 @@ const Orders = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+      const updates = { status: newStatus };
+      if (String(newStatus).toLowerCase() === 'cancelled') {
+        updates.cancelledAt = serverTimestamp();
+      }
+      await updateDoc(doc(db, 'orders', orderId), updates);
       toast.success('Order status updated!');
       // Optionally deduct stock when marking delivered
       if (deductStockOnUpdate && newStatus === 'Delivered') {
         const ord = orders.find(o => o.id === orderId);
         if (ord?.productId) {
           adjustProductStock(ord.productId, -1 * (ord.quantity || 1));
+        }
+      }
+      // If order was cancelled, freeze associated products and notify admins
+      if (String(newStatus).toLowerCase() === 'cancelled') {
+        try {
+          const orderSnap = await getDoc(doc(db, 'orders', orderId));
+          if (orderSnap.exists()) {
+            const ord = orderSnap.data();
+            const productIds = [];
+            if (ord.productId) productIds.push(ord.productId);
+            if (Array.isArray(ord.items)) {
+              ord.items.forEach(it => {
+                if (it.productId) productIds.push(it.productId);
+                if (it.id) productIds.push(it.id);
+              });
+            }
+            for (const pid of Array.from(new Set(productIds))) {
+              try {
+                await updateDoc(doc(db, 'products', String(pid)), { frozen: true, frozenAt: serverTimestamp() });
+              } catch (e) {
+                console.warn('Failed to freeze product', pid, e);
+              }
+              try {
+                await addDoc(collection(db, 'notifications'), {
+                  title: 'Product frozen',
+                  message: `Order ${orderId} cancelled — product ${pid} has been frozen`,
+                  productId: pid,
+                  orderId: orderId,
+                  createdAt: serverTimestamp(),
+                  read: false,
+                  type: 'product_frozen'
+                });
+              } catch (e) {
+                console.warn('Failed to create notification for frozen product', pid, e);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to process cancellation freeze step', e);
         }
       }
       fetchOrders();

@@ -21,8 +21,8 @@ root.render( <
     <
     TempApp / >
     <
-    /ErrorBoundary> <
-    /React.StrictMode>
+    /ErrorBoundary> < /
+    React.StrictMode >
 );
 
 // Initialize global error logger (captures window errors & promise rejections)
