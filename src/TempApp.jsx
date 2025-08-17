@@ -28,9 +28,47 @@ import Admin from "./admin/Admin";
 import ReviewModal from './components/ReviewModal';
 import CategoryPage from "./pages/CategoryPage";
 import SearchResults from "./pages/SearchResults";
+import publicProducts from './utils/publicProducts';
+import { useLocation, useNavigationType } from 'react-router-dom';
 
 // TempApp main component
 const TempApp = () => {
+  // Route listener component to refresh product snapshot and close overlays
+  const RouteListener = () => {
+    const location = useLocation();
+    const navType = useNavigationType();
+    const prevPathRef = React.useRef(location.pathname);
+
+    React.useEffect(() => {
+      const prev = prevPathRef.current;
+      const cur = location.pathname;
+      // If navigating back (POP) from product detail or category to home/list, force a refresh
+      try {
+        const shouldRefresh = (
+          (prev && prev.startsWith('/product/') && (cur === '/' || cur.startsWith('/category') || cur.startsWith('/search'))) ||
+          (prev && prev.startsWith('/category') && (cur === '/' || cur.startsWith('/category')))
+        );
+        if (shouldRefresh) {
+          // close lingering overlays/modals
+          try { window.dispatchEvent(new Event('close-all-modals')); } catch (e) {}
+          // refresh local product snapshot and notify listeners
+          (async () => {
+            try {
+              await publicProducts.refresh();
+            } catch (e) {
+              // ignore
+            }
+            try { window.dispatchEvent(new Event('supabase_products_refresh')); } catch (e) {}
+          })();
+        }
+      } catch (e) {
+        // ignore
+      }
+      prevPathRef.current = cur;
+    }, [location.pathname, navType]);
+
+    return null;
+  };
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -40,6 +78,7 @@ const TempApp = () => {
               <>
                 {/* Wrap app routes with an error boundary to prevent whole-app crashes */}
                 <React.Suspense fallback={<div>Loading...</div>}>
+                  <RouteListener />
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/cart" element={<Cart />} />
