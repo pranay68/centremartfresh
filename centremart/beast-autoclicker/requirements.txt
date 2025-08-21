@@ -1,0 +1,4 @@
+keyboard==0.13.5
+mouse==0.7.1
+tomli==2.0.1
+colorama==0.4.6
