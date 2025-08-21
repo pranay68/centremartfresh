@@ -20,9 +20,14 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Run
+### Run (terminal UI)
 ```bash
 python beast_autoclicker.py
+```
+
+### Run GUI
+```bash
+python beast_gui.py
 ```
 
 ### Hotkeys (while running)
@@ -48,6 +53,14 @@ Key options in `config.toml`:
 - `start_paused`: start in paused state
 - `ui.enabled`: show a simple status panel in terminal
 - `hotkeys.*`: customize function keys
+
+### Build a standalone EXE (optional)
+You can package the GUI into a single file using PyInstaller:
+```bash
+pip install pyinstaller
+pyinstaller --noconfirm --onefile --windowed beast_gui.py
+```
+The built executable will be under `dist/`. On Linux/macOS, you may need to grant input permissions for global hooks.
 
 ### Notes
 - On some Linux desktops you may need to run the terminal with proper permissions for global input hooks.
